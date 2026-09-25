@@ -1,0 +1,94 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: F2_D011_Head_0
+  m_Shader: {fileID: 4800000, guid: 33348e4e7bcb88542a86d1eaf5f6c87f, type: 3}
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _ALPHAPREMULTIPLY_ON
+  m_LightmapFlags: 5
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _ColourTex:
+        m_Texture: {fileID: 2800000, guid: 4292fb58ce7cd3d4ebc14ee706cd0e86, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HairTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 5414de9621e60b142b2c2afec9777948, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ReplaceTex1:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SpecularRamp:
+        m_Texture: {fileID: 2800000, guid: 19a92c0d2fa310d48872ba5dce98edee, type: 3}
+        m_Scale: {x: 0.59, y: 1}
+        m_Offset: {x: 0.25, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AlphaValue: 0
+    - _Bright: 1
+    - _BumpScale: 1
+    - _CastLight1: 1
+    - _CastLight2: 1
+    - _CastLight3: 1
+    - _CastLight4: 0
+    - _CastLight5: 0
+    - _Cull: 2
+    - _Cutoff: 0.5
+    - _DetailNormalMapScale: 1
+    - _DstBlend: 10
+    - _FLIntensity: 0
+    - _FLSpeed: 0
+    - _Glossiness: 0.5
+    - _GrayValue: 0
+    - _HairPrimaryShift: 0
+    - _HairPrimaryShift02: 0
+    - _HairSpeScal: 1
+    - _Metallic: 0
+    - _Mode: 3
+    - _OcclusionStrength: 1
+    - _Parallax: 0.02
+    - _RepTexOffsetFromX1: 0.5
+    - _RepTexOffsetFromY1: 0
+    - _RepTexOffsetToX1: 1
+    - _RepTexOffsetToY1: 0.5
+    - _RimBrightness: 2
+    - _RimPow: 12
+    - _SpeIntensity: 4
+    - _SpeSaturation: 0
+    - _SrcAlphaBlend: 0
+    - _SrcBlend: 1
+    - _UVSec: 0
+    - _ZWrite: 0
+    m_Colors:
+    - _CastColor1: {r: 1, g: 1, b: 1, a: 0.784}
+    - _CastColor2: {r: 0.16176468, g: 0.10942905, b: 0.10942905, a: 0}
+    - _CastColor3: {r: 0.16078432, g: 0.10980393, b: 0.10980393, a: 0}
+    - _CastColor4: {r: 1, g: 1, b: 1, a: 1}
+    - _CastColor5: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _EnvColor: {r: 1, g: 1, b: 1, a: 1}
+    - _HairColor01: {r: 1, g: 1, b: 1, a: 1}
+    - _HairColor02: {r: 0, g: 0, b: 0, a: 0}
+    - _RimColor: {r: 0.36078432, g: 0.22352943, b: 0.078431375, a: 1}
+    - _RimLightDir: {r: 2.5, g: 0, b: -0.5, a: 0}
+  m_BuildTextureStacks: []
