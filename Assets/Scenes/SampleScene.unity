@@ -3149,6 +3149,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 4846007764384835385, guid: a30e4875f2be5964395c75d1212c1824, type: 3}
+      propertyPath: m_TagString
+      value: Enemy
+      objectReference: {fileID: 0}
     - target: {fileID: 4846009477406213776, guid: a30e4875f2be5964395c75d1212c1824, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -7084,6 +7088,7 @@ MonoBehaviour:
     m_Bits: 64
   defaultNormalAttackId: 301
   factionId: 2
+  npcResId: 2
   skillSlotQ_Id: 306
   skillSlotE_Id: 308
   skillSlotR_Id: 310

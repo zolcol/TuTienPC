@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 using TopDownGame.Stats;
 using TopDownGame.Combat;
@@ -108,6 +108,7 @@ namespace TopDownGame.Skills
         public int castSkill = 0;        // Bắt đầu áp damage (mốc frame, mặc định 0)
         public int canDoRun = -1;        // Có thể hủy hoạt ảnh để di chuyển (mốc frame, -1 nếu phải đánh hết clip)
         public int castLinkSkill = -1;   // Mốc bắt đầu chuyển sang animation chiêu combo tiếp theo (mốc frame)
+        public int instantDir = -1;      // Mốc khóa xoay hướng (mốc frame)
 
         // --- AUDIO & VFX ---
         public int playsound = -1;           // Sound ID tra cứu từ Sound.csv (-1 nếu không có âm thanh)
@@ -120,6 +121,7 @@ namespace TopDownGame.Skills
         public float ComboEndTime => (candoskill >= 0 && param1 > 0) ? ((candoskill + param1) / ACTION_EVENT_FPS) : -1f;
         public float CanDoRunTime => canDoRun >= 0 ? (canDoRun / ACTION_EVENT_FPS) : -1f;
         public float CastLinkSkillTime => castLinkSkill >= 0 ? (castLinkSkill / ACTION_EVENT_FPS) : (candoskill >= 0 ? (candoskill / ACTION_EVENT_FPS) : -1f);
+        public float InstantDirTime => instantDir >= 0 ? (instantDir / ACTION_EVENT_FPS) : -1f;
         public float PlaySoundTime => playsoundFrame >= 0 ? (playsoundFrame / ACTION_EVENT_FPS) : 0f;
 
         // --- HELPER FLAGS KIỂM TRA HỢP LỆ ---
@@ -174,3 +176,4 @@ namespace TopDownGame.Skills
         }
     }
 }
+

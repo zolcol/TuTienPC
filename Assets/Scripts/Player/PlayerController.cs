@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Combat;
@@ -16,47 +16,47 @@ namespace TopDownGame.Player
         [Header("=== MOVEMENT SETTINGS ===")]
         [SerializeField] private float moveSpeed = 6f;
         [SerializeField] private float rotationSmoothTime = 0.08f;
-        [Tooltip("Độ mượt/gia tốc khi xoay người đổi hướng lúc đang đánh (0.12 - 0.18s giúp xoay đầm tay, có quán tính, không giật ngoắt)")]
+        [Tooltip("Äá»™ mÆ°á»£t/gia tá»‘c khi xoay ngÆ°á»i Ä‘á»•i hÆ°á»›ng lÃºc Ä‘ang Ä‘Ã¡nh (0.12 - 0.18s giÃºp xoay Ä‘áº§m tay, cÃ³ quÃ¡n tÃ­nh, khÃ´ng giáº­t ngoáº¯t)")]
         [SerializeField] private float attackRotationSmoothTime = 0.14f;
         [SerializeField] private float gravity = -9.81f;
 
         [Header("=== COMBAT & TARGETING ===")]
-        [Tooltip("Layer nhận sát thương của mục tiêu (vd: Enemy hoặc Default)")]
+        [Tooltip("Layer nháº­n sÃ¡t thÆ°Æ¡ng cá»§a má»¥c tiÃªu (vd: Enemy hoáº·c Default)")]
         [SerializeField] private LayerMask targetLayer = ~0;
 
-        [Tooltip("ID của đòn đánh thường đầu tiên trong Skills.csv (vd: 301)")]
+        [Tooltip("ID cá»§a Ä‘Ã²n Ä‘Ã¡nh thÆ°á»ng Ä‘áº§u tiÃªn trong Skills.csv (vd: 301)")]
         [SerializeField] private int defaultNormalAttackId = 301;
 
         [Header("=== FACTION & SKILL SLOTS (Q - E - R) ===")]
-        [Tooltip("Môn phái của nhân vật (1: Thiên Vương, 2: Nga Mi, 3: Đào Hoa, 4: Tiêu Dao, ...)")]
+        [Tooltip("MÃ´n phÃ¡i cá»§a nhÃ¢n váº­t (1: ThiÃªn VÆ°Æ¡ng, 2: Nga Mi, 3: ÄÃ o Hoa, 4: TiÃªu Dao, ...)")]
         [SerializeField] private int factionId = 2;
 
-        [Tooltip("ID của Model trong NpcRes.csv (vd: 1 cho Thiên Vương Nam, 2 cho Nga Mi, 3 cho Đào Hoa)")]
+        [Tooltip("ID cá»§a Model trong NpcRes.csv (vd: 1 cho ThiÃªn VÆ°Æ¡ng Nam, 2 cho Nga Mi, 3 cho ÄÃ o Hoa)")]
         [SerializeField] private int npcResId = 2;
 
-        [Tooltip("Kỹ năng 1: Phím Q (vd: 306 - Nga Mi Skill 1 / Tụ Hàng Phổ Độ)")]
+        [Tooltip("Ká»¹ nÄƒng 1: PhÃ­m Q (vd: 306 - Nga Mi Skill 1 / Tá»¥ HÃ ng Phá»• Äá»™)")]
         [SerializeField] private int skillSlotQ_Id = 306;
 
-        [Tooltip("Kỹ năng 2: Phím E (vd: 308 - Nga Mi Skill 2 / Bạch Lộ Ngưng Sương)")]
+        [Tooltip("Ká»¹ nÄƒng 2: PhÃ­m E (vd: 308 - Nga Mi Skill 2 / Báº¡ch Lá»™ NgÆ°ng SÆ°Æ¡ng)")]
         [SerializeField] private int skillSlotE_Id = 308;
 
-        [Tooltip("Kỹ năng 3: Phím R (vd: 346 - Nga Mi Nộ / Băng Phách Hồng Liên Kiếp)")]
+        [Tooltip("Ká»¹ nÄƒng 3: PhÃ­m R (vd: 346 - Nga Mi Ná»™ / BÄƒng PhÃ¡ch Há»“ng LiÃªn Kiáº¿p)")]
         [SerializeField] private int skillSlotR_Id = 346;
 
         [Header("=== CHEAT & TESTING ===")]
-        [Tooltip("Bỏ qua thời gian hồi chiêu (No Cooldown / NoCD) khi test")]
+        [Tooltip("Bá» qua thá»i gian há»“i chiÃªu (No Cooldown / NoCD) khi test")]
         [SerializeField] private bool noCooldown = false;
-        [Tooltip("Bỏ qua tiêu hao Mana / Nội lực khi test")]
+        [Tooltip("Bá» qua tiÃªu hao Mana / Ná»™i lá»±c khi test")]
         [SerializeField] private bool noManaCost = false;
 
-        [Header("=== DEBUG & GIZMOS (Tùy chọn) ===")]
-        [Tooltip("Hiển thị vùng quét tia / quạt / vòng tròn trong Scene View khi tung đòn")]
+        [Header("=== DEBUG & GIZMOS (TÃ¹y chá»n) ===")]
+        [Tooltip("Hiá»ƒn thá»‹ vÃ¹ng quÃ©t tia / quáº¡t / vÃ²ng trÃ²n trong Scene View khi tung Ä‘Ã²n")]
         [SerializeField] private bool showHitGizmos = true;
-        [Tooltip("Thời gian lưu vệt Gizmo (giây)")]
+        [Tooltip("Thá»i gian lÆ°u vá»‡t Gizmo (giÃ¢y)")]
         [SerializeField] private float gizmoDisplayDuration = 0.25f;
-        [Tooltip("Trạng thái hiện tại của Player (Chỉ xem)")]
+        [Tooltip("Tráº¡ng thÃ¡i hiá»‡n táº¡i cá»§a Player (Chá»‰ xem)")]
         [SerializeField] private string currentStateDisplay;
-        [Tooltip("Đang dùng tay cầm Gamepad (Chỉ xem)")]
+        [Tooltip("Äang dÃ¹ng tay cáº§m Gamepad (Chá»‰ xem)")]
         [SerializeField] private bool usingGamepadDisplay;
 
         // State Machine
@@ -98,7 +98,7 @@ namespace TopDownGame.Player
         private Vector3 moveDirection;
         private Vector3 verticalVelocity;
 
-        // Quản lý Cooldown theo Skill ID
+        // Quáº£n lÃ½ Cooldown theo Skill ID
         private readonly Dictionary<int, float> cooldownTimers = new Dictionary<int, float>();
 
         // Debug Gizmo Cache
@@ -125,20 +125,20 @@ namespace TopDownGame.Player
             SkillDatabase.Instance.EnsureLoaded();
             TopDownGame.Data.FactionSkillDatabase.Instance.EnsureLoaded();
 
-            // Chỉ tự động nạp từ FactionSkill nếu các ô kỹ năng chưa được người dùng thiết lập trong Inspector (ID <= 0)
+            // Chá»‰ tá»± Ä‘á»™ng náº¡p tá»« FactionSkill náº¿u cÃ¡c Ã´ ká»¹ nÄƒng chÆ°a Ä‘Æ°á»£c ngÆ°á»i dÃ¹ng thiáº¿t láº­p trong Inspector (ID <= 0)
             if (factionId > 0)
             {
                 ApplyFactionSkills(factionId, false);
             }
 
-            // Khởi tạo State Machine
+            // Khá»Ÿi táº¡o State Machine
             StateMachine = new TopDownGame.StateMachine.StateMachine();
             IdleState = new PlayerIdleState(this, StateMachine);
             MoveState = new PlayerMoveState(this, StateMachine);
             AttackState = new PlayerAttackState(this, StateMachine);
         }
 
-        [ContextMenu("Nạp Kỹ Năng Theo Môn Phái")]
+        [ContextMenu("Náº¡p Ká»¹ NÄƒng Theo MÃ´n PhÃ¡i")]
         public void ApplyFactionSkills()
         {
             ApplyFactionSkills(factionId, true);
@@ -166,7 +166,7 @@ namespace TopDownGame.Player
                 }
                 else if (fSkill.btnName.Equals("Skill3", System.StringComparison.OrdinalIgnoreCase))
                 {
-                    // Skill3 là chiêu hỗ trợ/hồi phục (như 306 Từ Hàng Phổ Độ). Nếu Q chưa gán thì ưu tiên nạp vào Q
+                    // Skill3 lÃ  chiÃªu há»— trá»£/há»“i phá»¥c (nhÆ° 306 Tá»« HÃ ng Phá»• Äá»™). Náº¿u Q chÆ°a gÃ¡n thÃ¬ Æ°u tiÃªn náº¡p vÃ o Q
                     if (overwriteExisting || skillSlotQ_Id <= 0) skillSlotQ_Id = fSkill.skillId;
                 }
                 else if (fSkill.btnName.Equals("Skill5", System.StringComparison.OrdinalIgnoreCase) || fSkill.isAnger)
@@ -299,37 +299,20 @@ namespace TopDownGame.Player
         {
             if (inputReader == null) return false;
 
-            // 1. Phím Q
             if (inputReader.Skill2Triggered && skillSlotQ_Id > 0)
             {
                 SkillData skill = SkillSlotQ;
-                if (CanExecuteSkill(skill))
-                {
-                    ExecuteSkill(skill);
-                    return true;
-                }
+                if (CanExecuteSkill(skill) && ExecuteSkill(skill)) return true;
             }
-
-            // 2. Phím E
             if (inputReader.Skill1Triggered && skillSlotE_Id > 0)
             {
                 SkillData skill = SkillSlotE;
-                if (CanExecuteSkill(skill))
-                {
-                    ExecuteSkill(skill);
-                    return true;
-                }
+                if (CanExecuteSkill(skill) && ExecuteSkill(skill)) return true;
             }
-
-            // 3. Phím R
             if (inputReader.Skill3Triggered && skillSlotR_Id > 0)
             {
                 SkillData skill = SkillSlotR;
-                if (CanExecuteSkill(skill))
-                {
-                    ExecuteSkill(skill);
-                    return true;
-                }
+                if (CanExecuteSkill(skill) && ExecuteSkill(skill)) return true;
             }
 
             return false;
@@ -343,18 +326,19 @@ namespace TopDownGame.Player
             return true;
         }
 
-        private void ExecuteSkill(SkillData skill)
+        private bool ExecuteSkill(SkillData skill)
         {
+            if (!ExecuteAction(skill)) return false;
+
             if (!noManaCost && stats != null && skill.manaCost > 0f)
             {
                 stats.ConsumeMana(skill.manaCost);
             }
-            Debug.Log($"[PlayerController] ⚡ Thi triển kỹ năng: [ID {skill.id}] <b>{skill.name}</b> (Quan hệ: {skill.relation}, IsHeal: {skill.IsHeal})");
-            ExecuteAction(skill);
             if (!noCooldown)
             {
                 StartCooldown(skill.id, skill.cooldown);
             }
+            return true;
         }
 
         public void Move(Vector3 direction)
@@ -387,22 +371,173 @@ namespace TopDownGame.Player
             turnSmoothVelocity = 0f;
         }
 
-        public void StartNormalAttack()
+        private Transform currentLockTarget;
+        private Vector3 currentTargetPoint;
+
+        public bool StartNormalAttack()
         {
             SkillData normalAttack = DefaultNormalAttack;
             if (normalAttack != null)
             {
-                ExecuteAction(normalAttack);
+                return ExecuteAction(normalAttack);
             }
             else
             {
-                Debug.LogWarning($"[PlayerController] Không tìm thấy Skill ID {defaultNormalAttackId} trong Skills.csv!");
+                Debug.LogWarning($"[PlayerController] Không tìm th?y Skill ID {defaultNormalAttackId} trong Skills.csv!");
+                return false;
             }
         }
 
-        public void ExecuteAction(SkillData skill)
+        private bool AimSkill(SkillData skill)
         {
-            if (skill == null) return;
+            if (skill == null) return false;
+            
+            bool usingMouse = inputReader != null && !inputReader.IsUsingGamepad;
+            currentLockTarget = null;
+            currentTargetPoint = transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f);
+
+            if (skill.targetSelf || skill.relation == SkillRelation.Self)
+            {
+                currentTargetPoint = transform.position;
+                return true; 
+            }
+
+            bool isTargetLockSkill = skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target && skill.relation == TopDownGame.Skills.SkillRelation.Enemy;
+
+            if (usingMouse)
+            {
+                if (UnityEngine.InputSystem.Mouse.current == null || mainCamera == null) return true;
+                
+                Vector2 mouseScreenPos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
+                Ray ray = mainCamera.ScreenPointToRay(mouseScreenPos);
+                
+                if (isTargetLockSkill)
+                {
+                    Transform foundTarget = null;
+                    
+                    // Su dung SphereCastAll tao hinh tru ban kinh 1.5f (Soft targeting)
+                    RaycastHit[] hits = Physics.SphereCastAll(ray, 1.5f, 100f, targetLayer);
+                    if (hits.Length > 0)
+                    {
+                        float minDistanceToRay = float.MaxValue;
+                        foreach (var hit in hits)
+                        {
+                            Vector3 enemyPos = hit.collider.transform.position;
+                            float distToRay = Vector3.Cross(ray.direction, enemyPos - ray.origin).magnitude;
+                            
+                            if (distToRay < minDistanceToRay)
+                            {
+                                minDistanceToRay = distToRay;
+                                foundTarget = hit.collider.transform;
+                            }
+                        }
+                    }
+
+                    if (foundTarget != null)
+                    {
+                        float distance = Vector3.Distance(transform.position, foundTarget.position);
+                        if (distance <= skill.range)
+                        {
+                            currentLockTarget = foundTarget;
+                            currentTargetPoint = currentLockTarget.position;
+                            RotateTowardsInstantly(currentLockTarget.position - transform.position);
+                            return true;
+                        }
+                        else
+                        {
+                            return false; 
+                        }
+                    }
+                    else
+                    {
+                        return false; 
+                    }
+                }
+
+                Plane groundPlane = new Plane(Vector3.up, transform.position);
+                if (groundPlane.Raycast(ray, out float enter))
+                {
+                    currentTargetPoint = ray.GetPoint(enter);
+                    RotateTowardsInstantly(currentTargetPoint - transform.position);
+                }
+            }
+            else
+            {
+                if (isTargetLockSkill)
+                {
+                    Transform bestTarget = FindTargetInFront(skill.range);
+                    if (bestTarget != null)
+                    {
+                        currentLockTarget = bestTarget;
+                        currentTargetPoint = currentLockTarget.position;
+                        RotateTowardsInstantly(currentLockTarget.position - transform.position);
+                        return true;
+                    }
+                    else
+                    {
+                        return false; // KhÃ´ng cÃ³ ai Ä‘á»ƒ Ä‘Ã¡nh
+                    }
+                }
+
+                // Gamepad: Giá»¯ nguyÃªn hÆ°á»›ng quay hiá»‡n táº¡i hoáº·c hÆ°á»›ng input (náº¿u Ä‘ang Ä‘áº©y cáº§n)
+                Vector3 inputVec = GetInputVector();
+                if (inputVec.sqrMagnitude > 0.01f)
+                {
+                    RotateTowardsInstantly(inputVec);
+                    currentTargetPoint = transform.position + inputVec.normalized * (skill.range > 0 ? skill.range : 5f);
+                }
+            }
+
+            return true;
+        }
+
+        private Transform FindTargetInFront(float range)
+        {
+            Collider[] hits = Physics.OverlapSphere(transform.position, range, targetLayer);
+            Transform best = null;
+            float minDot = 0.3f; // Khoáº£ng 70 Ä‘á»™ nÃ³n phÃ­a trÆ°á»›c
+            float minDst = float.MaxValue;
+
+            foreach (var h in hits)
+            {
+                Vector3 dir = (h.transform.position - transform.position);
+                dir.y = 0;
+                float dst = dir.magnitude;
+                if (dst > 0.01f)
+                {
+                    dir /= dst;
+                    float dot = Vector3.Dot(transform.forward, dir);
+                    if (dot > minDot && dst < minDst)
+                    {
+                        minDst = dst;
+                        best = h.transform;
+                    }
+                }
+                else
+                {
+                    return h.transform; // Äá»©ng sÃ¡t cáº¡nh nhau
+                }
+            }
+            return best;
+        }
+
+        private void RotateTowardsInstantly(Vector3 dir)
+        {
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.001f)
+            {
+                transform.rotation = Quaternion.LookRotation(dir.normalized);
+            }
+        }
+
+        public bool ExecuteAction(SkillData skill)
+        {
+            if (skill == null) return false;
+
+            if (!AimSkill(skill)) 
+            {
+                return false; 
+            }
 
             AttackState.SetSkill(skill);
 
@@ -414,16 +549,14 @@ namespace TopDownGame.Player
             {
                 StateMachine.ChangeState(AttackState);
             }
+            return true;
         }
 
-        /// <summary>
-        /// Kích hoạt quét sát thương qua SkillDamageResolver tập trung
-        /// </summary>
         public void ExecuteSkillDamage(SkillData skill)
         {
             if (skill == null) return;
 
-            SkillDamageResolver.CastDamage(transform, stats, skill, targetLayer);
+            SkillDamageResolver.CastDamage(transform, stats, skill, targetLayer, currentLockTarget, currentTargetPoint);
 
             if (showHitGizmos)
             {
@@ -463,3 +596,8 @@ namespace TopDownGame.Player
         }
     }
 }
+
+
+
+
+

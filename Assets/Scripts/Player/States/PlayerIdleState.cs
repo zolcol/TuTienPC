@@ -28,8 +28,7 @@ namespace TopDownGame.Player
             // Ưu tiên 2: Đánh thường (Combo)
             if (player.IsAttackPressed())
             {
-                player.StartNormalAttack();
-                return;
+                if (player.StartNormalAttack()) return;
             }
 
             // Ưu tiên 3: Di chuyển
@@ -41,3 +40,4 @@ namespace TopDownGame.Player
         }
     }
 }
+

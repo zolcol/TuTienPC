@@ -26,8 +26,7 @@ namespace TopDownGame.Player
             // Ưu tiên 2: Đánh thường khi đang di chuyển
             if (player.IsAttackPressed())
             {
-                player.StartNormalAttack();
-                return;
+                if (player.StartNormalAttack()) return;
             }
 
             Vector3 input = player.GetInputVector();
@@ -44,3 +43,4 @@ namespace TopDownGame.Player
         }
     }
 }
+

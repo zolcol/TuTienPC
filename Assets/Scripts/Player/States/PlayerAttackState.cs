@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using TopDownGame.Skills;
 
 namespace TopDownGame.Player
@@ -73,12 +73,21 @@ namespace TopDownGame.Player
             timer += Time.deltaTime;
 
             // 1. Bẻ lái hướng đánh trước mốc castSkill (áp damage)
-            if (timer < currentSkill.CastSkillTime)
+            float lockRotationTime = currentSkill.InstantDirTime >= 0f ? currentSkill.InstantDirTime : currentSkill.CastSkillTime;
+
+            if (timer <= lockRotationTime)
             {
                 Vector3 input = player.GetInputVector();
                 if (input.sqrMagnitude > 0.001f)
                 {
-                    player.RotateTowards(input, player.AttackRotationSmoothTime);
+                    if (currentSkill.InstantDirTime >= 0f && timer >= currentSkill.InstantDirTime - Time.deltaTime)
+                    {
+                        player.RotateTowards(input, 0f);
+                    }
+                    else
+                    {
+                        player.RotateTowards(input, player.AttackRotationSmoothTime);
+                    }
                 }
             }
 
@@ -178,7 +187,13 @@ namespace TopDownGame.Player
                 SkillData nextSkill = SkillDatabase.GetSkill(currentSkill.NextComboSkillId);
                 if (nextSkill != null)
                 {
-                    player.ExecuteAction(nextSkill);
+                    bool success = player.ExecuteAction(nextSkill);
+                    if (!success)
+                    {
+                        // Nếu chiêu tiếp theo thất bại (vì hết mana, quái chết nên ngắm hụt, v.v.)
+                        // Xóa buffer để không bị kẹt vòng lặp, cho phép animation hiện tại chạy hết rồi về Idle
+                        hasBufferedComboInput = false;
+                    }
                 }
                 else
                 {
@@ -202,3 +217,5 @@ namespace TopDownGame.Player
         }
     }
 }
+
+

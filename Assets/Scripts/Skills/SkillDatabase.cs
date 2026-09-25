@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -89,6 +89,7 @@ namespace TopDownGame.Skills
 
         private struct ActionEventSummary
         {
+            public int instantDir;
             public float crossFade;
             public int candoskill;
             public int castSkill;
@@ -255,7 +256,8 @@ namespace TopDownGame.Skills
                             playsoundFrame = rawCastSound > 0 ? 0 : -1,
                             effectPath = EffectDatabase.GetEffectPath(rawCastEffect),
                             lungeSpeed = 0f,
-                            lungeDuration = 0f
+                            lungeDuration = 0f,
+                            instantDir = -1
                         };
 
                         if (actionEventId > 0 && eventMap.TryGetValue(actionEventId, out ActionEventSummary matchedSummary))
@@ -267,6 +269,7 @@ namespace TopDownGame.Skills
                             if (matchedSummary.castLinkSkill >= 0) evSummary.castLinkSkill = matchedSummary.castLinkSkill;
                             if (matchedSummary.param1 >= 0) evSummary.param1 = matchedSummary.param1;
                             if (matchedSummary.param2 >= 0) evSummary.param2 = matchedSummary.param2;
+                            if (matchedSummary.instantDir >= 0) evSummary.instantDir = matchedSummary.instantDir;
 
                             // Ưu tiên âm thanh trong ActionEvent nếu có, nếu không thì giữ nguyên âm thanh từ Skill.csv
                             if (matchedSummary.playsound > 0)
@@ -385,6 +388,7 @@ namespace TopDownGame.Skills
                             castSkill = evSummary.castSkill,
                             canDoRun = evSummary.canDoRun,
                             castLinkSkill = evSummary.castLinkSkill,
+                            instantDir = evSummary.instantDir,
                             playsound = evSummary.playsound,
                             playsoundFrame = evSummary.playsoundFrame,
                             effectPath = evSummary.effectPath,
@@ -499,6 +503,10 @@ namespace TopDownGame.Skills
                             else if (eventName.Equals("CanDoRun", StringComparison.OrdinalIgnoreCase))
                             {
                                 summary.canDoRun = frame;
+                            }
+                            else if (eventName.Equals("instantdir", StringComparison.OrdinalIgnoreCase))
+                            {
+                                summary.instantDir = frame;
                             }
                             else if (eventName.Equals("PlaySound", StringComparison.OrdinalIgnoreCase))
                             {
@@ -631,3 +639,4 @@ namespace TopDownGame.Skills
         }
     }
 }
+

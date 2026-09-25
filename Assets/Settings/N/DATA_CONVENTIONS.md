@@ -49,7 +49,7 @@ Bảng định nghĩa thuộc tính cốt lõi của mọi chiêu thức (Ngư�
 | **`Property`** | `string` | Phân loại ngữ cảnh (Kỹ năng môn phái, Kỹ năng quái, Buff...). |
 | **`SkillType`** | `int` | Loại kỹ năng: `1` = Bị động (Passive), `2` = Tấn công thường, `3` = Buff hỗ trợ, `4` = Trận pháp (Aura), `5` = Kỹ năng chủ động điều khiển. |
 | **`MeleeForm`** | `int` | Kiểu đánh cận chiến: `0`/rỗng = Bình thường, `1` = Áp sát nhanh, `2` = Xoay vòng quanh người. |
-| **`StartPosType`** | `int` | **Vị trí xuất phát chiêu/đạn:**<br>• `1` / Trống: Xuất phát từ **Caster** (Người ra chiêu).<br>• `2`: Xuất phát tại **Target** (Mục tiêu đang khóa - Target-lock Skill).<br>• `3`: Xuất phát tại **Điểm chạm đất / Con trỏ ngắm** (Smartcast Point). |
+| **`StartPosType`** | `int` | **Gốc tọa độ tham chiếu của Kỹ năng:**<br>• `1` / Trống (**Caster-Based**): Lấy **Người ra chiêu** làm gốc. Chiêu thức tự do vung chém / phóng ra theo hướng mặt mà không cần mục tiêu.<br>• `2` (**Target-Based / Target-Lock**): Lấy **Mục tiêu đang khóa** làm gốc tham chiếu đích đến. Bắt buộc phải có Target trong tầm `AttackRadius` để thi triển.<br>&nbsp;&nbsp;↳ *Nếu `Missile.MoveKind = 0` (Bẫy / Sét)*: Nổ ngay tại vị trí chân Target.<br>&nbsp;&nbsp;↳ *Nếu `Missile.MoveKind = 2` (Đạn bay / Cầu nước)*: Sinh ra phía trước mặt Caster (`PosOffsetLenght`) và bay lao tới Target.<br>• `3` (**Ground Point**): Lấy điểm chạm đất / con trỏ chỉ định làm gốc. |
 | **`StartDirType`** | `int` | **Hướng ngắm ban đầu:**<br>• `0` / Trống: Hướng mặt nhân vật (theo 64 hướng logic).<br>• `1`: Hướng vector thẳng tới tâm Target.<br>• `2`: Hướng kéo Joystick của người chơi. |
 | **`SelectorType`** | `int` | **Loại vòng ngắm / Indicator giao diện:**<br>• `1`: Vòng tròn chọn vùng đất (AOE Circle Indicator).<br>• `2`: Mũi tên định hướng (Directional Arrow / Sector Indicator). |
 | **`SelectorRange`**| `int` | Bán kính tối đa cho phép kéo vòng chọn/ngắm trên màn hình (`SelectorRange / 100` mét). |
@@ -230,12 +230,30 @@ Bảng dữ liệu định cấu hình cho toàn bộ Quái thường, Quái Tin
 | **`FightMode`** | `int` | Trạng thái chiến đấu: `0` = Hòa bình (Không thể bị đánh), `1` = Chiến đấu. |
 | **`RunSpeed`** | `int` | Tốc độ chạy di chuyển (`RunSpeed / 100.0f` m/s, vd: `450` = `4.5 m/s`). |
 | **`WalkSpeed`** | `int` | Tốc độ đi bộ (`WalkSpeed / 100.0f` m/s). |
-| **`ReviveFrame`** | `int` | Thời gian hồi sinh sau khi chết (`ReviveFrame / 30.0f` giây). |
+| **`ReviveFrame`** | `int` | Thời gian hồi sinh sau khi chết (`ReviveFrame / 15.0f` giây chuẩn 15 FPS). |
 | **`BloodStyle`** | `int` | Kiểu thanh máu trên đầu: `1` = Thanh máu nhỏ (Quái thường), `2` = Thanh máu nhiều lớp nhiều màu trên màn hình (Boss). |
 | **`AuraSkillId`** | `int` | Kỹ năng hào quang nội tại tự động phát ra liên tục. |
 | **`ForbitMove`** | `int (0/1)` | `1` = Quái đứng cố định tại chỗ (vd: Trụ thủ thành, Bẫy gắp). |
 | **`DropFile`** | `string` | File cấu hình bảng rơi đồ khi quái chết. |
 | **`DropType`** | `int` | Quy tắc nhặt đồ: `0` = Rơi tự do ai cũng nhặt được, `1` = Thuộc về người gây sát thương nhiều nhất (Top Damager). |
+
+---
+
+### 🐺 Cơ Chế Tấn Công Thường & Chọn Mục Tiêu Của Quái Vật (Monster AI Combat Loop):
+
+Trong engine, **đòn cắn thường / đánh thường của quái thực chất vẫn là một Skill ID** (định nghĩa tại cột `NormalSkill1` như Skill `21`, `22`...):
+
+1. **Phát hiện mục tiêu (Aggro Detection):**
+   - Quái liên tục quét tìm đối tượng khác phe (`Camp`) trong phạm vi **`VisionRadius`** (vd: `560` = 5.6m).
+   - Khi phát hiện người chơi, AI đặt `TargetID = PlayerID` và bắt đầu bám đuổi.
+   - Nếu người chơi chạy vượt quá **`ActiveRadius`** (vd: `980` = 9.8m), quái **hủy mục tiêu, miễn nhiễm sát thương và tự động quay về điểm xuất phát (Reset Leash / Full HP)**.
+
+2. **Cơ chế ra đòn cắn thường (`NormalSkill1`):**
+   - Khi khoảng cách tới mục tiêu $\le$ **`AttackRadius`** của skill (vd: `150` = 1.5m):
+   - **Xoay mặt khóa hướng:** Quái tự động xoay góc Euler trục $Y$ hướng $100\%$ về phía tâm người chơi (`LookAt / Dir64`).
+   - **Phát động tác cắn:** Kích hoạt hoạt ảnh `at01` (`CastActionId = 16`).
+   - **Nổ sát thương theo Frame:** Khi chạy đến mốc `HitFrame` trong `ActionEvent.csv` (vd: Frame 4), quái quét Hitbox hình quạt/tròn 1.5m trước mặt để trừ máu mục tiêu.
+   - **Né đòn (Dodge):** Nếu người chơi dùng Khinh công / Lướt né ra sau lưng quái trước mốc `HitFrame`, đòn cắn sẽ vung vào khoảng không (trượt sát thương).
 
 ---
 
@@ -381,9 +399,14 @@ public class EffectAttachmentController : MonoBehaviour
 * **`FactionSkill.csv`**: Định vị vị trí nút bấm chiêu trên giao diện UI:
   * `BtnName`: Tên slot nút (`Skill_1`, `Skill_2`, `Skill_3`, `Skill_4`, `Skill_Dodge`, `Attack`).
   * `IsAnger`: `1` = Nút Tuyệt kỹ Nộ (Ulti).
-* **`AutoAiSkill.csv`**: Điều kiện AI tự động tung chiêu:
-  * `LiftPercent`: Chỉ tung chiêu khi máu đối thủ hoặc bản thân $\le X\%$.
-  * `Selector`: Ưu tiên chọn mục tiêu (Máu thấp nhất / Gần nhất / Đông nhất).
+
+* **`AutoAiSkill.csv`**: Quy tắc AI tự động chọn mục tiêu & điều kiện xuất chiêu (Boss / Đồng hành / Auto Combat):
+  * `LiftPercent`: Chỉ kích hoạt chiêu khi % Sinh lực bản thân hoặc đối phương $\le X\%$ (vd: `95` = máu dưới 95%).
+  * **`Selector` (Quy tắc ưu tiên chọn mục tiêu):**
+    * **`Player`**: Ưu tiên nhắm vào **Người chơi thật** (bỏ qua đệ tử/pet).
+    * **`Poorest`**: Ưu tiên mục tiêu có **% Máu THẤP NHẤT** trong phạm vi (Dùng cho chiêu Hồi máu / Hộ thuẫn).
+    * **`Random`**: Chọn **Ngẫu nhiên** 1 kẻ địch trong tầm đánh.
+    * *(Để trống / Default)*: Tự động đánh kẻ địch **Gần nhất** (Closest Enemy) hoặc mục tiêu đang giữ điểm thù hận (Aggro) cao nhất.
 
 ---
 
@@ -453,12 +476,12 @@ namespace GameData.Combat
         RingTorus = 4       // Vòng xuyến / Trụ rỗng
     }
 
-    // Vị trí xuất phát của Kỹ năng
+    // Gốc tọa độ tham chiếu của Kỹ năng (StartPosType)
     public enum SkillStartPosType
     {
-        CasterOrigin = 1,   // Xuất phát từ người ra chiêu
-        TargetPosition = 2, // Xuất phát tại / hướng tới mục tiêu
-        HitPoint = 3        // Xuất phát tại điểm va chạm
+        CasterOrigin = 1,   // Caster-Based: Lấy người ra chiêu làm gốc (Đánh thường, bắn thẳng)
+        TargetPosition = 2, // Target-Based: Lấy mục tiêu làm gốc tham chiếu (Chiêu khóa Target / Bẫy / Cầu nước)
+        GroundPoint = 3     // Ground-Based: Lấy điểm chạm đất / con trỏ chỉ định
     }
 
     // Ngũ hành thuộc tính

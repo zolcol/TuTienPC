@@ -21,7 +21,7 @@ namespace TopDownGame.Skills
         /// <summary>
         /// Kích hoạt quét tác dụng chiêu thức (Gây sát thương kẻ địch hoặc Hồi máu/Buff đồng đội)
         /// </summary>
-        public static void CastDamage(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget = null)
+        public static void CastDamage(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget = null, Vector3 explicitTargetPoint = default)
         {
             if (caster == null || skill == null) return;
 
@@ -38,7 +38,7 @@ namespace TopDownGame.Skills
                     SkillData subSkill = SkillDatabase.GetSkill(skill.subSkillId);
                     if (subSkill != null && subSkill.id != skill.id)
                     {
-                        CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget);
+                        CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint);
                     }
                 }
                 return;
@@ -57,7 +57,7 @@ namespace TopDownGame.Skills
 
             if (skill.HasProjectile || skill.skillType == SkillType.Projectile)
             {
-                CastProjectile(caster, casterStats, skill, targetLayer, explicitTarget);
+                CastProjectile(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint);
             }
             else
             {
@@ -88,7 +88,7 @@ namespace TopDownGame.Skills
                 SkillData subSkill = SkillDatabase.GetSkill(skill.subSkillId);
                 if (subSkill != null && subSkill.id != skill.id && !subSkill.IsHeal)
                 {
-                    CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget);
+                    CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint);
                 }
             }
         }
@@ -262,7 +262,7 @@ namespace TopDownGame.Skills
         /// 5. Bắn ra đạn đạo / kiếm khí / phi tiêu bay trong không gian 3D (Missile / Projectile)
         /// Hỗ trợ đa tia đạn (ChildCount, MSGenerate, MSGenerateParam) theo DATA_CONVENTIONS.md
         /// </summary>
-        public static void CastProjectile(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget = null)
+        public static void CastProjectile(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget = null, Vector3 explicitTargetPoint = default)
         {
             if (caster == null || skill == null) return;
 
@@ -278,20 +278,20 @@ namespace TopDownGame.Skills
 
                 if (EffectManager.Instance != null)
                 {
-                    EffectManager.Instance.StartCoroutine(SpawnSequentialProjectilesCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, childCount, delaySec));
+                    EffectManager.Instance.StartCoroutine(SpawnSequentialProjectilesCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, delaySec));
                 }
                 else
                 {
-                    SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, childCount);
+                    SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount);
                 }
                 return;
             }
 
             // Bắn đồng loạt (MSGenerate = 1) hoặc Xoay tròn (MSGenerate = 3 / MissileForm = 3)
-            SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, childCount);
+            SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount);
         }
 
-        private static void SpawnProjectileBurst(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget, int count)
+        private static void SpawnProjectileBurst(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget, Vector3 explicitTargetPoint, int count)
         {
             if (caster == null || skill == null) return;
 
@@ -308,6 +308,21 @@ namespace TopDownGame.Skills
                 originPos = new Vector3(weaponSlot.position.x, caster.position.y, weaponSlot.position.z);
             }
 
+            // Xử lý StartPosType = 2 (tại Target) hoặc 3 (tại HitPoint)
+            if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target && explicitTarget != null)
+            {
+                // Nếu là đạn nổ tại chỗ (StaticTrap) -> xuất phát dưới chân Target (Chiêu triệu hồi)
+                // Nếu là đạn bay (Linear / Homing) -> xuất phát từ Caster và bay tới Target (Chiêu bắn ra)
+                if (missile == null || (int)missile.moveKind == 0)
+                {
+                    originPos = explicitTarget.position;
+                }
+            }
+            else if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.HitPoint && explicitTargetPoint != default)
+            {
+                originPos = explicitTargetPoint;
+            }
+
             Vector3 baseDirection = caster.forward;
             if (explicitTarget != null)
             {
@@ -316,6 +331,15 @@ namespace TopDownGame.Skills
                 if (toTarget.sqrMagnitude > 0.001f)
                 {
                     baseDirection = toTarget.normalized;
+                }
+            }
+            else if (explicitTargetPoint != default)
+            {
+                Vector3 toPoint = (explicitTargetPoint - originPos);
+                toPoint.y = 0f;
+                if (toPoint.sqrMagnitude > 0.001f)
+                {
+                    baseDirection = toPoint.normalized;
                 }
             }
 
@@ -379,6 +403,7 @@ namespace TopDownGame.Skills
             SkillData skill,
             LayerMask targetLayer,
             Transform explicitTarget,
+            Vector3 explicitTargetPoint,
             int count,
             float delaySec)
         {
@@ -398,6 +423,21 @@ namespace TopDownGame.Skills
                     originPos = new Vector3(weaponSlot.position.x, caster.position.y, weaponSlot.position.z);
                 }
 
+                // Xử lý StartPosType = 2 (tại Target) hoặc 3 (tại HitPoint)
+                if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target && explicitTarget != null)
+                {
+                    // Nếu là đạn nổ tại chỗ (StaticTrap) -> xuất phát dưới chân Target (Chiêu triệu hồi)
+                    // Nếu là đạn bay (Linear / Homing) -> xuất phát từ Caster và bay tới Target (Chiêu bắn ra)
+                    if (missile == null || (int)missile.moveKind == 0)
+                    {
+                        originPos = explicitTarget.position;
+                    }
+                }
+                else if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.HitPoint && explicitTargetPoint != default)
+                {
+                    originPos = explicitTargetPoint;
+                }
+
                 Vector3 baseDirection = caster.forward;
                 if (explicitTarget != null)
                 {
@@ -406,6 +446,15 @@ namespace TopDownGame.Skills
                     if (toTarget.sqrMagnitude > 0.001f)
                     {
                         baseDirection = toTarget.normalized;
+                    }
+                }
+                else if (explicitTargetPoint != default)
+                {
+                    Vector3 toPoint = (explicitTargetPoint - originPos);
+                    toPoint.y = 0f;
+                    if (toPoint.sqrMagnitude > 0.001f)
+                    {
+                        baseDirection = toPoint.normalized;
                     }
                 }
 
