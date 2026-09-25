@@ -165,7 +165,8 @@ Bảng quy định **Timeline chính xác từng frame** của hoạt ảnh nhâ
 | ↳ `CanDoRun` | — | Cho phép hủy động tác thừa sớm bằng cách bấm nút di chuyển (Animation Cancel). |
 | ↳ `LinkSkillInit` | — | Bắt đầu đếm thời gian chờ combo (`Param1` = Frame timeout, `Param2` = Chiêu sau). |
 | ↳ `CastLinkSkill`| — | Thời điểm chuyển tiếp sang hoạt ảnh của chiêu kế trong chuỗi combo. |
-| ↳ `MovePos` | — | Lướt người tới trước (`Param1` = Quãng đường cm, `Param2` = Tốc độ). |
+| ↳ `MovePos` | — | **Root Motion / Dấn người tới trước khi ra đòn:**<br>• `Param1` = **Quãng đường di chuyển** ($\text{Distance} / 100.0\text{f}$ mét).<br>• `Param2` = **Tốc độ dấn tới** ($\text{Speed} / 10.0\text{f}$ m/s).<br>• `Param3` = **Gia tốc / Góc hướng di chuyển** theo trục mặt.<br>• *Tác dụng:* Đồng bộ nhịp chân với động tác vung kiếm và tự động bám dính mục tiêu (Stick to Target). |
+| ↳ `MoveBack` | — | Bị đẩy lùi / Trượt lùi ra sau khi trúng đòn nặng (`Param1` = Quãng đường cm, `Param2` = Tốc độ). |
 | ↳ `PlayShake` | — | Rung màn hình (`Param1` = Biên độ, `Param2` = Tần số, `Param3` = Thời lượng). |
 
 ---

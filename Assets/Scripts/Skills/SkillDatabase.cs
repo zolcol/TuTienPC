@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -100,8 +100,10 @@ namespace TopDownGame.Skills
             public int playsound;
             public int playsoundFrame;
             public string effectPath;
-            public float lungeSpeed;
-            public float lungeDuration;
+            public float movePosDistance;
+            public float movePosSpeed;
+            public float movePosAccel;
+            public int movePosFrame;
         }
 
         /// <summary>
@@ -255,8 +257,10 @@ namespace TopDownGame.Skills
                             playsound = rawCastSound,
                             playsoundFrame = rawCastSound > 0 ? 0 : -1,
                             effectPath = EffectDatabase.GetEffectPath(rawCastEffect),
-                            lungeSpeed = 0f,
-                            lungeDuration = 0f,
+                            movePosDistance = 0f,
+                            movePosSpeed = 0f,
+                            movePosAccel = 0f,
+                            movePosFrame = -1,
                             instantDir = -1
                         };
 
@@ -270,6 +274,13 @@ namespace TopDownGame.Skills
                             if (matchedSummary.param1 >= 0) evSummary.param1 = matchedSummary.param1;
                             if (matchedSummary.param2 >= 0) evSummary.param2 = matchedSummary.param2;
                             if (matchedSummary.instantDir >= 0) evSummary.instantDir = matchedSummary.instantDir;
+                            if (matchedSummary.movePosFrame >= 0)
+                            {
+                                evSummary.movePosFrame = matchedSummary.movePosFrame;
+                                evSummary.movePosDistance = matchedSummary.movePosDistance;
+                                evSummary.movePosSpeed = matchedSummary.movePosSpeed;
+                                evSummary.movePosAccel = matchedSummary.movePosAccel;
+                            }
 
                             // Ưu tiên âm thanh trong ActionEvent nếu có, nếu không thì giữ nguyên âm thanh từ Skill.csv
                             if (matchedSummary.playsound > 0)
@@ -290,10 +301,10 @@ namespace TopDownGame.Skills
                         }
 
                         // Tinh chỉnh chi tiết cho từng kỹ năng phái Nga Mi
-                        if (skillId == 301) { evSummary.lungeSpeed = 2.5f; evSummary.lungeDuration = 0.18f; }
-                        else if (skillId == 302) { evSummary.lungeSpeed = 2.8f; evSummary.lungeDuration = 0.18f; }
-                        else if (skillId == 303) { evSummary.lungeSpeed = 3.2f; evSummary.lungeDuration = 0.20f; }
-                        else if (skillId == 304) { evSummary.lungeSpeed = 3.8f; evSummary.lungeDuration = 0.22f; }
+                        if (skillId == 301) { evSummary.movePosSpeed = 2.5f; evSummary.movePosDistance = 0.45f; evSummary.movePosFrame = 0; }
+                        else if (skillId == 302) { evSummary.movePosSpeed = 2.8f; evSummary.movePosDistance = 0.504f; evSummary.movePosFrame = 0; }
+                        else if (skillId == 303) { evSummary.movePosSpeed = 3.2f; evSummary.movePosDistance = 0.64f; evSummary.movePosFrame = 0; }
+                        else if (skillId == 304) { evSummary.movePosSpeed = 3.8f; evSummary.movePosDistance = 0.836f; evSummary.movePosFrame = 0; }
                         else if (skillId == 306)
                         {
                             // Chiêu Từ Hàng Phổ Độ: Hồi phục sinh lực (Recover), tự chọn bản thân hoặc đồng đội, gọi chiêu phụ 307
@@ -303,8 +314,9 @@ namespace TopDownGame.Skills
                             startPosType = VfxStartPosType.Caster;
                             slotId = 19; // Bàn chân / Mặt đất (Foot)
                             skillType = SkillType.Circle;
-                            evSummary.lungeSpeed = 0f;
-                            evSummary.lungeDuration = 0f;
+                            evSummary.movePosSpeed = 0f;
+                            evSummary.movePosDistance = 0f;
+                            evSummary.movePosFrame = -1;
                             rangeInMeters = Mathf.Max(rangeInMeters, 8.0f);
                             evSummary.effectPath = "effect/prefabs/juese/emei/JN_01";
                             if (evSummary.playsound <= 0) evSummary.playsound = 5306;
@@ -328,8 +340,9 @@ namespace TopDownGame.Skills
                             childId = 308;
                             startPosType = VfxStartPosType.Target;
                             slotId = 1; // Đục lỗ tay phải / Chuôi kiếm (B_RH)
-                            evSummary.lungeSpeed = 0f;
-                            evSummary.lungeDuration = 0f;
+                            evSummary.movePosSpeed = 0f;
+                            evSummary.movePosDistance = 0f;
+                            evSummary.movePosFrame = -1;
                             rangeInMeters = Mathf.Max(rangeInMeters, 12.0f);
                             evSummary.effectPath = "effect/prefabs/juese/emei/JN_02_SF"; // Hiệu ứng tụ khí khi bắt đầu bắn
                             if (evSummary.playsound <= 0) evSummary.playsound = 5308;
@@ -342,8 +355,9 @@ namespace TopDownGame.Skills
                             childId = 310;
                             startPosType = VfxStartPosType.Caster;
                             slotId = 1;
-                            evSummary.lungeSpeed = 0f;
-                            evSummary.lungeDuration = 0f;
+                            evSummary.movePosSpeed = 0f;
+                            evSummary.movePosDistance = 0f;
+                            evSummary.movePosFrame = -1;
                             rangeInMeters = Mathf.Max(rangeInMeters, 9.0f);
                             evSummary.effectPath = "effect/prefabs/juese/emei/JN_03_WQ";
                             if (evSummary.playsound <= 0) evSummary.playsound = 5310;
@@ -371,8 +385,10 @@ namespace TopDownGame.Skills
                             msGenerate = msGenerate,
                             msGenerateParam = msGenerateParam,
                             isMelee = missile == null || !missile.IsProjectile,
-                            lungeSpeed = evSummary.lungeSpeed,
-                            lungeDuration = evSummary.lungeDuration,
+                            movePosDistance = evSummary.movePosDistance,
+                            movePosSpeed = evSummary.movePosSpeed,
+                            movePosAccel = evSummary.movePosAccel,
+                            movePosFrame = evSummary.movePosFrame,
                             skillType = skillType,
                             range = rangeInMeters,
                             fanAngle = fanAngle,
@@ -451,8 +467,10 @@ namespace TopDownGame.Skills
                                 playsound = -1,
                                 playsoundFrame = -1,
                                 effectPath = "",
-                                lungeSpeed = 0f,
-                                lungeDuration = 0f
+                                movePosDistance = 0f,
+                                movePosSpeed = 0f,
+                                movePosAccel = 0f,
+                                movePosFrame = -1
                             };
                         }
 
@@ -522,6 +540,14 @@ namespace TopDownGame.Skills
                                     summary.effectPath = path;
                                 }
                             }
+                            else if (eventName.Equals("MovePos", StringComparison.OrdinalIgnoreCase))
+                            {
+                                string p3 = CsvParserHelper.GetToken(tokens, 7);
+                                summary.movePosDistance = CsvParserHelper.ParseFloat(p1, 0f) / 100f;
+                                summary.movePosSpeed = CsvParserHelper.ParseFloat(p2, 0f) / 10f;
+                                summary.movePosAccel = CsvParserHelper.ParseFloat(p3, 0f);
+                                summary.movePosFrame = frame;
+                            }
                         }
                         // EventType 3: Kết thúc hành động (End / Exit) -> KHÔNG ghi đè summary.crossFade của chiêu vào!
 
@@ -568,8 +594,9 @@ namespace TopDownGame.Skills
                     iconPath = CsvParserHelper.GetToken(tokens, 2),
                     castActionId = CastActionHelper.ParseActionId(CsvParserHelper.GetToken(tokens, 3), (int)CastActionID.at01),
                     crossFade = CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 4), 0.1f),
-                    lungeSpeed = CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 5), 0f),
-                    lungeDuration = CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 6), 0f),
+                    movePosSpeed = CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 5), 0f),
+                    movePosDistance = CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 5), 0f) * CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 6), 0f),
+                    movePosFrame = 0,
                     skillType = ParseSkillType(CsvParserHelper.GetToken(tokens, 7)),
                     range = CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 8), 5f),
                     fanAngle = CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 9), 0f),

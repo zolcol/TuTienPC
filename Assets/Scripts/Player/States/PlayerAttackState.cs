@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using TopDownGame.Skills;
 
 namespace TopDownGame.Player
@@ -91,12 +91,18 @@ namespace TopDownGame.Player
                 }
             }
 
-            // 2. Bước nhích tiến về phía trước (Forward Lunge)
-            if (currentSkill.lungeSpeed > 0f && currentSkill.lungeDuration > 0f && timer < currentSkill.lungeDuration)
+            // 2. Bước nhích tiến về phía trước (Forward Lunge - MovePos)
+            if (currentSkill.movePosSpeed > 0f && currentSkill.movePosDistance > 0f)
             {
-                float progress = timer / currentSkill.lungeDuration;
-                float lungeSpeed = Mathf.Lerp(currentSkill.lungeSpeed, 0f, progress);
-                player.MoveWithSpeed(player.transform.forward, lungeSpeed);
+                float duration = currentSkill.movePosDistance / currentSkill.movePosSpeed;
+                float moveStartTime = currentSkill.MovePosTime >= 0f ? currentSkill.MovePosTime : 0f;
+                if (timer >= moveStartTime && timer < moveStartTime + duration)
+                {
+                    float timeInMove = timer - moveStartTime;
+                    float progress = timeInMove / duration;
+                    float currentSpeed = Mathf.Lerp(currentSkill.movePosSpeed, 0f, progress);
+                    player.MoveWithSpeed(player.transform.forward, currentSpeed);
+                }
             }
 
             // 3. Kích hoạt âm thanh tại mốc PlaySoundTime (nếu có cấu hình âm thanh)

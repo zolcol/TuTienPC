@@ -56,12 +56,18 @@ namespace TopDownGame.Enemy
 
             timer += Time.deltaTime;
 
-            // 1. Nhích tiến nếu có lunge
-            if (currentSkill.lungeSpeed > 0f && currentSkill.lungeDuration > 0f && timer < currentSkill.lungeDuration)
+            // 1. Nhích tiến nếu có MovePos
+            if (currentSkill.movePosSpeed > 0f && currentSkill.movePosDistance > 0f)
             {
-                float progress = timer / currentSkill.lungeDuration;
-                float lungeSpeed = Mathf.Lerp(currentSkill.lungeSpeed, 0f, progress);
-                enemy.CharacterController.Move(enemy.transform.forward * lungeSpeed * Time.deltaTime);
+                float duration = currentSkill.movePosDistance / currentSkill.movePosSpeed;
+                float moveStartTime = currentSkill.MovePosTime >= 0f ? currentSkill.MovePosTime : 0f;
+                if (timer >= moveStartTime && timer < moveStartTime + duration)
+                {
+                    float timeInMove = timer - moveStartTime;
+                    float progress = timeInMove / duration;
+                    float currentSpeed = Mathf.Lerp(currentSkill.movePosSpeed, 0f, progress);
+                    enemy.CharacterController.Move(enemy.transform.forward * currentSpeed * Time.deltaTime);
+                }
             }
 
             // 2. Kích hoạt âm thanh (nếu có cấu hình âm thanh)

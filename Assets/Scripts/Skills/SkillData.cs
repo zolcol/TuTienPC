@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using TopDownGame.Stats;
 using TopDownGame.Combat;
@@ -54,8 +54,10 @@ namespace TopDownGame.Skills
         public string clipName => ClipName; // Giữ tương thích ngược với code cũ
 
         // --- MOVEMENT & SHAPE ---
-        public float lungeSpeed = 0f;
-        public float lungeDuration = 0f;
+        public float movePosDistance = 0f;
+        public float movePosSpeed = 0f;
+        public float movePosAccel = 0f;
+        public int movePosFrame = -1;
         public SkillType skillType = SkillType.StraightRay;
         public float range = 5f;
         public float fanAngle = 0f;
@@ -123,6 +125,7 @@ namespace TopDownGame.Skills
         public float CastLinkSkillTime => castLinkSkill >= 0 ? (castLinkSkill / ACTION_EVENT_FPS) : (candoskill >= 0 ? (candoskill / ACTION_EVENT_FPS) : -1f);
         public float InstantDirTime => instantDir >= 0 ? (instantDir / ACTION_EVENT_FPS) : -1f;
         public float PlaySoundTime => playsoundFrame >= 0 ? (playsoundFrame / ACTION_EVENT_FPS) : 0f;
+        public float MovePosTime => movePosFrame >= 0 ? (movePosFrame / ACTION_EVENT_FPS) : -1f;
 
         // --- HELPER FLAGS KIỂM TRA HỢP LỆ ---
         public bool HasSound => playsound > 0;
