@@ -274,7 +274,7 @@ namespace TopDownGame.Skills
             {
                 float delayFrames = CsvParserHelper.ParseFloat(skill.msGenerateParam, 2f);
                 if (delayFrames <= 0f) delayFrames = 2f;
-                float delaySec = delayFrames / SkillData.ACTION_EVENT_FPS;
+                float delaySec = delayFrames / SkillData.LOGIC_GAME_FPS;
 
                 if (EffectManager.Instance != null)
                 {

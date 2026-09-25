@@ -16,8 +16,8 @@ namespace TopDownGame.Skills
     [Serializable]
     public class SkillData
     {
-        // Tốc độ khung hình chuẩn theo chuẩn Logic Engine 15 FPS (DATA_CONVENTIONS.md)
-        public const float ACTION_EVENT_FPS = 15f; // Chuẩn 15 FPS cho ActionEvent, Frame Timing
+        // Tốc độ khung hình chuẩn theo chuẩn Logic Engine
+        public const float ACTION_EVENT_FPS = 15f; // Chuẩn 15 FPS cho ActionEvent, Frame Timing (Animation)
         public const float LOGIC_GAME_FPS = 15f;   // Alias giữ tương thích ngược
         public const float COOLDOWN_FPS = 15f;     // Chuẩn 15 FPS cho TimePerCast / Cooldown trong Skill.csv
 

@@ -335,11 +335,64 @@ namespace TopDownGame
             }
 
             currentClip = realClip;
-            CrossFadeOnComponent(bodyAnimation, realClip, wrapMode, fadeTime, forceRewind);
-            CrossFadeOnComponent(headAnimation, realClip, wrapMode, fadeTime, forceRewind);
+            float speed = 1.0f;
+
+            // Tìm NpcResData để lấy ActionFrames và tự động scale tốc độ animation
+            int resId = 0;
+            var player = GetComponent<TopDownGame.Player.PlayerController>() ?? GetComponentInParent<TopDownGame.Player.PlayerController>();
+            if (player != null)
+            {
+                resId = player.NpcResId;
+            }
+            else
+            {
+                var enemy = GetComponent<TopDownGame.Enemy.EnemyController>() ?? GetComponentInParent<TopDownGame.Enemy.EnemyController>();
+                if (enemy != null)
+                {
+                    resId = enemy.NpcResId;
+                }
+            }
+
+            TopDownGame.Data.NpcResData resData = null;
+            if (resId > 0)
+            {
+                resData = TopDownGame.Data.NpcResDatabase.GetRes(resId);
+            }
+            else
+            {
+                resData = TopDownGame.Data.NpcResDatabase.GetResByName(gameObject.name);
+            }
+
+            if (resData != null)
+            {
+                if (resData.ActionFrames.TryGetValue(clipName, out int targetFrame))
+                {
+                    float targetDuration = targetFrame / TopDownGame.Skills.SkillData.ACTION_EVENT_FPS;
+                    if (targetDuration > 0f)
+                    {
+                        float actualLength = bodyAnimation != null && bodyAnimation[realClip] != null ? bodyAnimation[realClip].length : 0.5f;
+                        if (actualLength > 0f)
+                        {
+                            speed = actualLength / targetDuration;
+                        }
+                    }
+                }
+                
+                // Ghi đè crossFade từ NpcRes.csv nếu có (Ưu tiên thông số của Model hơn là của Skill chung)
+                if (resData.ActionCrossFades.TryGetValue(clipName, out float targetCross))
+                {
+                    if (targetCross >= 0f)
+                    {
+                        fadeTime = targetCross;
+                    }
+                }
+            }
+
+            CrossFadeOnComponent(bodyAnimation, realClip, wrapMode, fadeTime, forceRewind, speed);
+            CrossFadeOnComponent(headAnimation, realClip, wrapMode, fadeTime, forceRewind, speed);
         }
 
-        private void CrossFadeOnComponent(Animation animComp, string clipName, WrapMode wrapMode, float fadeTime, bool forceRewind)
+        private void CrossFadeOnComponent(Animation animComp, string clipName, WrapMode wrapMode, float fadeTime, bool forceRewind, float speed = 1.0f)
         {
             if (animComp == null) return;
 
@@ -349,6 +402,7 @@ namespace TopDownGame
                 state.enabled = true;
                 state.wrapMode = wrapMode;
                 state.blendMode = AnimationBlendMode.Blend;
+                state.speed = speed;
 
                 if (forceRewind)
                 {
@@ -374,12 +428,16 @@ namespace TopDownGame
 
             if (bodyAnimation != null && bodyAnimation[realClip] != null)
             {
-                return bodyAnimation[realClip].length;
+                float length = bodyAnimation[realClip].length;
+                float speed = bodyAnimation[realClip].speed;
+                return speed > 0f ? length / speed : length;
             }
 
             if (headAnimation != null && headAnimation[realClip] != null)
             {
-                return headAnimation[realClip].length;
+                float length = headAnimation[realClip].length;
+                float speed = headAnimation[realClip].speed;
+                return speed > 0f ? length / speed : length;
             }
 
             return 0.5f;

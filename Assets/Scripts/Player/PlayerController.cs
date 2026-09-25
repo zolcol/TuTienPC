@@ -31,6 +31,9 @@ namespace TopDownGame.Player
         [Tooltip("Môn phái của nhân vật (1: Thiên Vương, 2: Nga Mi, 3: Đào Hoa, 4: Tiêu Dao, ...)")]
         [SerializeField] private int factionId = 2;
 
+        [Tooltip("ID của Model trong NpcRes.csv (vd: 1 cho Thiên Vương Nam, 2 cho Nga Mi, 3 cho Đào Hoa)")]
+        [SerializeField] private int npcResId = 2;
+
         [Tooltip("Kỹ năng 1: Phím Q (vd: 306 - Nga Mi Skill 1 / Tụ Hàng Phổ Độ)")]
         [SerializeField] private int skillSlotQ_Id = 306;
 
@@ -85,6 +88,7 @@ namespace TopDownGame.Player
         public int SkillSlotQ_Id => skillSlotQ_Id;
         public int SkillSlotE_Id => skillSlotE_Id;
         public int SkillSlotR_Id => skillSlotR_Id;
+        public int NpcResId => npcResId;
 
         public bool NoCooldown { get => noCooldown; set => noCooldown = value; }
         public bool NoManaCost { get => noManaCost; set => noManaCost = value; }

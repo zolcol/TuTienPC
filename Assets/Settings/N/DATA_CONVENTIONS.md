@@ -49,8 +49,11 @@ Bảng định nghĩa thuộc tính cốt lõi của mọi chiêu thức (Ngư�
 | **`Property`** | `string` | Phân loại ngữ cảnh (Kỹ năng môn phái, Kỹ năng quái, Buff...). |
 | **`SkillType`** | `int` | Loại kỹ năng: `1` = Bị động (Passive), `2` = Tấn công thường, `3` = Buff hỗ trợ, `4` = Trận pháp (Aura), `5` = Kỹ năng chủ động điều khiển. |
 | **`MeleeForm`** | `int` | Kiểu đánh cận chiến: `0`/rỗng = Bình thường, `1` = Áp sát nhanh, `2` = Xoay vòng quanh người. |
-| **`StartPosType`** | `int` | **Vị trí xuất phát chiêu/đạn:**<br>• `1`: Xuất phát từ **Caster** (Người ra chiêu).<br>• `2`: Xuất phát hướng về / tại **Target** (Mục tiêu đang khóa).<br>• `3`: Xuất phát tại **Điểm va chạm (HitPoint)**. |
-| **`StartDirType`** | `int` | Hướng ngắm ban đầu: `0` = Hướng mặt nhân vật, `1` = Hướng vector chỉ tới mục tiêu. |
+| **`StartPosType`** | `int` | **Vị trí xuất phát chiêu/đạn:**<br>• `1` / Trống: Xuất phát từ **Caster** (Người ra chiêu).<br>• `2`: Xuất phát tại **Target** (Mục tiêu đang khóa - Target-lock Skill).<br>• `3`: Xuất phát tại **Điểm chạm đất / Con trỏ ngắm** (Smartcast Point). |
+| **`StartDirType`** | `int` | **Hướng ngắm ban đầu:**<br>• `0` / Trống: Hướng mặt nhân vật (theo 64 hướng logic).<br>• `1`: Hướng vector thẳng tới tâm Target.<br>• `2`: Hướng kéo Joystick của người chơi. |
+| **`SelectorType`** | `int` | **Loại vòng ngắm / Indicator giao diện:**<br>• `1`: Vòng tròn chọn vùng đất (AOE Circle Indicator).<br>• `2`: Mũi tên định hướng (Directional Arrow / Sector Indicator). |
+| **`SelectorRange`**| `int` | Bán kính tối đa cho phép kéo vòng chọn/ngắm trên màn hình (`SelectorRange / 100` mét). |
+| **`TargetSelf`** | `int (0/1)` | `1` = Chiêu tự động / Khóa mục tiêu là chính bản thân (Self Buff, Khiên, Hào quang). |
 | **`Icon`** | `string` | Tên Sprite Icon kỹ năng trong Sprite Atlas. |
 | **`IconAtlas`** | `string` | Đường dẫn prefab UI chứa Sprite Atlas (vd: `UI/Atlas/SkillIcon/EM_Skill.prefab`). |
 | **`WaitTime`** | `int` | Thời gian chờ tích lực trước khi ra chiêu (Frames). |
@@ -94,6 +97,24 @@ Bảng định nghĩa thuộc tính cốt lõi của mọi chiêu thức (Ngư�
 
 ---
 
+### 🎯 Hệ Thống Vòng Ngắm & Chỉ Thị Mục Tiêu (Skill Selector & Indicators):
+
+Toàn bộ hệ thống kỹ năng trong game sử dụng **bộ Selector chung chuẩn hóa**, được tự động phân loại theo cấu hình trong `Skill.csv`:
+
+| Nhóm Cơ Chế Ngắm | Dấu hiệu nhận diện trong `Skill.csv` | Tên Prefab VFX Indicator | ResID (`EffectRes.csv`) | Cơ chế hoạt động (`EffectMoveType`) |
+| :--- | :--- | :--- | :---: | :--- |
+| **1. Mũi tên định hướng** (Directional / Dash) | `SelectorType = 2` | `xingdongfangxianjiantou_G2.prefab` | **`7`** | **`Rotate (0)`**: Mũi tên cắm dưới chân Caster, xoay $360^\circ$ theo góc cần Joystick. |
+| **2. Vùng chọn thông minh** (Smartcast AOE) | `SelectorType = 1` | `xuanzhong.prefab` | **`9`** | **`Move (1)`**: Vòng tròn kéo tự do trên mặt đất, giới hạn bởi `SelectorRange`. |
+| **3. Vòng chọn hỗ trợ** (Ally / Healing AOE) | `SelectorType = 1` & `Relation = recover/ally` | `xuanzhong_LV.prefab` | **`11`** | **`Move (1)`**: Vòng tròn xanh lá kéo chọn vùng hồi máu / buff đồng đội. |
+| **4. Khóa mục tiêu địch** (Target Lock Enemy) | `StartPosType = 2` & `Relation = enemy` | `xuanzhong.prefab` / `xuanzhong_tubiao.prefab` | **`9` / `10`** | **Khóa chân Target**: Vòng đỏ và icon mũi tên trên đầu mục tiêu đang chọn. |
+| **5. Chiêu tự thân / Buff** (Self Cast / Aura) | `TargetSelf = 1` hoặc `Relation = self` | *(Không hiển thị)* | — | Không hiện selector, nhấn nút là nổ ngay tại vị trí Caster. |
+
+> **Công thức tính kích thước & tầm ngắm:**
+> - **Kích thước vòng tròn:** Lấy theo `AttackRadius / 100.0f` hoặc `DmgRange / 10.0f` (m).
+> - **Phạm vi kéo tối đa:** Lấy theo `SelectorRange / 100.0f` (m).
+
+---
+
 ## 3. CHI TIẾT BẢNG `Missile.csv`
 
 Bảng quy định toàn bộ cơ chế vật lý của Đạn Đạo, Hitbox, Tốc độ, Vùng sát thương và Hiệu ứng va chạm.
@@ -109,7 +130,7 @@ Bảng quy định toàn bộ cơ chế vật lý của Đạn Đạo, Hitbox, T
 | **`DmgRange`** | `int` | Kích thước bán kính hoặc chiều dài Hitbox (`DmgRange / 10.0f` m). |
 | **`DmgRangeY`** | `int` | Góc mở hình quạt (Độ) hoặc bề rộng hình hộp chữ nhật (m). |
 | **`DmgInterval`** | `int` | Khoảng cách nhịp giữa 2 lần gây dame liên tục (Frames). |
-| **`LifeTime`** | `int` | Thời gian sống tối đa của đạn (`LifeTime / 30.0f` giây). |
+| **`LifeTime`** | `int` | Thời gian sống tối đa của đạn (`LifeTime / 15.0f` giây). |
 | **`IsDmgVanish`** | `int (0/1)` | `1` = Đạn chạm trúng 1 mục tiêu là nổ và biến mất ngay lập tức. |
 | **`CanRepeatDmg`** | `int (0/1)` | `1` = Đạn được phép gây sát thương nhiều lần (Dùng cho đạn xuyên thấu / đạn nảy). |
 | **`MissileResID`** | `int` | ID Prefab 3D của viên đạn khi đang bay (Trỏ sang `EffectRes.csv`). |
@@ -133,7 +154,7 @@ Bảng quy định **Timeline chính xác từng frame** của hoạt ảnh nhâ
 | Tên Cột | Kiểu | Ý nghĩa |
 | :--- | :---: | :--- |
 | **`ActEventID`** | `int` | ID của chuỗi sự kiện hoạt ảnh (Khớp với `ActionEventID` trong `Skill.csv`). |
-| **`Frame`** | `int` | Frame mốc kích hoạt sự kiện (Chuẩn 30 FPS, $t = \text{Frame} / 30.0s$). |
+| **`Frame`** | `int` | Frame mốc kích hoạt sự kiện (Chuẩn **15 FPS**, $t = \text{Frame} / 15.0s$). |
 | **`EventName`** | `string` | **Tên sự kiện logic:** |
 | ↳ `CrossFade` | — | Hòa trộn mượt hoạt ảnh mới (`EventParam1` = Thời gian blend ms). |
 | ↳ `InstantDir` | — | Tốc độ tự động xoay mặt về hướng mục tiêu (`EventParam1` = 1000°/s). |
@@ -462,6 +483,32 @@ namespace GameData.Combat
         Head = 15,          // S_Hat / Bip001 Head (Đỉnh đầu / Buff / Stun)
         RightFoot = 19,     // Bip01 R Foot (Chân phải)
         LeftFoot = 20       // Bip01 L Foot (Chân trái / Trận pháp đất)
+    }
+
+    // Loại vòng ngắm / Chỉ thị mục tiêu (Skill Indicator)
+    public enum SkillSelectorType
+    {
+        None = 0,
+        SmartcastCircleAOE = 1, // Vòng tròn chọn vùng đất
+        DirectionalArrow = 2    // Mũi tên định hướng xoay theo Joystick
+    }
+
+    // Chế độ di chuyển của Indicator (SkillController)
+    public enum SelectorMoveType
+    {
+        Rotate = 0, // Cố định gốc, chỉ xoay theo hướng Joystick
+        Move = 1    // Kéo tâm di chuyển tự do trên mặt đất
+    }
+
+    // ResID Prefab VFX Indicator chuẩn trong EffectRes.csv
+    public static class IndicatorVfxResID
+    {
+        public const int DirectionArrow = 7;     // Mũi tên định hướng (xingdongfangxianjiantou_G2)
+        public const int TargetPoint = 8;        // Tâm điểm chỉ định (xingjinmubiaodian)
+        public const int SelectedEnemyAOE = 9;   // Vòng đỏ/vàng chọn địch (xuanzhong)
+        public const int TargetArrowIcon = 10;   // Icon mũi tên trên đầu (xuanzhong_tubiao)
+        public const int SelectedAllyAOE = 11;   // Vòng xanh lá hỗ trợ đồng đội (xuanzhong_LV)
+        public const int DangerWarning = 14;     // Vùng cảnh báo nguy hiểm Boss (YuJing_S)
     }
 }
 ```

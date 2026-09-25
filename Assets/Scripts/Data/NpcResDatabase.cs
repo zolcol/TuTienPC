@@ -17,6 +17,9 @@ namespace TopDownGame.Data
         public float height = 1.8f;
         public float width = 0.5f;
 
+        public Dictionary<string, int> ActionFrames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, float> ActionCrossFades = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+
         private GameObject cachedPrefab;
         private bool attemptedLoad = false;
 
@@ -138,6 +141,23 @@ namespace TopDownGame.Data
                             width = width > 0f ? width : 0.5f
                         };
 
+                        foreach (var kvp in colMap)
+                        {
+                            string colName = kvp.Key;
+                            if (colName.EndsWith("frame", StringComparison.OrdinalIgnoreCase))
+                            {
+                                string action = colName.Substring(0, colName.Length - 5);
+                                int frameVal = GetColInt(tokens, colMap, colName, -1, 0);
+                                if (frameVal > 0) data.ActionFrames[action] = frameVal;
+                            }
+                            else if (colName.EndsWith("cross", StringComparison.OrdinalIgnoreCase))
+                            {
+                                string action = colName.Substring(0, colName.Length - 5);
+                                float crossVal = GetColFloat(tokens, colMap, colName, -1, 0f);
+                                if (crossVal > 0f) data.ActionCrossFades[action] = crossVal;
+                            }
+                        }
+
                         resDict[resId] = data;
                     }
                 }
@@ -172,8 +192,24 @@ namespace TopDownGame.Data
         public static NpcResData GetRes(int resId)
         {
             if (resId <= 0) return null;
+            Instance.EnsureLoaded();
             Instance.resDict.TryGetValue(resId, out NpcResData data);
             return data;
+        }
+
+        public static NpcResData GetResByName(string goName)
+        {
+            if (string.IsNullOrEmpty(goName)) return null;
+            Instance.EnsureLoaded();
+            string cleanName = goName.Replace("(Clone)", "").Trim();
+            foreach (var kvp in Instance.resDict)
+            {
+                if (!string.IsNullOrEmpty(kvp.Value.resFile) && kvp.Value.resFile.IndexOf(cleanName, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return kvp.Value;
+                }
+            }
+            return null;
         }
 
         public static bool HasRes(int resId)

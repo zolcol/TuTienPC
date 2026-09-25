@@ -63,6 +63,19 @@ namespace TopDownGame.Enemy
         public CharacterController CharacterController => characterController;
         public LegacyAnimationController AnimationController => animationController;
         public EnemyStats Stats => stats;
+        
+        public int NpcResId 
+        {
+            get 
+            {
+                if (npcTemplateId > 0)
+                {
+                    var template = TopDownGame.NPC.NpcTemplateDatabase.GetTemplate(npcTemplateId);
+                    if (template != null) return template.npcResId;
+                }
+                return 0;
+            }
+        }
 
         private Vector3 verticalVelocity;
         private Vector3 moveDirection;
