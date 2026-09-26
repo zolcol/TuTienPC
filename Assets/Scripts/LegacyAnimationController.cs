@@ -303,14 +303,21 @@ namespace TopDownGame
             string clip = ResolveClipName(CLIP_DIE) ?? ResolveClipName("jfd");
             if (string.IsNullOrEmpty(clip)) return;
 
-            PlayActionInternal(clip, WrapMode.ClampForever, actionCrossFadeTime, true);
+            PlayActionInternal(clip, WrapMode.ClampForever, actionCrossFadeTime, true, null);
+        }
+
+        public void PlayAction(SkillData skill, WrapMode wrapMode = WrapMode.Once, float customFadeTime = -1f)
+        {
+            if (skill == null) return;
+            float fadeDuration = customFadeTime >= 0f ? customFadeTime : (skill.crossFade > 0f ? skill.crossFade : actionCrossFadeTime);
+            PlayActionInternal(skill.ClipName, wrapMode, fadeDuration, true, skill);
         }
 
         public void PlayAction(string clipName, WrapMode wrapMode = WrapMode.Once, float customFadeTime = -1f)
         {
             if (string.IsNullOrEmpty(clipName)) return;
             float fadeDuration = customFadeTime >= 0f ? customFadeTime : actionCrossFadeTime;
-            PlayActionInternal(clipName, wrapMode, fadeDuration, true);
+            PlayActionInternal(clipName, wrapMode, fadeDuration, true, null);
         }
 
         public void PlayAction(CastActionID actionId, WrapMode wrapMode = WrapMode.Once, float customFadeTime = -1f)
@@ -325,19 +332,12 @@ namespace TopDownGame
             PlayAction(clip, wrapMode, customFadeTime);
         }
 
-        private void PlayActionInternal(string clipName, WrapMode wrapMode, float fadeTime, bool forceRewind)
+        private TopDownGame.Data.NpcResData cachedNpcResData;
+
+        public TopDownGame.Data.NpcResData GetNpcResData()
         {
-            string realClip = ResolveClipName(clipName);
-            if (string.IsNullOrEmpty(realClip))
-            {
-                Debug.LogWarning($"[LegacyAnimation] ⚠️ Không tìm thấy clip '{clipName}' trong model '{gameObject.name}'.");
-                return;
-            }
+            if (cachedNpcResData != null) return cachedNpcResData;
 
-            currentClip = realClip;
-            float speed = 1.0f;
-
-            // Tìm NpcResData để lấy ActionFrames và tự động scale tốc độ animation
             int resId = 0;
             var player = GetComponent<TopDownGame.Player.PlayerController>() ?? GetComponentInParent<TopDownGame.Player.PlayerController>();
             if (player != null)
@@ -353,46 +353,119 @@ namespace TopDownGame
                 }
             }
 
-            TopDownGame.Data.NpcResData resData = null;
             if (resId > 0)
             {
-                resData = TopDownGame.Data.NpcResDatabase.GetRes(resId);
+                cachedNpcResData = TopDownGame.Data.NpcResDatabase.GetRes(resId);
             }
-            else
+            if (cachedNpcResData == null)
             {
-                resData = TopDownGame.Data.NpcResDatabase.GetResByName(gameObject.name);
+                cachedNpcResData = TopDownGame.Data.NpcResDatabase.GetResByName(gameObject.name);
             }
+
+            return cachedNpcResData;
+        }
+
+        /// <summary>
+        /// Tra cứu số frame chuẩn (action_frame) của clip trong NpcResData theo DATA_CONVENTIONS.md Mục 5 & 7.
+        /// Tên clip đã được chuẩn hóa trong toàn bộ dự án (at01, at02, run, st,...).
+        /// </summary>
+        public bool TryGetActionFrame(TopDownGame.Data.NpcResData resData, string clipName, out int targetFrame)
+        {
+            targetFrame = 0;
+            if (resData == null || resData.ActionFrames == null || string.IsNullOrEmpty(clipName)) return false;
+
+            return resData.ActionFrames.TryGetValue(clipName, out targetFrame) && targetFrame > 0;
+        }
+
+        public bool TryGetActionCrossFade(TopDownGame.Data.NpcResData resData, string clipName, out float crossFade)
+        {
+            crossFade = -1f;
+            if (resData == null || resData.ActionCrossFades == null || string.IsNullOrEmpty(clipName)) return false;
+
+            return resData.ActionCrossFades.TryGetValue(clipName, out crossFade) && crossFade >= 0f;
+        }
+
+        private void PlayActionInternal(string clipName, WrapMode wrapMode, float fadeTime, bool forceRewind, SkillData skill = null)
+        {
+            string realClip = ResolveClipName(clipName);
+            if (string.IsNullOrEmpty(realClip))
+            {
+                Debug.LogWarning($"[LegacyAnimation] ⚠️ Không tìm thấy clip '{clipName}' trong model '{gameObject.name}'.");
+                return;
+            }
+
+            currentClip = realClip;
+
+            TopDownGame.Data.NpcResData resData = GetNpcResData();
+            float targetDuration = 0f;
+            int targetFrame = 0;
 
             if (resData != null)
             {
-                if (resData.ActionFrames.TryGetValue(clipName, out int targetFrame))
+                string key = !string.IsNullOrEmpty(realClip) ? realClip : clipName;
+                if (TryGetActionFrame(resData, key, out targetFrame))
                 {
-                    float targetDuration = targetFrame / TopDownGame.Skills.SkillData.ACTION_EVENT_FPS;
-                    if (targetDuration > 0f)
-                    {
-                        float actualLength = bodyAnimation != null && bodyAnimation[realClip] != null ? bodyAnimation[realClip].length : 0.5f;
-                        if (actualLength > 0f)
-                        {
-                            speed = actualLength / targetDuration;
-                        }
-                    }
+                    targetDuration = targetFrame / TopDownGame.Skills.SkillData.ACTION_EVENT_FPS;
                 }
-                
+
                 // Ghi đè crossFade từ NpcRes.csv nếu có (Ưu tiên thông số của Model hơn là của Skill chung)
-                if (resData.ActionCrossFades.TryGetValue(clipName, out float targetCross))
+                if (TryGetActionCrossFade(resData, key, out float targetCross))
                 {
-                    if (targetCross >= 0f)
+                    fadeTime = targetCross;
+                }
+            }
+
+            // Tính toán AttackSpeed theo DATA_CONVENTIONS.md Mục 5:
+            // Final Anim Speed = Base Anim Speed Multiplier * (1.0f + AttackSpeed / 100.0f)
+            float attackSpeedPercent = 0f;
+            if (skill != null && skill.notChangeActFrame)
+            {
+                attackSpeedPercent = 0f;
+            }
+            else
+            {
+                var player = GetComponent<TopDownGame.Player.PlayerController>() ?? GetComponentInParent<TopDownGame.Player.PlayerController>();
+                if (player != null && player.Stats != null)
+                {
+                    attackSpeedPercent = player.Stats.AttackSpeed;
+                }
+                else
+                {
+                    var enemy = GetComponent<TopDownGame.Enemy.EnemyController>() ?? GetComponentInParent<TopDownGame.Enemy.EnemyController>();
+                    if (enemy != null && enemy.Stats != null)
                     {
-                        fadeTime = targetCross;
+                        attackSpeedPercent = enemy.Stats.AttackSpeed;
                     }
                 }
             }
 
-            CrossFadeOnComponent(bodyAnimation, realClip, wrapMode, fadeTime, forceRewind, speed);
-            CrossFadeOnComponent(headAnimation, realClip, wrapMode, fadeTime, forceRewind, speed);
+            float attackSpeedMultiplier = 1.0f + (attackSpeedPercent / 100.0f);
+            if (attackSpeedMultiplier < 0.1f) attackSpeedMultiplier = 0.1f;
+
+            CrossFadeOnComponent(bodyAnimation, realClip, wrapMode, fadeTime, forceRewind, targetDuration, attackSpeedMultiplier);
+            CrossFadeOnComponent(headAnimation, realClip, wrapMode, fadeTime, forceRewind, targetDuration, attackSpeedMultiplier);
+
+            // In debug thông số theo yêu cầu: animation được gọi, độ dài thực tế, độ dài yêu cầu, scale
+            float actualLength = 0f;
+            float scale = attackSpeedMultiplier;
+            if (bodyAnimation != null && bodyAnimation[realClip] != null)
+            {
+                var state = bodyAnimation[realClip];
+                actualLength = state.clip != null ? state.clip.length : state.length;
+                scale = state.speed;
+            }
+            else if (headAnimation != null && headAnimation[realClip] != null)
+            {
+                var state = headAnimation[realClip];
+                actualLength = state.clip != null ? state.clip.length : state.length;
+                scale = state.speed;
+            }
+
+            string reqStr = targetDuration > 0f ? $"{targetDuration:F3}s ({targetFrame} frames)" : $"{actualLength:F3}s (mặc định)";
+            Debug.Log($"[Animation] Animation được gọi: <b>{realClip}</b> | Độ dài thực tế: <b>{actualLength:F3}s</b> | Độ dài yêu cầu: <b>{reqStr}</b> | Scale: <b>{scale:F3}</b>");
         }
 
-        private void CrossFadeOnComponent(Animation animComp, string clipName, WrapMode wrapMode, float fadeTime, bool forceRewind, float speed = 1.0f)
+        private void CrossFadeOnComponent(Animation animComp, string clipName, WrapMode wrapMode, float fadeTime, bool forceRewind, float targetDuration, float attackSpeedMultiplier = 1.0f)
         {
             if (animComp == null) return;
 
@@ -402,7 +475,19 @@ namespace TopDownGame
                 state.enabled = true;
                 state.wrapMode = wrapMode;
                 state.blendMode = AnimationBlendMode.Blend;
-                state.speed = speed;
+
+                // Áp dụng công thức chuẩn DATA_CONVENTIONS.md Mục 5:
+                // Base Speed = state.clip.length / Target Duration = state.clip.length * 15.0f / action_frame
+                // Final Speed = Base Speed * (1.0f + AttackSpeed / 100.0f)
+                if (targetDuration > 0f && state.clip != null && state.clip.length > 0f)
+                {
+                    float baseSpeed = state.clip.length / targetDuration;
+                    state.speed = baseSpeed * attackSpeedMultiplier;
+                }
+                else
+                {
+                    state.speed = attackSpeedMultiplier;
+                }
 
                 if (forceRewind)
                 {
@@ -421,23 +506,64 @@ namespace TopDownGame
             }
         }
 
-        public float GetClipDuration(string clipName)
+        public float GetClipDuration(SkillData skill)
+        {
+            if (skill == null) return 0.5f;
+            return GetClipDuration(skill.ClipName, skill);
+        }
+
+        public float GetClipDuration(string clipName, SkillData skill = null)
         {
             string realClip = ResolveClipName(clipName);
-            if (string.IsNullOrEmpty(realClip)) return 0.5f;
+            TopDownGame.Data.NpcResData resData = GetNpcResData();
 
-            if (bodyAnimation != null && bodyAnimation[realClip] != null)
+            float attackSpeedPercent = 0f;
+            if (skill != null && skill.notChangeActFrame)
             {
-                float length = bodyAnimation[realClip].length;
-                float speed = bodyAnimation[realClip].speed;
-                return speed > 0f ? length / speed : length;
+                attackSpeedPercent = 0f;
+            }
+            else
+            {
+                var player = GetComponent<TopDownGame.Player.PlayerController>() ?? GetComponentInParent<TopDownGame.Player.PlayerController>();
+                if (player != null && player.Stats != null)
+                {
+                    attackSpeedPercent = player.Stats.AttackSpeed;
+                }
+                else
+                {
+                    var enemy = GetComponent<TopDownGame.Enemy.EnemyController>() ?? GetComponentInParent<TopDownGame.Enemy.EnemyController>();
+                    if (enemy != null && enemy.Stats != null)
+                    {
+                        attackSpeedPercent = enemy.Stats.AttackSpeed;
+                    }
+                }
             }
 
-            if (headAnimation != null && headAnimation[realClip] != null)
+            float attackSpeedMultiplier = 1.0f + (attackSpeedPercent / 100.0f);
+            if (attackSpeedMultiplier < 0.1f) attackSpeedMultiplier = 0.1f;
+
+            string key = !string.IsNullOrEmpty(realClip) ? realClip : clipName;
+            if (resData != null && TryGetActionFrame(resData, key, out int targetFrame))
             {
-                float length = headAnimation[realClip].length;
-                float speed = headAnimation[realClip].speed;
-                return speed > 0f ? length / speed : length;
+                float targetDuration = targetFrame / TopDownGame.Skills.SkillData.ACTION_EVENT_FPS;
+                return targetDuration / attackSpeedMultiplier;
+            }
+
+            if (!string.IsNullOrEmpty(realClip))
+            {
+                if (bodyAnimation != null && bodyAnimation[realClip] != null)
+                {
+                    float length = bodyAnimation[realClip].length;
+                    float speed = bodyAnimation[realClip].speed;
+                    return speed > 0f ? length / speed : length;
+                }
+
+                if (headAnimation != null && headAnimation[realClip] != null)
+                {
+                    float length = headAnimation[realClip].length;
+                    float speed = headAnimation[realClip].speed;
+                    return speed > 0f ? length / speed : length;
+                }
             }
 
             return 0.5f;

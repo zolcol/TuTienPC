@@ -39,8 +39,8 @@ namespace TopDownGame.Enemy
             // Kích hoạt Animation
             if (enemy.AnimationController != null)
             {
-                enemy.AnimationController.PlayAction(currentSkill.ClipName, WrapMode.ClampForever, currentSkill.crossFade);
-                totalDuration = enemy.AnimationController.GetClipDuration(currentSkill.ClipName);
+                enemy.AnimationController.PlayAction(currentSkill, WrapMode.ClampForever, currentSkill.crossFade);
+                totalDuration = enemy.AnimationController.GetClipDuration(currentSkill);
             }
             else
             {

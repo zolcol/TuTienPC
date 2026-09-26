@@ -209,6 +209,7 @@ namespace TopDownGame.Skills
                         string msGenerateParam = GetColRaw(tokens, colMap, "msgenerateparam", 14).Trim();
                         float fanAngle = 0f;
                         float boxWidth = 1.6f;
+                        bool notChangeActFrame = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "notchangeactframe", 75), 0) == 1;
 
                         // Xử lý SelectorType & SelectorRange chuẩn hóa từ Database theo DATA_CONVENTIONS.md
                         int rawSelectorType = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "selectortype", 63), 0);
@@ -400,6 +401,7 @@ namespace TopDownGame.Skills
                             manaCost = manaCost,
                             cooldown = cooldown,
                             canCancel = true,
+                            notChangeActFrame = notChangeActFrame,
                             param1 = evSummary.param1,
                             param2 = evSummary.param2,
                             candoskill = evSummary.candoskill,

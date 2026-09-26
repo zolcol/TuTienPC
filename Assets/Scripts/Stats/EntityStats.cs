@@ -19,13 +19,18 @@ namespace TopDownGame.Stats
         [Tooltip("Sát thương phép cơ bản")]
         [SerializeField] protected float magicDamage = 10f;
 
+        [Tooltip("Tốc độ đánh (%) cộng thêm (AttackSpeed trong NpcAttribute.csv)")]
+        [SerializeField] protected float attackSpeed = 0f;
+
         public ResourceStat Health => health;
         public float PhysicalDamage => physicalDamage;
         public float MagicDamage => magicDamage;
+        public float AttackSpeed => attackSpeed;
         public bool IsDead { get; protected set; }
 
         public void SetPhysicalDamage(float value) => physicalDamage = Mathf.Max(0f, value);
         public void SetMagicDamage(float value) => magicDamage = Mathf.Max(0f, value);
+        public void SetAttackSpeed(float value) => attackSpeed = value;
 
         public event Action OnDeath;
         public event Action<float, Vector3, Vector3> OnDamaged; // amount, hitPoint, hitDirection

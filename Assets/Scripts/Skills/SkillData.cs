@@ -123,6 +123,7 @@ namespace TopDownGame.Skills
         public float manaCost = 0f;
         public float cooldown = 0f;
         public bool canCancel = true;
+        public bool notChangeActFrame = false; // 1 = Khóa cứng frame hoạt ảnh, KHÔNG bị tăng tốc bởi AttackSpeed (DATA_CONVENTIONS.md Mục 2 & 5)
 
         // --- FRAME TIMING & COMBO (Mốc tính bằng Frame ActionEvent chuẩn 30 FPS theo DATA_CONVENTIONS.md Mục 4) ---
         public int linkskillinit = -1;

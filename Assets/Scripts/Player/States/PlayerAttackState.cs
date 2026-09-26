@@ -37,12 +37,12 @@ namespace TopDownGame.Player
             hasTriggeredSound = false;
             hasBufferedComboInput = false;
 
-            // Chạy Animation clip từ LegacyAnimationController
+            // Chạy Animation clip từ LegacyAnimationController và scale theo NpcRes / AttackSpeed
             if (player.AnimationController != null)
             {
                 float fade = currentSkill.crossFade > 0f ? Mathf.Clamp(currentSkill.crossFade, 0.05f, 0.15f) : 0.08f;
-                player.AnimationController.PlayAction(currentSkill.ClipName, WrapMode.ClampForever, fade);
-                totalDuration = player.AnimationController.GetClipDuration(currentSkill.ClipName);
+                player.AnimationController.PlayAction(currentSkill, WrapMode.ClampForever, fade);
+                totalDuration = player.AnimationController.GetClipDuration(currentSkill);
             }
             else
             {
@@ -82,12 +82,22 @@ namespace TopDownGame.Player
 
             timer += Time.deltaTime;
 
+            // Hệ số tăng tốc hoạt ảnh theo AttackSpeed (DATA_CONVENTIONS.md Mục 5)
+            float speedFactor = 1.0f;
+            if (player.Stats != null && !currentSkill.notChangeActFrame)
+            {
+                speedFactor = 1.0f + (player.Stats.AttackSpeed / 100.0f);
+                if (speedFactor < 0.1f) speedFactor = 0.1f;
+            }
+
             // 1. Bám theo hướng ngắm (chuột trên PC hoặc cần gạt trên Gamepad) trước mốc khóa hướng
-            float lockRotationTime = currentSkill.InstantDirTime >= 0f ? currentSkill.InstantDirTime : currentSkill.CastSkillTime;
+            float rawLockTime = currentSkill.InstantDirTime >= 0f ? currentSkill.InstantDirTime : currentSkill.CastSkillTime;
+            float lockRotationTime = rawLockTime / speedFactor;
 
             if (timer <= lockRotationTime)
             {
-                float smooth = (currentSkill.InstantDirTime >= 0f && timer >= currentSkill.InstantDirTime - Time.deltaTime)
+                float instantDirScaled = currentSkill.InstantDirTime >= 0f ? (currentSkill.InstantDirTime / speedFactor) : -1f;
+                float smooth = (instantDirScaled >= 0f && timer >= instantDirScaled - Time.deltaTime)
                     ? 0f
                     : player.AttackRotationSmoothTime;
 
@@ -97,19 +107,19 @@ namespace TopDownGame.Player
             // 2. Bước nhích tiến về phía trước (Forward Lunge - MovePos)
             if (currentSkill.movePosSpeed > 0f && currentSkill.movePosDistance > 0f)
             {
-                float duration = currentSkill.movePosDistance / currentSkill.movePosSpeed;
-                float moveStartTime = currentSkill.MovePosTime >= 0f ? currentSkill.MovePosTime : 0f;
+                float duration = (currentSkill.movePosDistance / currentSkill.movePosSpeed) / speedFactor;
+                float moveStartTime = (currentSkill.MovePosTime >= 0f ? currentSkill.MovePosTime : 0f) / speedFactor;
                 if (timer >= moveStartTime && timer < moveStartTime + duration)
                 {
                     float timeInMove = timer - moveStartTime;
                     float progress = timeInMove / duration;
-                    float currentSpeed = Mathf.Lerp(currentSkill.movePosSpeed, 0f, progress);
+                    float currentSpeed = Mathf.Lerp(currentSkill.movePosSpeed * speedFactor, 0f, progress);
                     player.MoveWithSpeed(player.transform.forward, currentSpeed);
                 }
             }
 
             // 3. Kích hoạt âm thanh tại mốc PlaySoundTime (nếu có cấu hình âm thanh)
-            if (!hasTriggeredSound && currentSkill.HasSound && timer >= currentSkill.PlaySoundTime)
+            if (!hasTriggeredSound && currentSkill.HasSound && timer >= (currentSkill.PlaySoundTime / speedFactor))
             {
                 hasTriggeredSound = true;
                 TopDownGame.Audio.SoundManager.Instance.PlaySkillSound(currentSkill, player.transform);
@@ -122,7 +132,7 @@ namespace TopDownGame.Player
                 {
                     if (!triggeredEvents.Contains(ev))
                     {
-                        float evTime = ev.frame / SkillData.ACTION_EVENT_FPS;
+                        float evTime = (ev.frame / SkillData.ACTION_EVENT_FPS) / speedFactor;
                         if (timer >= evTime)
                         {
                             triggeredEvents.Add(ev);
@@ -133,7 +143,7 @@ namespace TopDownGame.Player
             }
 
             // 4. Kích hoạt gây sát thương tại mốc castSkill (frame/15s)
-            if (!hasTriggeredHit && timer >= currentSkill.CastSkillTime)
+            if (!hasTriggeredHit && timer >= (currentSkill.CastSkillTime / speedFactor))
             {
                 hasTriggeredHit = true;
                 player.ExecuteSkillDamage(currentSkill);
@@ -141,7 +151,8 @@ namespace TopDownGame.Player
             }
 
             // 5. Cửa sổ nhận lệnh combo đòn tiếp theo (nếu có cấu hình chiêu kế tiếp)
-            if (currentSkill.HasCombo && (currentSkill.ComboEndTime < 0 || timer <= currentSkill.ComboEndTime))
+            float comboEndTimeScaled = currentSkill.ComboEndTime >= 0f ? (currentSkill.ComboEndTime / speedFactor) : -1f;
+            if (currentSkill.HasCombo && (comboEndTimeScaled < 0 || timer <= comboEndTimeScaled))
             {
                 // A. Nhận lệnh khi người chơi bấm thêm 1 click mới (AttackTriggered)
                 if (player.InputReader != null && player.InputReader.AttackTriggered)
@@ -156,7 +167,8 @@ namespace TopDownGame.Player
             }
 
             // Thực sự chuyển sang chiêu tiếp theo khi đã có lệnh combo và đạt mốc CastLinkSkillTime
-            if (hasBufferedComboInput && currentSkill.CastLinkSkillTime >= 0 && timer >= currentSkill.CastLinkSkillTime)
+            float castLinkScaled = currentSkill.CastLinkSkillTime >= 0f ? (currentSkill.CastLinkSkillTime / speedFactor) : -1f;
+            if (hasBufferedComboInput && castLinkScaled >= 0 && timer >= castLinkScaled)
             {
                 TriggerNextCombo();
                 return;
@@ -164,7 +176,8 @@ namespace TopDownGame.Player
 
             // 6. Cho phép phím Skill khác ngắt chiêu tại mốc candoskill nếu canCancel = true
             // Chỉ ngắt SAU KHI đòn hiện tại đã áp sát thương (hasTriggeredHit == true)
-            if (hasTriggeredHit && currentSkill.CanCancelBySkill && timer >= currentSkill.CanDoSkillTime)
+            float canDoSkillScaled = currentSkill.CanDoSkillTime >= 0f ? (currentSkill.CanDoSkillTime / speedFactor) : -1f;
+            if (hasTriggeredHit && currentSkill.CanCancelBySkill && timer >= canDoSkillScaled)
             {
                 if (player.CheckAndTriggerSkills()) return;
             }
@@ -176,9 +189,10 @@ namespace TopDownGame.Player
             // - Kỹ năng đặc biệt (Q, E, R): cần hoàn thành tối thiểu 85% thời lượng hoạt ảnh để trọn vẹn phép thuật
             if (!hasBufferedComboInput && hasTriggeredHit && currentSkill.CanCancelByRun)
             {
+                float canDoRunScaled = currentSkill.CanDoRunTime / speedFactor;
                 float minActionDuration = currentSkill.HasCombo 
-                    ? Mathf.Max(currentSkill.CanDoRunTime, totalDuration * 0.65f)
-                    : Mathf.Max(currentSkill.CanDoRunTime, totalDuration * 0.85f);
+                    ? Mathf.Max(canDoRunScaled, totalDuration * 0.65f)
+                    : Mathf.Max(canDoRunScaled, totalDuration * 0.85f);
 
                 if (timer >= minActionDuration)
                 {
