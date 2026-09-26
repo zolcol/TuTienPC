@@ -19,8 +19,14 @@ namespace TopDownGame.Input
         public bool AttackTriggered { get; private set; }
         public bool IsAttackHeld { get; private set; }
         public bool Skill1Triggered { get; private set; }
+        public bool Skill1Held { get; private set; }
+        public bool Skill1Released { get; private set; }
         public bool Skill2Triggered { get; private set; }
+        public bool Skill2Held { get; private set; }
+        public bool Skill2Released { get; private set; }
         public bool Skill3Triggered { get; private set; }
+        public bool Skill3Held { get; private set; }
+        public bool Skill3Released { get; private set; }
         public bool IsUsingGamepad { get; private set; }
 
         private void Awake()
@@ -99,9 +105,24 @@ namespace TopDownGame.Input
             }
 
             // Kỹ năng 1, 2, 3
-            Skill1Triggered = skill1Action != null && skill1Action.WasPressedThisFrame();
-            Skill2Triggered = skill2Action != null && skill2Action.WasPressedThisFrame();
-            Skill3Triggered = skill3Action != null && skill3Action.WasPressedThisFrame();
+            if (skill1Action != null)
+            {
+                Skill1Triggered = skill1Action.WasPressedThisFrame();
+                Skill1Held = skill1Action.IsPressed();
+                Skill1Released = skill1Action.WasReleasedThisFrame();
+            }
+            if (skill2Action != null)
+            {
+                Skill2Triggered = skill2Action.WasPressedThisFrame();
+                Skill2Held = skill2Action.IsPressed();
+                Skill2Released = skill2Action.WasReleasedThisFrame();
+            }
+            if (skill3Action != null)
+            {
+                Skill3Triggered = skill3Action.WasPressedThisFrame();
+                Skill3Held = skill3Action.IsPressed();
+                Skill3Released = skill3Action.WasReleasedThisFrame();
+            }
         }
 
         public Vector3 GetMovementDirection3D()

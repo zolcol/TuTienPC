@@ -36,6 +36,8 @@ namespace TopDownGame.Skills
         public int subSkillId = 0; // Chiêu phụ liên kết kích hoạt cùng (như 306 gọi 307)
         public VfxStartPosType startPosType = VfxStartPosType.Caster; // Vị trí xuất hiện hiệu ứng (1: Caster, 2: Target, 3: HitPoint)
         public int slotId = 0; // Khớp xương gắn hiệu ứng (theo PartSlot.csv: 1: B_RH, 2: B_LH, 7: Spine1, 15: Head, 19/20: Foot)
+        public SkillSelectorType selectorType = SkillSelectorType.None;
+        public float selectorRange = 0f;
 
         /// <summary>
         /// Kiểm tra chiêu thức có phải là kỹ năng hồi máu / hồi sinh lực hay không

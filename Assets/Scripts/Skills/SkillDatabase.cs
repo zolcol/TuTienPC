@@ -206,6 +206,32 @@ namespace TopDownGame.Skills
                         float fanAngle = 0f;
                         float boxWidth = 1.6f;
 
+                        // Xử lý SelectorType & SelectorRange chuẩn hóa từ Database theo DATA_CONVENTIONS.md
+                        int rawSelectorType = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "selectortype", 63), 0);
+                        float rawSelectorRange = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "selectorrange", 62), 0f);
+                        float selectorRange = rawSelectorRange > 0f ? (rawSelectorRange / 100f) : rangeInMeters;
+
+                        SkillSelectorType selectorType = SkillSelectorType.None;
+                        if (targetSelf || relation == SkillRelation.Self)
+                        {
+                            // Chiêu tự thân / Buff / Hồi phục -> Quick Cast (Không hiện selector)
+                            selectorType = SkillSelectorType.None;
+                        }
+                        else if (rawSelectorType == 2 || (missile != null && missile.moveKind == MissileMoveKind.Linear) || missileForm == 1 || missileForm == 2 || missileForm == 7)
+                        {
+                            // Chiêu bắn đạn định hướng / lướt tới -> Mũi tên định hướng (Directional Arrow)
+                            selectorType = SkillSelectorType.DirectionalArrow;
+                        }
+                        else if (rawSelectorType == 1)
+                        {
+                            // Chiêu chọn vùng đất -> Vòng tròn chọn vùng (Smartcast Circle AOE)
+                            selectorType = SkillSelectorType.SmartcastCircleAOE;
+                        }
+                        else
+                        {
+                            selectorType = Enum.IsDefined(typeof(SkillSelectorType), rawSelectorType) ? (SkillSelectorType)rawSelectorType : SkillSelectorType.None;
+                        }
+
                         if (missile != null)
                         {
                             if (missile.IsProjectile)
@@ -378,6 +404,8 @@ namespace TopDownGame.Skills
                             targetSelf = targetSelf,
                             subSkillId = subSkillId,
                             startPosType = startPosType,
+                            selectorType = selectorType,
+                            selectorRange = selectorRange,
                             slotId = slotId,
                             childId = childId,
                             childCount = childCount,

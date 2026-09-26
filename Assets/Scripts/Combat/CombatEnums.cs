@@ -104,4 +104,36 @@ namespace TopDownGame.Combat
         RightFoot = 19,     // Bip01 R Foot (Chân phải)
         LeftFoot = 20       // Bip01 L Foot (Chân trái / Trận pháp đất)
     }
+
+    /// <summary>
+    /// Loại vòng ngắm / Chỉ thị mục tiêu (Skill Indicator)
+    /// </summary>
+    public enum SkillSelectorType
+    {
+        None = 0,
+        SmartcastCircleAOE = 1, // Vòng tròn chọn vùng đất
+        DirectionalArrow = 2    // Mũi tên định hướng xoay theo Joystick
+    }
+
+    /// <summary>
+    /// Chế độ di chuyển của Indicator
+    /// </summary>
+    public enum SelectorMoveType
+    {
+        Rotate = 0, // Cố định gốc, chỉ xoay theo hướng Joystick
+        Move = 1    // Kéo tâm di chuyển tự do trên mặt đất
+    }
+
+    /// <summary>
+    /// ResID Prefab VFX Indicator chuẩn trong EffectRes.csv
+    /// </summary>
+    public static class IndicatorVfxResID
+    {
+        public const int DirectionArrow = 7;     // Mũi tên định hướng
+        public const int TargetPoint = 8;        // Tâm điểm chỉ định
+        public const int SelectedEnemyAOE = 9;   // Vòng đỏ/vàng chọn địch
+        public const int TargetArrowIcon = 10;   // Icon mũi tên trên đầu
+        public const int SelectedAllyAOE = 11;   // Vòng xanh lá hỗ trợ đồng đội
+        public const int DangerWarning = 14;     // Vùng cảnh báo nguy hiểm Boss
+    }
 }

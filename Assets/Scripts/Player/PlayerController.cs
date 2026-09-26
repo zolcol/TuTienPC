@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Combat;
@@ -16,47 +16,47 @@ namespace TopDownGame.Player
         [Header("=== MOVEMENT SETTINGS ===")]
         [SerializeField] private float moveSpeed = 6f;
         [SerializeField] private float rotationSmoothTime = 0.08f;
-        [Tooltip("Äá»™ mÆ°á»£t/gia tá»‘c khi xoay ngÆ°á»i Ä‘á»•i hÆ°á»›ng lÃºc Ä‘ang Ä‘Ã¡nh (0.12 - 0.18s giÃºp xoay Ä‘áº§m tay, cÃ³ quÃ¡n tÃ­nh, khÃ´ng giáº­t ngoáº¯t)")]
+        [Tooltip("Ã„ÂÃ¡Â»â„¢ mÃ†Â°Ã¡Â»Â£t/gia tÃ¡Â»â€˜c khi xoay ngÃ†Â°Ã¡Â»Âi Ã„â€˜Ã¡Â»â€¢i hÃ†Â°Ã¡Â»â€ºng lÃƒÂºc Ã„â€˜ang Ã„â€˜ÃƒÂ¡nh (0.12 - 0.18s giÃƒÂºp xoay Ã„â€˜Ã¡ÂºÂ§m tay, cÃƒÂ³ quÃƒÂ¡n tÃƒÂ­nh, khÃƒÂ´ng giÃ¡ÂºÂ­t ngoÃ¡ÂºÂ¯t)")]
         [SerializeField] private float attackRotationSmoothTime = 0.14f;
         [SerializeField] private float gravity = -9.81f;
 
         [Header("=== COMBAT & TARGETING ===")]
-        [Tooltip("Layer nháº­n sÃ¡t thÆ°Æ¡ng cá»§a má»¥c tiÃªu (vd: Enemy hoáº·c Default)")]
+        [Tooltip("Layer nhÃ¡ÂºÂ­n sÃƒÂ¡t thÃ†Â°Ã†Â¡ng cÃ¡Â»Â§a mÃ¡Â»Â¥c tiÃƒÂªu (vd: Enemy hoÃ¡ÂºÂ·c Default)")]
         [SerializeField] private LayerMask targetLayer = ~0;
 
-        [Tooltip("ID cá»§a Ä‘Ã²n Ä‘Ã¡nh thÆ°á»ng Ä‘áº§u tiÃªn trong Skills.csv (vd: 301)")]
+        [Tooltip("ID cÃ¡Â»Â§a Ã„â€˜ÃƒÂ²n Ã„â€˜ÃƒÂ¡nh thÃ†Â°Ã¡Â»Âng Ã„â€˜Ã¡ÂºÂ§u tiÃƒÂªn trong Skills.csv (vd: 301)")]
         [SerializeField] private int defaultNormalAttackId = 301;
 
         [Header("=== FACTION & SKILL SLOTS (Q - E - R) ===")]
-        [Tooltip("MÃ´n phÃ¡i cá»§a nhÃ¢n váº­t (1: ThiÃªn VÆ°Æ¡ng, 2: Nga Mi, 3: ÄÃ o Hoa, 4: TiÃªu Dao, ...)")]
+        [Tooltip("MÃƒÂ´n phÃƒÂ¡i cÃ¡Â»Â§a nhÃƒÂ¢n vÃ¡ÂºÂ­t (1: ThiÃƒÂªn VÃ†Â°Ã†Â¡ng, 2: Nga Mi, 3: Ã„ÂÃƒÂ o Hoa, 4: TiÃƒÂªu Dao, ...)")]
         [SerializeField] private int factionId = 2;
 
-        [Tooltip("ID cá»§a Model trong NpcRes.csv (vd: 1 cho ThiÃªn VÆ°Æ¡ng Nam, 2 cho Nga Mi, 3 cho ÄÃ o Hoa)")]
+        [Tooltip("ID cÃ¡Â»Â§a Model trong NpcRes.csv (vd: 1 cho ThiÃƒÂªn VÃ†Â°Ã†Â¡ng Nam, 2 cho Nga Mi, 3 cho Ã„ÂÃƒÂ o Hoa)")]
         [SerializeField] private int npcResId = 2;
 
-        [Tooltip("Ká»¹ nÄƒng 1: PhÃ­m Q (vd: 306 - Nga Mi Skill 1 / Tá»¥ HÃ ng Phá»• Äá»™)")]
+        [Tooltip("KÃ¡Â»Â¹ nÃ„Æ’ng 1: PhÃƒÂ­m Q (vd: 306 - Nga Mi Skill 1 / TÃ¡Â»Â¥ HÃƒÂ ng PhÃ¡Â»â€¢ Ã„ÂÃ¡Â»â„¢)")]
         [SerializeField] private int skillSlotQ_Id = 306;
 
-        [Tooltip("Ká»¹ nÄƒng 2: PhÃ­m E (vd: 308 - Nga Mi Skill 2 / Báº¡ch Lá»™ NgÆ°ng SÆ°Æ¡ng)")]
+        [Tooltip("KÃ¡Â»Â¹ nÃ„Æ’ng 2: PhÃƒÂ­m E (vd: 308 - Nga Mi Skill 2 / BÃ¡ÂºÂ¡ch LÃ¡Â»â„¢ NgÃ†Â°ng SÃ†Â°Ã†Â¡ng)")]
         [SerializeField] private int skillSlotE_Id = 308;
 
-        [Tooltip("Ká»¹ nÄƒng 3: PhÃ­m R (vd: 346 - Nga Mi Ná»™ / BÄƒng PhÃ¡ch Há»“ng LiÃªn Kiáº¿p)")]
+        [Tooltip("KÃ¡Â»Â¹ nÃ„Æ’ng 3: PhÃƒÂ­m R (vd: 346 - Nga Mi NÃ¡Â»â„¢ / BÃ„Æ’ng PhÃƒÂ¡ch HÃ¡Â»â€œng LiÃƒÂªn KiÃ¡ÂºÂ¿p)")]
         [SerializeField] private int skillSlotR_Id = 346;
 
         [Header("=== CHEAT & TESTING ===")]
-        [Tooltip("Bá» qua thá»i gian há»“i chiÃªu (No Cooldown / NoCD) khi test")]
+        [Tooltip("BÃ¡Â»Â qua thÃ¡Â»Âi gian hÃ¡Â»â€œi chiÃƒÂªu (No Cooldown / NoCD) khi test")]
         [SerializeField] private bool noCooldown = false;
-        [Tooltip("Bá» qua tiÃªu hao Mana / Ná»™i lá»±c khi test")]
+        [Tooltip("BÃ¡Â»Â qua tiÃƒÂªu hao Mana / NÃ¡Â»â„¢i lÃ¡Â»Â±c khi test")]
         [SerializeField] private bool noManaCost = false;
 
-        [Header("=== DEBUG & GIZMOS (TÃ¹y chá»n) ===")]
-        [Tooltip("Hiá»ƒn thá»‹ vÃ¹ng quÃ©t tia / quáº¡t / vÃ²ng trÃ²n trong Scene View khi tung Ä‘Ã²n")]
+        [Header("=== DEBUG & GIZMOS (TÃƒÂ¹y chÃ¡Â»Ân) ===")]
+        [Tooltip("HiÃ¡Â»Æ’n thÃ¡Â»â€¹ vÃƒÂ¹ng quÃƒÂ©t tia / quÃ¡ÂºÂ¡t / vÃƒÂ²ng trÃƒÂ²n trong Scene View khi tung Ã„â€˜ÃƒÂ²n")]
         [SerializeField] private bool showHitGizmos = true;
-        [Tooltip("Thá»i gian lÆ°u vá»‡t Gizmo (giÃ¢y)")]
+        [Tooltip("ThÃ¡Â»Âi gian lÃ†Â°u vÃ¡Â»â€¡t Gizmo (giÃƒÂ¢y)")]
         [SerializeField] private float gizmoDisplayDuration = 0.25f;
-        [Tooltip("Tráº¡ng thÃ¡i hiá»‡n táº¡i cá»§a Player (Chá»‰ xem)")]
+        [Tooltip("TrÃ¡ÂºÂ¡ng thÃƒÂ¡i hiÃ¡Â»â€¡n tÃ¡ÂºÂ¡i cÃ¡Â»Â§a Player (ChÃ¡Â»â€° xem)")]
         [SerializeField] private string currentStateDisplay;
-        [Tooltip("Äang dÃ¹ng tay cáº§m Gamepad (Chá»‰ xem)")]
+        [Tooltip("Ã„Âang dÃƒÂ¹ng tay cÃ¡ÂºÂ§m Gamepad (ChÃ¡Â»â€° xem)")]
         [SerializeField] private bool usingGamepadDisplay;
 
         // State Machine
@@ -98,7 +98,12 @@ namespace TopDownGame.Player
         private Vector3 moveDirection;
         private Vector3 verticalVelocity;
 
-        // Quáº£n lÃ½ Cooldown theo Skill ID
+        // --- SKILL SELECTOR (AIMING) ---
+        private SkillData aimingSkill;
+        private GameObject currentIndicator;
+        private Vector3 aimGroundPosition;
+
+        // QuÃ¡ÂºÂ£n lÃƒÂ½ Cooldown theo Skill ID
         private readonly Dictionary<int, float> cooldownTimers = new Dictionary<int, float>();
 
         // Debug Gizmo Cache
@@ -125,20 +130,20 @@ namespace TopDownGame.Player
             SkillDatabase.Instance.EnsureLoaded();
             TopDownGame.Data.FactionSkillDatabase.Instance.EnsureLoaded();
 
-            // Chá»‰ tá»± Ä‘á»™ng náº¡p tá»« FactionSkill náº¿u cÃ¡c Ã´ ká»¹ nÄƒng chÆ°a Ä‘Æ°á»£c ngÆ°á»i dÃ¹ng thiáº¿t láº­p trong Inspector (ID <= 0)
+            // ChÃ¡Â»â€° tÃ¡Â»Â± Ã„â€˜Ã¡Â»â„¢ng nÃ¡ÂºÂ¡p tÃ¡Â»Â« FactionSkill nÃ¡ÂºÂ¿u cÃƒÂ¡c ÃƒÂ´ kÃ¡Â»Â¹ nÃ„Æ’ng chÃ†Â°a Ã„â€˜Ã†Â°Ã¡Â»Â£c ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng thiÃ¡ÂºÂ¿t lÃ¡ÂºÂ­p trong Inspector (ID <= 0)
             if (factionId > 0)
             {
                 ApplyFactionSkills(factionId, false);
             }
 
-            // Khá»Ÿi táº¡o State Machine
+            // KhÃ¡Â»Å¸i tÃ¡ÂºÂ¡o State Machine
             StateMachine = new TopDownGame.StateMachine.StateMachine();
             IdleState = new PlayerIdleState(this, StateMachine);
             MoveState = new PlayerMoveState(this, StateMachine);
             AttackState = new PlayerAttackState(this, StateMachine);
         }
 
-        [ContextMenu("Náº¡p Ká»¹ NÄƒng Theo MÃ´n PhÃ¡i")]
+        [ContextMenu("NÃ¡ÂºÂ¡p KÃ¡Â»Â¹ NÃ„Æ’ng Theo MÃƒÂ´n PhÃƒÂ¡i")]
         public void ApplyFactionSkills()
         {
             ApplyFactionSkills(factionId, true);
@@ -166,7 +171,7 @@ namespace TopDownGame.Player
                 }
                 else if (fSkill.btnName.Equals("Skill3", System.StringComparison.OrdinalIgnoreCase))
                 {
-                    // Skill3 lÃ  chiÃªu há»— trá»£/há»“i phá»¥c (nhÆ° 306 Tá»« HÃ ng Phá»• Äá»™). Náº¿u Q chÆ°a gÃ¡n thÃ¬ Æ°u tiÃªn náº¡p vÃ o Q
+                    // Skill3 lÃƒÂ  chiÃƒÂªu hÃ¡Â»â€” trÃ¡Â»Â£/hÃ¡Â»â€œi phÃ¡Â»Â¥c (nhÃ†Â° 306 TÃ¡Â»Â« HÃƒÂ ng PhÃ¡Â»â€¢ Ã„ÂÃ¡Â»â„¢). NÃ¡ÂºÂ¿u Q chÃ†Â°a gÃƒÂ¡n thÃƒÂ¬ Ã†Â°u tiÃƒÂªn nÃ¡ÂºÂ¡p vÃƒÂ o Q
                     if (overwriteExisting || skillSlotQ_Id <= 0) skillSlotQ_Id = fSkill.skillId;
                 }
                 else if (fSkill.btnName.Equals("Skill5", System.StringComparison.OrdinalIgnoreCase) || fSkill.isAnger)
@@ -185,6 +190,7 @@ namespace TopDownGame.Player
         {
             UpdateCooldowns();
             StateMachine.Update();
+            UpdateSkillAiming();
             HandleMovementAndGravity();
 
             if (StateMachine.CurrentState != null)
@@ -299,23 +305,147 @@ namespace TopDownGame.Player
         {
             if (inputReader == null) return false;
 
-            if (inputReader.Skill2Triggered && skillSlotQ_Id > 0)
+            if (HandleSkillInput(inputReader.Skill2Triggered, inputReader.Skill2Held, inputReader.Skill2Released, SkillSlotQ)) return true;
+            if (HandleSkillInput(inputReader.Skill1Triggered, inputReader.Skill1Held, inputReader.Skill1Released, SkillSlotE)) return true;
+            if (HandleSkillInput(inputReader.Skill3Triggered, inputReader.Skill3Held, inputReader.Skill3Released, SkillSlotR)) return true;
+
+            return false;
+        }
+
+        private bool HandleSkillInput(bool triggered, bool held, bool released, SkillData skill)
+        {
+            if (skill == null || !CanExecuteSkill(skill)) 
             {
-                SkillData skill = SkillSlotQ;
-                if (CanExecuteSkill(skill) && ExecuteSkill(skill)) return true;
+                if (aimingSkill == skill) CancelAiming();
+                return false;
             }
-            if (inputReader.Skill1Triggered && skillSlotE_Id > 0)
+
+            if (skill.selectorType == SkillSelectorType.None)
             {
-                SkillData skill = SkillSlotE;
-                if (CanExecuteSkill(skill) && ExecuteSkill(skill)) return true;
+                // Quick Cast
+                if (triggered)
+                {
+                    CancelAiming();
+                    return ExecuteSkill(skill);
+                }
             }
-            if (inputReader.Skill3Triggered && skillSlotR_Id > 0)
+            else
             {
-                SkillData skill = SkillSlotR;
-                if (CanExecuteSkill(skill) && ExecuteSkill(skill)) return true;
+                // Aiming Cast
+                if (triggered)
+                {
+                    StartAiming(skill);
+                }
+                else if (released && aimingSkill == skill)
+                {
+                    CancelAiming();
+                    return ExecuteSkill(skill);
+                }
+                else if (!held && aimingSkill == skill)
+                {
+                    CancelAiming();
+                }
             }
 
             return false;
+        }
+
+        private void StartAiming(SkillData skill)
+        {
+            if (aimingSkill != skill)
+            {
+                CancelAiming();
+            }
+            aimingSkill = skill;
+            
+            int resId = 0;
+            switch(skill.selectorType)
+            {
+                case SkillSelectorType.SmartcastCircleAOE:
+                    if (skill.IsHeal) resId = IndicatorVfxResID.SelectedAllyAOE;
+                    else if (skill.startPosType == VfxStartPosType.Target) resId = IndicatorVfxResID.SelectedEnemyAOE; // Lock Target
+                    else resId = IndicatorVfxResID.SelectedEnemyAOE; // Smartcast
+                    break;
+                case SkillSelectorType.DirectionalArrow:
+                    resId = IndicatorVfxResID.DirectionArrow;
+                    break;
+            }
+            
+            if (resId > 0)
+            {
+                string path = TopDownGame.Data.EffectDatabase.GetEffectPath(resId);
+                if (!string.IsNullOrEmpty(path))
+                {
+                    currentIndicator = TopDownGame.Combat.EffectManager.Instance.SpawnEffect(path, transform.position, transform.rotation, null, 99f);
+                }
+            }
+        }
+
+        public void CancelAiming()
+        {
+            aimingSkill = null;
+            if (currentIndicator != null)
+            {
+                Destroy(currentIndicator);
+                currentIndicator = null;
+            }
+        }
+
+        private void UpdateSkillAiming()
+        {
+            if (aimingSkill == null || currentIndicator == null) return;
+
+            bool usingMouse = inputReader != null && !inputReader.IsUsingGamepad;
+            float maxRange = aimingSkill.selectorRange > 0f ? aimingSkill.selectorRange : aimingSkill.range;
+            
+            Vector3 targetGroundPos = transform.position + transform.forward * maxRange;
+            Vector3 aimDir = transform.forward;
+
+            if (usingMouse)
+            {
+                if (UnityEngine.InputSystem.Mouse.current != null && mainCamera != null)
+                {
+                    Vector2 mouseScreenPos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
+                    Ray ray = mainCamera.ScreenPointToRay(mouseScreenPos);
+                    Plane groundPlane = new Plane(Vector3.up, transform.position);
+                    if (groundPlane.Raycast(ray, out float enter))
+                    {
+                        Vector3 hitPoint = ray.GetPoint(enter);
+                        Vector3 offset = hitPoint - transform.position;
+                        if (offset.magnitude > maxRange)
+                        {
+                            targetGroundPos = transform.position + offset.normalized * maxRange;
+                        }
+                        else
+                        {
+                            targetGroundPos = hitPoint;
+                        }
+                        aimDir = (targetGroundPos - transform.position).normalized;
+                    }
+                }
+            }
+            else
+            {
+                Vector3 inputDir = GetInputVector();
+                if (inputDir.sqrMagnitude > 0.01f)
+                {
+                    aimDir = inputDir;
+                    targetGroundPos = transform.position + aimDir * maxRange;
+                }
+            }
+
+            if (aimDir.sqrMagnitude < 0.01f) aimDir = transform.forward;
+
+            if (aimingSkill.selectorType == SkillSelectorType.DirectionalArrow)
+            {
+                currentIndicator.transform.position = transform.position;
+                currentIndicator.transform.rotation = Quaternion.LookRotation(aimDir, Vector3.up);
+            }
+            else if (aimingSkill.selectorType == SkillSelectorType.SmartcastCircleAOE)
+            {
+                aimGroundPosition = targetGroundPos;
+                currentIndicator.transform.position = targetGroundPos;
+            }
         }
 
         public bool CanExecuteSkill(SkillData skill)
@@ -383,7 +513,7 @@ namespace TopDownGame.Player
             }
             else
             {
-                Debug.LogWarning($"[PlayerController] Không tìm th?y Skill ID {defaultNormalAttackId} trong Skills.csv!");
+                Debug.LogWarning($"[PlayerController] KhÃ´ng tÃ¬m th?y Skill ID {defaultNormalAttackId} trong Skills.csv!");
                 return false;
             }
         }
@@ -443,10 +573,16 @@ namespace TopDownGame.Player
                             RotateTowardsInstantly(currentLockTarget.position - transform.position);
                             return true;
                         }
-                        else
-                        {
-                            return false; 
-                        }
+                    }
+
+                    // Nếu không hover trúng quái bằng chuột, tự động tìm mục tiêu trước mặt (Soft Auto-Lock)
+                    Transform fallbackTarget = FindTargetInFront(skill.range);
+                    if (fallbackTarget != null)
+                    {
+                        currentLockTarget = fallbackTarget;
+                        currentTargetPoint = currentLockTarget.position;
+                        RotateTowardsInstantly(currentLockTarget.position - transform.position);
+                        return true;
                     }
                     else
                     {
@@ -475,11 +611,11 @@ namespace TopDownGame.Player
                     }
                     else
                     {
-                        return false; // KhÃ´ng cÃ³ ai Ä‘á»ƒ Ä‘Ã¡nh
+                        return false; // KhÃƒÂ´ng cÃƒÂ³ ai Ã„â€˜Ã¡Â»Æ’ Ã„â€˜ÃƒÂ¡nh
                     }
                 }
 
-                // Gamepad: Giá»¯ nguyÃªn hÆ°á»›ng quay hiá»‡n táº¡i hoáº·c hÆ°á»›ng input (náº¿u Ä‘ang Ä‘áº©y cáº§n)
+                // Gamepad: GiÃ¡Â»Â¯ nguyÃƒÂªn hÃ†Â°Ã¡Â»â€ºng quay hiÃ¡Â»â€¡n tÃ¡ÂºÂ¡i hoÃ¡ÂºÂ·c hÃ†Â°Ã¡Â»â€ºng input (nÃ¡ÂºÂ¿u Ã„â€˜ang Ã„â€˜Ã¡ÂºÂ©y cÃ¡ÂºÂ§n)
                 Vector3 inputVec = GetInputVector();
                 if (inputVec.sqrMagnitude > 0.01f)
                 {
@@ -495,7 +631,7 @@ namespace TopDownGame.Player
         {
             Collider[] hits = Physics.OverlapSphere(transform.position, range, targetLayer);
             Transform best = null;
-            float minDot = 0.3f; // Khoáº£ng 70 Ä‘á»™ nÃ³n phÃ­a trÆ°á»›c
+            float minDot = 0.3f; // KhoÃ¡ÂºÂ£ng 70 Ã„â€˜Ã¡Â»â„¢ nÃƒÂ³n phÃƒÂ­a trÃ†Â°Ã¡Â»â€ºc
             float minDst = float.MaxValue;
 
             foreach (var h in hits)
@@ -515,7 +651,7 @@ namespace TopDownGame.Player
                 }
                 else
                 {
-                    return h.transform; // Äá»©ng sÃ¡t cáº¡nh nhau
+                    return h.transform; // Ã„ÂÃ¡Â»Â©ng sÃƒÂ¡t cÃ¡ÂºÂ¡nh nhau
                 }
             }
             return best;
@@ -596,6 +732,7 @@ namespace TopDownGame.Player
         }
     }
 }
+
 
 
 
