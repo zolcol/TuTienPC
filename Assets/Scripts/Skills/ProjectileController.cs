@@ -149,8 +149,8 @@ namespace TopDownGame.Skills
 
         private bool CheckCollision(Vector3 fromPos, Vector3 toPos, float stepDistance)
         {
-            Vector3 castOrigin = fromPos + Vector3.up * 0.9f;
-            Vector3 targetCenter = toPos + Vector3.up * 0.9f;
+            Vector3 castOrigin = fromPos + Vector3.up * HitHeightOffset;
+            Vector3 targetCenter = toPos + Vector3.up * HitHeightOffset;
 
             // A. Quét hình cầu dọc đường đạn (SphereCast)
             int hitCount = Physics.SphereCastNonAlloc(castOrigin, collisionRadius, moveDirection, raycastBuffer, stepDistance, targetLayer);
@@ -356,12 +356,19 @@ namespace TopDownGame.Skills
             }
         }
 
+        /// <summary>
+        /// Độ cao tâm quả cầu va chạm: Lấy bằng chính bán kính va chạm (collisionRadius)
+        /// để đáy quả cầu luôn tiếp xúc vừa chạm mặt đất (Y_bottom = 0), không bị chìm xuống lòng đất
+        /// </summary>
+        public float HitHeightOffset => collisionRadius > 0f ? collisionRadius : 0.6f;
+
         private void OnDrawGizmos()
         {
             if (!isInitialized) return;
             Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.8f);
-            Gizmos.DrawWireSphere(transform.position, collisionRadius);
-            Gizmos.DrawLine(transform.position, transform.position + moveDirection * 1.5f);
+            Vector3 center = transform.position + Vector3.up * HitHeightOffset;
+            Gizmos.DrawWireSphere(center, collisionRadius);
+            Gizmos.DrawLine(center, center + moveDirection * 1.5f);
         }
     }
 }

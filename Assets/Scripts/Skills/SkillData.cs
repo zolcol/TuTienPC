@@ -15,6 +15,15 @@ namespace TopDownGame.Skills
     }
 
     [Serializable]
+    public class SkillMoveEvent
+    {
+        public int frame = 0;
+        public float distance = 0f; // Quãng đường di chuyển (mét, quy đổi từ cm trong CSV: cm / 100f)
+        public float speed = 0f;    // Tốc độ dấn tới (m/s, quy đổi từ CSV: Speed / 10f)
+        public float accel = 0f;    // Gia tốc hoặc thông số hướng di chuyển
+    }
+
+    [Serializable]
     public class SkillEffectEvent
     {
         public int frame = 0;
@@ -70,6 +79,7 @@ namespace TopDownGame.Skills
         public float movePosSpeed = 0f;
         public float movePosAccel = 0f;
         public int movePosFrame = -1;
+        public List<SkillMoveEvent> moveEvents = new List<SkillMoveEvent>();
         public SkillType skillType = SkillType.StraightRay;
         public float range = 5f;
         public float fanAngle = 0f;

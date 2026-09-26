@@ -345,7 +345,22 @@ namespace TopDownGame.Skills
             var missile = TopDownGame.Data.MissileDatabase.GetMissile(missileId);
             float spawnOffset = missile != null ? missile.SpawnOffsetDistance : 1.2f;
 
-            // Khớp xương tay cầm vũ khí (Slot 1: B_RH theo PartSlot.csv)
+            // 1. Xác định vị trí đích đến của con trỏ chuột / mục tiêu
+            Vector3 targetDestination;
+            if (explicitTarget != null)
+            {
+                targetDestination = explicitTarget.position;
+            }
+            else if (explicitTargetPoint != default)
+            {
+                targetDestination = explicitTargetPoint;
+            }
+            else
+            {
+                targetDestination = caster.position + caster.forward * (skill.range > 0f ? skill.range : 10f);
+            }
+
+            // 2. Khớp xương tay cầm vũ khí (Slot 1: B_RH theo PartSlot.csv)
             Transform weaponSlot = TopDownGame.Data.PartSlotDatabase.GetSlotTransform(caster, skill.slotId > 0 ? skill.slotId : 1);
             Vector3 originPos = caster.position;
 
@@ -357,8 +372,6 @@ namespace TopDownGame.Skills
             // Xử lý StartPosType = 2 (tại Target) hoặc 3 (tại HitPoint)
             if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target && explicitTarget != null)
             {
-                // Nếu là đạn nổ tại chỗ (StaticTrap) -> xuất phát dưới chân Target (Chiêu triệu hồi)
-                // Nếu là đạn bay (Linear / Homing) -> xuất phát từ Caster và bay tới Target (Chiêu bắn ra)
                 if (missile == null || (int)missile.moveKind == 0)
                 {
                     originPos = explicitTarget.position;
@@ -369,24 +382,24 @@ namespace TopDownGame.Skills
                 originPos = explicitTargetPoint;
             }
 
-            Vector3 baseDirection = caster.forward;
-            if (explicitTarget != null)
+            // 3. Vị trí bắt đầu thực tế của missile (spawnPos có tính offset từ vị trí vũ khí)
+            Vector3 spawnPos = originPos + caster.forward * spawnOffset;
+
+            // 4. Hướng bay của missile: Tính trực tiếp từ vị trí bắt đầu (spawnPos) đến đích con trỏ chuột (targetDestination)
+            // Không còn tính theo người chơi, triệt tiêu hoàn toàn góc lệch song song do offset vũ khí
+            Vector3 toDest = targetDestination - spawnPos;
+            toDest.y = 0f; // Duy trì mặt phẳng ngang chuẩn OXZ để quỹ đạo ổn định, không chúi xuống sàn
+
+            // Đảm bảo hướng bắn luôn hướng về phía trước mặt nhân vật (tránh trường hợp click quá gần chân hoặc đã lướt qua điểm đích)
+            if (Vector3.Dot(caster.forward, toDest) <= 0.05f)
             {
-                Vector3 toTarget = (explicitTarget.position - originPos);
-                toTarget.y = 0f;
-                if (toTarget.sqrMagnitude > 0.001f)
-                {
-                    baseDirection = toTarget.normalized;
-                }
+                toDest = caster.forward;
             }
-            else if (explicitTargetPoint != default)
+
+            Vector3 aimDirection = caster.forward;
+            if (toDest.sqrMagnitude > 0.001f)
             {
-                Vector3 toPoint = (explicitTargetPoint - originPos);
-                toPoint.y = 0f;
-                if (toPoint.sqrMagnitude > 0.001f)
-                {
-                    baseDirection = toPoint.normalized;
-                }
+                aimDirection = toDest.normalized;
             }
 
             // 1. Bắn vòng tròn 360 độ (Circular Ring)
@@ -396,24 +409,23 @@ namespace TopDownGame.Skills
                 for (int i = 0; i < count; i++)
                 {
                     float currentAngle = i * angleStep;
-                    Vector3 shotDir = Quaternion.Euler(0, currentAngle, 0) * baseDirection;
-                    Vector3 spawnPos = originPos + shotDir * spawnOffset;
-                    SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, shotDir, targetLayer, explicitTarget);
+                    Vector3 shotDir = Quaternion.Euler(0, currentAngle, 0) * aimDirection;
+                    Vector3 ringSpawnPos = originPos + shotDir * spawnOffset;
+                    SpawnSingleMissileObject(caster, casterStats, skill, missile, ringSpawnPos, shotDir, targetLayer, explicitTarget);
                 }
                 Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng <b>{count}</b> đạn vòng tròn <b>{skill.name}</b> (Missile ID: {missileId})");
                 return;
             }
 
-            // 2. Bắn đơn (1 tia)
+            // 2. Bắn đơn (1 tia): Bắn thẳng từ spawnPos tới đích con trỏ chuột
             if (count <= 1)
             {
-                Vector3 spawnPos = originPos + baseDirection * spawnOffset;
-                SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, baseDirection, targetLayer, explicitTarget);
-                Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng kiếm khí <b>{skill.name}</b> (Missile ID: {missileId})");
+                SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, aimDirection, targetLayer, explicitTarget);
+                Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng kiếm khí <b>{skill.name}</b> hướng thẳng tới đích con trỏ chuột (Missile ID: {missileId})");
                 return;
             }
 
-            // 3. Bắn chùm rẻ quạt (Fan Spread)
+            // 3. Bắn chùm rẻ quạt (Fan Spread): Tia trung tâm hướng tới con trỏ, các tia còn lại xòe đều hai bên
             float paramVal = CsvParserHelper.ParseFloat(skill.msGenerateParam, 0f);
             float angleStepSpread = paramVal > 0f ? paramVal : (skill.fanAngle > 0f ? (skill.fanAngle / Mathf.Max(1, count - 1)) : 15f);
             float startAngle = -(count - 1) * 0.5f * angleStepSpread;
@@ -421,8 +433,7 @@ namespace TopDownGame.Skills
             for (int i = 0; i < count; i++)
             {
                 float offsetAngle = startAngle + (i * angleStepSpread);
-                Vector3 shotDir = Quaternion.Euler(0, offsetAngle, 0) * baseDirection;
-                Vector3 spawnPos = originPos + shotDir * spawnOffset;
+                Vector3 shotDir = Quaternion.Euler(0, offsetAngle, 0) * aimDirection;
                 SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, shotDir, targetLayer, explicitTarget);
             }
             Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng chùm <b>{count}</b> tia <b>{skill.name}</b> (Missile ID: {missileId}, Góc xòe: {angleStepSpread:F1}°)");
@@ -472,8 +483,6 @@ namespace TopDownGame.Skills
                 // Xử lý StartPosType = 2 (tại Target) hoặc 3 (tại HitPoint)
                 if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target && explicitTarget != null)
                 {
-                    // Nếu là đạn nổ tại chỗ (StaticTrap) -> xuất phát dưới chân Target (Chiêu triệu hồi)
-                    // Nếu là đạn bay (Linear / Homing) -> xuất phát từ Caster và bay tới Target (Chiêu bắn ra)
                     if (missile == null || (int)missile.moveKind == 0)
                     {
                         originPos = explicitTarget.position;
@@ -484,28 +493,32 @@ namespace TopDownGame.Skills
                     originPos = explicitTargetPoint;
                 }
 
-                Vector3 baseDirection = caster.forward;
+                Vector3 targetDestination;
                 if (explicitTarget != null)
                 {
-                    Vector3 toTarget = (explicitTarget.position - originPos);
-                    toTarget.y = 0f;
-                    if (toTarget.sqrMagnitude > 0.001f)
-                    {
-                        baseDirection = toTarget.normalized;
-                    }
+                    targetDestination = explicitTarget.position;
                 }
                 else if (explicitTargetPoint != default)
                 {
-                    Vector3 toPoint = (explicitTargetPoint - originPos);
-                    toPoint.y = 0f;
-                    if (toPoint.sqrMagnitude > 0.001f)
-                    {
-                        baseDirection = toPoint.normalized;
-                    }
+                    targetDestination = explicitTargetPoint;
+                }
+                else
+                {
+                    targetDestination = caster.position + caster.forward * (skill.range > 0f ? skill.range : 10f);
                 }
 
-                Vector3 spawnPos = originPos + baseDirection * spawnOffset;
-                SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, baseDirection, targetLayer, explicitTarget);
+                Vector3 spawnPos = originPos + caster.forward * spawnOffset;
+                Vector3 toDest = targetDestination - spawnPos;
+                toDest.y = 0f;
+
+                if (Vector3.Dot(caster.forward, toDest) <= 0.05f)
+                {
+                    toDest = caster.forward;
+                }
+
+                Vector3 aimDirection = toDest.sqrMagnitude > 0.001f ? toDest.normalized : caster.forward;
+
+                SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, aimDirection, targetLayer, explicitTarget);
 
                 if (i < count - 1 && delaySec > 0f)
                 {
