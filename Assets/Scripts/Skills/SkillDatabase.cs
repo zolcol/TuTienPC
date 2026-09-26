@@ -350,14 +350,14 @@ namespace TopDownGame.Skills
                             });
                         }
 
-                        // Xác định Slot gắn hiệu ứng chuẩn hóa theo DATA_CONVENTIONS.md (Mục 11)
-                        if (evSummary.slotId > 0)
-                        {
-                            slotId = evSummary.slotId;
-                        }
-                        else if (relation == SkillRelation.Recover)
+                        // Xác định Slot gắn hiệu ứng chuẩn hóa theo DATA_CONVENTIONS.md (Mục 11 & 13)
+                        if (relation == SkillRelation.Recover)
                         {
                             slotId = (int)BoneSlotID.RightFoot; // 19: Bàn chân / Mặt đất
+                        }
+                        else if (evSummary.slotId > 0)
+                        {
+                            slotId = evSummary.slotId;
                         }
 
                         // Nếu âm thanh vẫn trống, gán âm thanh mặc định từ Skill.csv

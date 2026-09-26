@@ -142,15 +142,24 @@ namespace TopDownGame.Skills
                 }
             }
 
-            // 1. Sinh hiệu ứng đài sen nở / hiệu ứng kết thúc chiêu trên mặt đất từ childId / missile
+            // 1. Sinh hiệu ứng đài sen nở / hiệu ứng kết thúc chiêu trên mặt đất từ childId / missile (MissileResID = 306)
+            // Chuẩn DATA_CONVENTIONS.md: Missile / Đài sen nở bám theo chân mục tiêu (FlatGround), không có cột slotid xương.
             Transform groundTarget = explicitTarget != null ? explicitTarget : caster;
             string groundEffectPath = "";
+            float groundDuration = 5.0f;
             if (skill.childId > 0)
             {
                 var missile = MissileDatabase.GetMissile(skill.childId);
-                if (missile != null && missile.missileResID > 0)
+                if (missile != null)
                 {
-                    groundEffectPath = EffectDatabase.GetEffectPath(missile.missileResID);
+                    if (missile.missileResID > 0)
+                    {
+                        groundEffectPath = EffectDatabase.GetEffectPath(missile.missileResID);
+                    }
+                    if (missile.lifeTime > 0f)
+                    {
+                        groundDuration = missile.LifeTimeInSeconds;
+                    }
                 }
                 if (string.IsNullOrEmpty(groundEffectPath))
                 {
@@ -160,8 +169,7 @@ namespace TopDownGame.Skills
 
             if (!string.IsNullOrEmpty(groundEffectPath) && groundTarget != null)
             {
-                int groundSlot = skill.slotId > 0 ? skill.slotId : (int)BoneSlotID.RightFoot;
-                EffectManager.Instance.SpawnEffectAtSlot(groundEffectPath, groundTarget, groundSlot, 5.0f, true);
+                EffectManager.Instance.SpawnEffectFollowTargetGround(groundEffectPath, groundTarget, groundDuration);
             }
 
             // 2. Thực hiện hồi máu và hiển thị hiệu ứng Buff trên người từng mục tiêu theo StateEffect.csv

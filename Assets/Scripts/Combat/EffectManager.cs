@@ -76,20 +76,24 @@ namespace TopDownGame.Combat
 
         /// <summary>
         /// Sinh ra hiệu ứng gắn vào khớp xương cụ thể của nhân vật (1: Tay phải, 2: Tay trái, 7: Ngực, 15: Đầu, 19/20: Chân...)
-        /// Tự động áp dụng 3 Chế độ Xoay (FollowBoneFull, UprightBody, FlatGround, FixedWorld) theo DATA_CONVENTIONS.md Mục 11
+        /// Tự động áp dụng 3 Chế độ Xoay (FollowBoneFull, UprightBody, FlatGround, FixedWorld) theo DATA_CONVENTIONS.md Mục 11 & 13
         /// </summary>
         public GameObject SpawnEffectAtSlot(string resourcePath, Transform characterRoot, int slotId, float autoDestroyTime = 2.5f, bool attachToBone = true)
         {
             if (string.IsNullOrEmpty(resourcePath) || characterRoot == null) return null;
 
-            Transform boneSlot = TopDownGame.Data.PartSlotDatabase.GetSlotTransform(characterRoot, slotId);
-            if (boneSlot == null) boneSlot = characterRoot;
-
             bool isLockRotate = TopDownGame.Data.EffectDatabase.IsLockRotate(resourcePath);
             VfxRotationMode mode = TopDownGame.Data.PartSlotDatabase.GetSlotRotationMode(slotId, isLockRotate);
 
-            Vector3 spawnPos = boneSlot.position;
-            Quaternion spawnRot = boneSlot.rotation;
+            Transform boneSlot = null;
+            if (mode != VfxRotationMode.FlatGround)
+            {
+                boneSlot = TopDownGame.Data.PartSlotDatabase.GetSlotTransform(characterRoot, slotId);
+            }
+            if (boneSlot == null) boneSlot = characterRoot;
+
+            Vector3 spawnPos = (mode == VfxRotationMode.FlatGround) ? characterRoot.position : boneSlot.position;
+            Quaternion spawnRot = (mode == VfxRotationMode.FlatGround) ? Quaternion.Euler(0f, characterRoot.eulerAngles.y, 0f) : boneSlot.rotation;
 
             GameObject effectInstance = SpawnEffect(resourcePath, spawnPos, spawnRot, null, autoDestroyTime);
             if (effectInstance == null) return null;
@@ -97,8 +101,29 @@ namespace TopDownGame.Combat
             if (attachToBone)
             {
                 VfxLockRotation lockRot = effectInstance.AddComponent<VfxLockRotation>();
-                lockRot.Initialize(characterRoot, boneSlot, mode);
+                lockRot.Initialize(characterRoot, mode == VfxRotationMode.FlatGround ? null : boneSlot, mode);
             }
+
+            return effectInstance;
+        }
+
+        /// <summary>
+        /// Sinh ra hiệu ứng bám theo chân mục tiêu (Mặt đất phẳng FlatGround theo characterRoot.position)
+        /// Dùng cho Missile đài sen hồi máu (Chiêu 306), vòng sáng trận pháp đất, hoặc đạn/hiệu ứng bám mục tiêu không có Slot xương.
+        /// Chuẩn hóa theo DATA_CONVENTIONS.md Mục 12 & 13.
+        /// </summary>
+        public GameObject SpawnEffectFollowTargetGround(string resourcePath, Transform characterRoot, float autoDestroyTime = 5.0f)
+        {
+            if (string.IsNullOrEmpty(resourcePath) || characterRoot == null) return null;
+
+            Vector3 spawnPos = characterRoot.position;
+            Quaternion spawnRot = Quaternion.Euler(0f, characterRoot.eulerAngles.y, 0f);
+
+            GameObject effectInstance = SpawnEffect(resourcePath, spawnPos, spawnRot, null, autoDestroyTime);
+            if (effectInstance == null) return null;
+
+            VfxLockRotation lockRot = effectInstance.AddComponent<VfxLockRotation>();
+            lockRot.Initialize(characterRoot, null, VfxRotationMode.FlatGround);
 
             return effectInstance;
         }
