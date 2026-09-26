@@ -1,0 +1,112 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: UI_t0601
+  m_Shader: {fileID: 4800000, guid: f950eadd792ff6947b8e093568168a30, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _ANIMATION_MAIN_ON
+  - _ANIMATION_RONGJIE_ON
+  - _ASCAL_ON
+  - _RGBSCAL_ON
+  m_LightmapFlags: 0
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties:
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+      _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+      _MainTex_alpha:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+      _MaskTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 2, y: 1}
+        m_Offset: {x: 0, y: 0}
+      _NoiseTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: {}
+    m_Floats:
+      _AScal: 1
+      _Animation1stX: 0
+      _Animation1stY: 0
+      _Animation_Main: 1
+      _Animation_RaoDong: 0
+      _Animation_RongJie: 1
+      _BlendOp: 0
+      _Brightness: 2
+      _BumpScale: 1
+      _CameraFadingEnabled: 0
+      _CameraFarFadeDistance: 2
+      _CameraNearFadeDistance: 1
+      _ColorMode: 0
+      _Cull: 0
+      _Custom1xy: 0
+      _Custom1zw: 0
+      _Cutoff: 0.5
+      _DestBlend: 10
+      _DistortionBlend: 0.5
+      _DistortionEnabled: 0
+      _DistortionStrength: 1
+      _DistortionStrengthScaled: 0
+      _DstBlend: 10
+      _EmissionEnabled: 0
+      _FlipbookMode: 0
+      _Force1stX: 0
+      _Force1stY: 0
+      _ForceX: 0
+      _ForceY: 0
+      _HeatTime: 0
+      _Intensity: 2
+      _LightingEnabled: 0
+      _MaskSpeedX: 0
+      _MaskSpeedY: 0
+      _Mode: 0
+      _MoveX: 0
+      _MoveY: 0
+      _RGBScal: 1
+      _RaoDongMainKey: 0
+      _SoftParticlesEnabled: 0
+      _SoftParticlesFarFadeDistance: 1
+      _SoftParticlesNearFadeDistance: 0
+      _SourceBlend: 5
+      _SrcAlphaBlend: 0
+      _SrcBlend: 5
+      _UvSpeed2edX: 0
+      _UvSpeed2edY: 0
+      _UvSpeed3edX: -2
+      _UvSpeed3edY: -0.05
+      _ZWrite: 0
+      _qiangdu: 1.6
+      _ruanying: 1
+    m_Colors:
+      _Area: {r: -1.43, g: -0.75, b: -0.13, a: 0.97}
+      _CameraFadeParams: {r: 0, g: Infinity, b: 0, a: 0}
+      _Color: {r: 1, g: 1, b: 1, a: 1}
+      _ColorAddSubDiff: {r: 0, g: 0, b: 0, a: 0}
+      _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+      _SoftParticleFadeParams: {r: 0, g: 0, b: 0, a: 0}
+      _Speed: {r: 0, g: 0, b: 0, a: 0}
+      _TintColor: {r: 1, g: 1, b: 1, a: 1}
+      _windRandom: {r: 1, g: 1, b: 1, a: 1}
+      _windSize: {r: 0.07, g: 0.07, b: 0.07, a: 0.07}
+      _windSpeed: {r: 0.07, g: 0.07, b: 0.07, a: 0.07}
+  m_BuildTextureStacks: []

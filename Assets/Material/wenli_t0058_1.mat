@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: wenli_t0058
+  m_Shader: {fileID: 4800000, guid: 1364e9238350f7a43bca4e4163ee2234, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _ANIMATION_MAIN_ON
+  - _ASCAL_ON
+  - _RGBSCAL_ON
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 3000
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties:
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+      _MainTex:
+        m_Texture: {fileID: 2800000, guid: 5f9686557af002440bf5d75ce83c74f3, type: 3}
+        m_Scale: {x: 2, y: 0.66}
+        m_Offset: {x: 0, y: 0}
+      _MaskTex:
+        m_Texture: {fileID: 2800000, guid: 4c15536290ea18344996cc57b481cff6, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: -0.28}
+      _RaoDongMain:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+      _RongJie:
+        m_Texture: {fileID: 2800000, guid: dfffc5a76e315c948a5fac9d6069f568, type: 3}
+        m_Scale: {x: 2, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: {}
+    m_Floats:
+      _AScal: 1
+      _Animation1stX: 0
+      _Animation1stY: -0.5
+      _Animation_Main: 1
+      _Animation_RongJie: 0
+      _Brightness: 2
+      _Cull: 0
+      _Custom1xy: 0
+      _Custom1zw: 0
+      _DestBlend: 10
+      _DstBlend: 1
+      _Force1stX: 0
+      _Force1stY: 0
+      _ForceX: 0
+      _ForceY: 0
+      _HeatTime: 0
+      _Intensity: 2
+      _MoveX: 0
+      _MoveY: -0.1
+      _RGBScal: 1
+      _RaoDongMainKey: 0
+      _SourceBlend: 5
+      _SrcAlphaBlend: 0
+      _SrcBlend: 5
+      _UvSpeed2edX: 0
+      _UvSpeed2edY: 0
+      _UvSpeed3edX: 0
+      _UvSpeed3edY: 0
+      _ZWrite: 0
+      _qiangdu: 2
+      _ruanying: 1
+    m_Colors:
+      _TintColor: {r: 1, g: 1, b: 1, a: 0.49019608}
+  m_BuildTextureStacks: []

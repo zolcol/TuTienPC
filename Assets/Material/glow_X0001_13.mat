@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: glow_X0001
+  m_Shader: {fileID: 200, guid: 0000000000000000f000000000000000, type: 0}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _DISSLOVEOFF_ON
+  - _DISSLOVEUVORPOWER_ON
+  - _FRESNELOP_ON
+  - _FRESNEL_ONEMINUS_ON
+  - _MASKTEX_ON
+  - _SOFTPARTICLE_ON
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties:
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+      _MainTex:
+        m_Texture: {fileID: 2800000, guid: d05db773b1f60f545a66ba26815239f1, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: {}
+    m_Floats:
+      _Brightness: 2.2
+      _BumpScale: 1
+      _Cutoff: 0.5
+      _DestBlend: 10
+      _DetailNormalMapScale: 1
+      _DissU_Speed: 0
+      _DissV_Speed: 0
+      _DissloveOff: 1
+      _DisslovePower: 0
+      _DissloveUVorPower: 1
+      _Disslove_niuqu: 0
+      _DstBlend: 0
+      _ForceX: 0.1
+      _ForceY: 0.1
+      _FresnelOp: 1
+      _FresnelOpPower: 1
+      _FresnelPower: 1
+      _Fresnel_Oneminus: 1
+      _Fresnel_oneminus: 1
+      _GlossMapScale: 1
+      _Glossiness: 0.5
+      _GlossyReflections: 1
+      _HeatTime: 0
+      _IntorCurver: 0
+      _Intorcurve: 0
+      _InvFade: 1
+      _MaskTex: 1
+      _Mask_U_Speed: 0
+      _Mask_V_Speed: 0
+      _Metallic: 0
+      _Mode: 0
+      _MoveX: 1
+      _MoveY: 1.5
+      _NQOff: 0
+      _NiuQuPower: 0
+      _OcclusionStrength: 1
+      _PanUV: 0
+      _Parallax: 0.02
+      _Ram_Rotator: 0
+      _Rotator: 0
+      _Rotator_mask: 0
+      _Rotator_off: 0
+      _Smooth: 0
+      _SmoothnessTextureChannel: 0
+      _SoftParticle: 1
+      _SoftPower: 1
+      _SourceBlend: 5
+      _SpecularHighlights: 1
+      _SrcBlend: 1
+      _TextureAlpha: 0
+      _Tiling_off: 0
+      _USpeed: 0
+      _UVSec: 0
+      _UspeedNiuqu: 0
+      _UspeedNiuqu_niuqu: 0
+      _UspeedNiuqu_niuqu_mask: 0
+      _VPan_U: 0
+      _VPan_V: 0
+      _VSpeed: 0
+      _VSpeedNiuqu: 0
+      _VSpeedNiuqu_mask: 0
+      _VSpeedNiuquniuqu: 0
+      _VerTexOffest: 0
+      _ZWrite: 1
+      _disslove_niuqu_power: 0
+      _fn_v: 0.5048544
+      _mask_niuqu_copy: 0
+      _mask_niuqu_power_copy: 0
+    m_Colors:
+      _Color: {r: 1, g: 1, b: 1, a: 1}
+      _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+      _TintColor: {r: 1, g: 1, b: 1, a: 0.5}
+      _VertexPower: {r: 1, g: 1, b: 1, a: 0}
+  m_BuildTextureStacks: []

@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: wenli_0042
+  m_Shader: {fileID: 4800000, guid: be41a0f73c124fb44bb792ef76e964b0, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 5
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties:
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+      _MainTex:
+        m_Texture: {fileID: 2800000, guid: cb660b429033bbf48bf2b78af2608f71, type: 3}
+        m_Scale: {x: 1, y: 1.5}
+        m_Offset: {x: 0, y: 0}
+      _NoiseTex:
+        m_Texture: {fileID: 2800000, guid: 9b65b6e9c7376ea4db7040c30a356275, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: {}
+    m_Floats:
+      _ColorMask: 15
+      _ForceX: 0.1
+      _ForceY: 0.1
+      _HeatTime: 0.1
+      _InvFade: 1
+      _Stencil: 0
+      _StencilComp: 8
+      _StencilOp: 0
+      _StencilReadMask: 255
+      _StencilWriteMask: 255
+      speed: 0.5
+      xDir: 0
+      xScale: 1
+      yDir: 0.1
+      yScale: 1
+    m_Colors:
+      _Color: {r: 1, g: 1, b: 1, a: 1}
+      _TintColor: {r: 0.625, g: 0.3684077, b: 0.2022059, a: 0.5019608}
+  m_BuildTextureStacks: []
