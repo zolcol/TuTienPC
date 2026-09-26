@@ -129,32 +129,14 @@ namespace TopDownGame.NPC
                         int skill2 = GetColInt(tokens, colMap, "normalskill2", 15);
                         int skill3 = GetColInt(tokens, colMap, "normalskill3", 17);
 
-                        // Tầm nhìn / Tốc độ (cm -> m)
+                        // Tầm nhìn / Tốc độ (cm -> m) theo chuẩn DATA_CONVENTIONS.md
                         float rawVision = GetColFloat(tokens, colMap, "visionradius", 19, 1000f);
                         float rawActive = GetColFloat(tokens, colMap, "activeradius", 20, 1500f);
-                        float visionMeters = rawVision > 50f ? rawVision / 100f : (rawVision > 0f ? rawVision : 10f);
-                        float activeMeters = rawActive > 50f ? rawActive / 100f : (rawActive > 0f ? rawActive : 15f);
+                        float visionMeters = rawVision > 0f ? (rawVision / 100f) : 10f;
+                        float activeMeters = rawActive > 0f ? (rawActive / 100f) : 15f;
 
-                        float rawSpeed = GetColFloat(tokens, colMap, "runspeed", 25, 3.5f);
-                        float runSpeed;
-                        if (rawSpeed >= 100f)
-                        {
-                            // Cấu hình dạng cm/s (vd: 350 -> 3.5 m/s)
-                            runSpeed = rawSpeed / 100f;
-                        }
-                        else if (rawSpeed >= 10f)
-                        {
-                            // Cấu hình dạng Seasun Game Speed Unit (vd: 15 -> 3.33 m/s, 18 -> 4.0 m/s, 20 -> 4.44 m/s, 27 -> 6.0 m/s)
-                            runSpeed = rawSpeed / 4.5f;
-                        }
-                        else if (rawSpeed > 0f)
-                        {
-                            runSpeed = rawSpeed;
-                        }
-                        else
-                        {
-                            runSpeed = 3.5f;
-                        }
+                        float rawSpeed = GetColFloat(tokens, colMap, "runspeed", 25, 350f);
+                        float runSpeed = rawSpeed > 0f ? (rawSpeed / 100f) : 3.5f;
 
                         // Đồng bộ file prefab từ NpcResDatabase
                         string prefab = "";

@@ -188,7 +188,7 @@ namespace TopDownGame.Enemy
                 var firstSkill = SkillDatabase.GetSkill(attackSkillIds[0]);
                 if (firstSkill != null && firstSkill.range > 0f)
                 {
-                    attackRange = Mathf.Max(2.0f, firstSkill.range * 0.85f);
+                    attackRange = firstSkill.range;
                 }
             }
 

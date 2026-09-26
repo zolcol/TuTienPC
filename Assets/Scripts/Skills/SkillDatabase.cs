@@ -100,6 +100,7 @@ namespace TopDownGame.Skills
             public int playsound;
             public int playsoundFrame;
             public string effectPath;
+            public int slotId;
             public float movePosDistance;
             public float movePosSpeed;
             public float movePosAccel;
@@ -148,12 +149,12 @@ namespace TopDownGame.Skills
 
                         // AttackRadius trong game gốc là cm (ví dụ 500, 550) -> Đổi sang mét
                         float rawRadius = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "attackradius", 38), 500f);
-                        float rangeInMeters = rawRadius > 50f ? rawRadius / 100f : (rawRadius > 0f ? rawRadius : 5f);
+                        float rangeInMeters = rawRadius > 0f ? (rawRadius / 100f) : 5f;
 
                         // Cooldown & Mana Cost
                         float timePerCast = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "timepercast", 16), 0f);
                         float waitTime = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "waittime", 9), 0f);
-                        float cooldown = timePerCast > 0f ? (timePerCast / SkillData.COOLDOWN_FPS) : (waitTime > 0f ? waitTime : 0f);
+                        float cooldown = timePerCast > 0f ? (timePerCast / SkillData.COOLDOWN_FPS) : (waitTime > 0f ? (waitTime / SkillData.COOLDOWN_FPS) : 0f);
                         float manaCost = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "costvalue", 55), 0f);
 
                         // Ngũ hành thuộc tính & Các tham số mở rộng (DATA_CONVENTIONS.md Mục 2)
@@ -187,10 +188,11 @@ namespace TopDownGame.Skills
                         bool targetSelf = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "targetself", 65), 0) == 1;
 
                         // Tra cứu Chiêu thức phụ / Hiệu quả kèm theo (SubSkill / FlySkill / HitSkill)
+                        int flySkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "flyskillid", 30), 0);
                         int startSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "startskillid", 29), 0);
                         int flyEventInterval = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "flyeventinterval", 31), 0);
                         int hitSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "hitskillid", 34), 0);
-                        int subSkillId = flyEventInterval > 0 ? flyEventInterval : (startSkillId > 0 ? startSkillId : hitSkillId);
+                        int subSkillId = flySkillId > 0 ? flySkillId : (startSkillId > 0 ? startSkillId : hitSkillId);
 
                         int rawStartPosType = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "startpostype", 5), 1);
                         VfxStartPosType startPosType = Enum.IsDefined(typeof(VfxStartPosType), rawStartPosType) ? (VfxStartPosType)rawStartPosType : VfxStartPosType.Caster;
@@ -270,6 +272,7 @@ namespace TopDownGame.Skills
                         // Bước C: Trích xuất các mốc Frame Timing từ ActionEvent
                         int rawCastSound = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "castsoundid", 68), -1);
                         int rawCastEffect = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "casteffectrestid", 73), 0);
+                        if (rawCastEffect <= 0) rawCastEffect = skillId;
 
                         ActionEventSummary evSummary = new ActionEventSummary
                         {
@@ -283,6 +286,7 @@ namespace TopDownGame.Skills
                             playsound = rawCastSound,
                             playsoundFrame = rawCastSound > 0 ? 0 : -1,
                             effectPath = EffectDatabase.GetEffectPath(rawCastEffect),
+                            slotId = 0,
                             movePosDistance = 0f,
                             movePosSpeed = 0f,
                             movePosAccel = 0f,
@@ -300,6 +304,7 @@ namespace TopDownGame.Skills
                             if (matchedSummary.param1 >= 0) evSummary.param1 = matchedSummary.param1;
                             if (matchedSummary.param2 >= 0) evSummary.param2 = matchedSummary.param2;
                             if (matchedSummary.instantDir >= 0) evSummary.instantDir = matchedSummary.instantDir;
+                            if (matchedSummary.slotId > 0) evSummary.slotId = matchedSummary.slotId;
                             if (matchedSummary.movePosFrame >= 0)
                             {
                                 evSummary.movePosFrame = matchedSummary.movePosFrame;
@@ -326,71 +331,32 @@ namespace TopDownGame.Skills
                             }
                         }
 
-                        // Tinh chỉnh chi tiết cho từng kỹ năng phái Nga Mi
-                        if (skillId == 301) { evSummary.movePosSpeed = 2.5f; evSummary.movePosDistance = 0.45f; evSummary.movePosFrame = 0; }
-                        else if (skillId == 302) { evSummary.movePosSpeed = 2.8f; evSummary.movePosDistance = 0.504f; evSummary.movePosFrame = 0; }
-                        else if (skillId == 303) { evSummary.movePosSpeed = 3.2f; evSummary.movePosDistance = 0.64f; evSummary.movePosFrame = 0; }
-                        else if (skillId == 304) { evSummary.movePosSpeed = 3.8f; evSummary.movePosDistance = 0.836f; evSummary.movePosFrame = 0; }
-                        else if (skillId == 306)
+                        // Xác định Slot gắn hiệu ứng chuẩn hóa theo DATA_CONVENTIONS.md (Mục 11)
+                        if (evSummary.slotId > 0)
                         {
-                            // Chiêu Từ Hàng Phổ Độ: Hồi phục sinh lực (Recover), tự chọn bản thân hoặc đồng đội, gọi chiêu phụ 307
-                            relation = SkillRelation.Recover;
-                            targetSelf = true;
-                            subSkillId = 307;
-                            startPosType = VfxStartPosType.Caster;
-                            slotId = 19; // Bàn chân / Mặt đất (Foot)
-                            skillType = SkillType.Circle;
-                            evSummary.movePosSpeed = 0f;
-                            evSummary.movePosDistance = 0f;
-                            evSummary.movePosFrame = -1;
-                            rangeInMeters = Mathf.Max(rangeInMeters, 8.0f);
-                            evSummary.effectPath = "effect/prefabs/juese/emei/JN_01";
-                            if (evSummary.playsound <= 0) evSummary.playsound = 5306;
-                            if (evSummary.playsoundFrame < 0) evSummary.playsoundFrame = 0;
+                            slotId = evSummary.slotId;
                         }
-                        else if (skillId == 307)
+                        else if (relation == SkillRelation.Recover)
                         {
-                            // Chiêu hiệu quả hồi phục Từ Hàng Phổ Độ
-                            relation = SkillRelation.Recover;
-                            targetSelf = true;
-                            startPosType = VfxStartPosType.Caster;
-                            slotId = 7; // Lỗ Đai Cơ Thể / Bip01 Spine1 (Ngực / Trọng tâm thân)
-                            skillType = SkillType.Circle;
-                            rangeInMeters = Mathf.Max(rangeInMeters, 8.0f);
-                            evSummary.effectPath = "effect/prefabs/juese/emei/JN_01_BUFF";
+                            slotId = (int)BoneSlotID.RightFoot; // 19: Bàn chân / Mặt đất
                         }
-                        else if (skillId == 308)
+                        else if (missile != null && missile.IsProjectile)
                         {
-                            // Bạch Lộ Ngưng Sương: Kỹ năng phóng kiếm khí / phi đạn băng tầm xa (Missile)
-                            skillType = SkillType.Projectile;
-                            childId = 308;
-                            startPosType = VfxStartPosType.Target;
-                            slotId = 1; // Đục lỗ tay phải / Chuôi kiếm (B_RH)
-                            evSummary.movePosSpeed = 0f;
-                            evSummary.movePosDistance = 0f;
-                            evSummary.movePosFrame = -1;
-                            rangeInMeters = Mathf.Max(rangeInMeters, 12.0f);
-                            evSummary.effectPath = "effect/prefabs/juese/emei/JN_02_SF"; // Hiệu ứng tụ khí khi bắt đầu bắn
-                            if (evSummary.playsound <= 0) evSummary.playsound = 5308;
-                            if (evSummary.playsoundFrame < 0) evSummary.playsoundFrame = 0;
+                            slotId = (int)BoneSlotID.RightHand; // 1: Tay phải phóng đạn
                         }
-                        else if (skillId == 310)
+
+                        // Nếu effectPath vẫn trống, tra cứu fallback theo missileResID từ Missile.csv
+                        if (string.IsNullOrEmpty(evSummary.effectPath) && missile != null && missile.missileResID > 0)
                         {
-                            // Giang Hải Ngưng Ba: Kỹ năng phóng sóng kiếm / đạn đạo băng tầm xa (Missile)
-                            skillType = SkillType.Projectile;
-                            childId = 310;
-                            startPosType = VfxStartPosType.Caster;
-                            slotId = 1;
-                            evSummary.movePosSpeed = 0f;
-                            evSummary.movePosDistance = 0f;
-                            evSummary.movePosFrame = -1;
-                            rangeInMeters = Mathf.Max(rangeInMeters, 9.0f);
-                            evSummary.effectPath = "effect/prefabs/juese/emei/JN_03_WQ";
-                            if (evSummary.playsound <= 0) evSummary.playsound = 5310;
-                            if (evSummary.playsoundFrame < 0) evSummary.playsoundFrame = 0;
+                            evSummary.effectPath = EffectDatabase.GetEffectPath(missile.missileResID);
                         }
-                        else if (skillId == 312) { skillType = SkillType.Circle; slotId = 19; rangeInMeters = Mathf.Max(rangeInMeters, 5.0f); subSkillId = 313; }
-                        else if (skillId == 346) { skillType = SkillType.Circle; slotId = 19; rangeInMeters = Mathf.Max(rangeInMeters, 8.5f); }
+
+                        // Nếu âm thanh vẫn trống, gán âm thanh mặc định từ Skill.csv
+                        if (evSummary.playsound <= 0 && rawCastSound > 0)
+                        {
+                            evSummary.playsound = rawCastSound;
+                            evSummary.playsoundFrame = 0;
+                        }
 
                         SkillData data = new SkillData
                         {
@@ -398,7 +364,7 @@ namespace TopDownGame.Skills
                             name = skillName,
                             iconPath = iconName,
                             castActionId = castActionId,
-                            crossFade = Mathf.Clamp(evSummary.crossFade, 0.05f, 0.15f),
+                            crossFade = evSummary.crossFade,
                             relation = relation,
                             skillStyle = skillStyle,
                             targetSelf = targetSelf,
@@ -495,6 +461,7 @@ namespace TopDownGame.Skills
                                 playsound = -1,
                                 playsoundFrame = -1,
                                 effectPath = "",
+                                slotId = 0,
                                 movePosDistance = 0f,
                                 movePosSpeed = 0f,
                                 movePosAccel = 0f,
@@ -508,8 +475,8 @@ namespace TopDownGame.Skills
                             if (eventName.Equals("CrossFade", StringComparison.OrdinalIgnoreCase))
                             {
                                 float fadeVal = CsvParserHelper.ParseFloat(p1, 1f);
-                                float fadeSec = fadeVal > 10f ? (fadeVal / 1000f) : (fadeVal * 0.08f);
-                                summary.crossFade = Mathf.Clamp(fadeSec, 0.05f, 0.15f);
+                                float fadeSec = fadeVal > 10f ? (fadeVal / 1000f) : 0.05f;
+                                summary.crossFade = fadeSec;
                             }
                             else if (eventName.Equals("LinkSkillInit", StringComparison.OrdinalIgnoreCase))
                             {
@@ -528,6 +495,11 @@ namespace TopDownGame.Skills
                                 if (!string.IsNullOrEmpty(path))
                                 {
                                     summary.effectPath = path;
+                                }
+                                int slot = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 8), 0);
+                                if (slot > 0)
+                                {
+                                    summary.slotId = slot;
                                 }
                             }
                         }
@@ -566,6 +538,11 @@ namespace TopDownGame.Skills
                                 if (!string.IsNullOrEmpty(path))
                                 {
                                     summary.effectPath = path;
+                                }
+                                int slot = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 8), 0);
+                                if (slot > 0)
+                                {
+                                    summary.slotId = slot;
                                 }
                             }
                             else if (eventName.Equals("MovePos", StringComparison.OrdinalIgnoreCase))

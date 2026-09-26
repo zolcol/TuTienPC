@@ -126,8 +126,11 @@ namespace TopDownGame.Data
                         int runSound = GetColInt(tokens, colMap, "runsoundid", 4);
                         int deathSound = GetColInt(tokens, colMap, "deathsoundid", 5);
                         int hitSound = GetColInt(tokens, colMap, "hitsoundid", 6);
-                        float height = GetColFloat(tokens, colMap, "height", 7, 1.8f);
-                        float width = GetColFloat(tokens, colMap, "width", 8, 0.5f);
+                        float rawHeight = GetColFloat(tokens, colMap, "height", 7, 18f);
+                        float rawWidth = GetColFloat(tokens, colMap, "width", 8, 5f);
+                        
+                        float height = rawHeight > 0f ? (rawHeight / 10f) : 1.8f;
+                        float width = rawWidth > 0f ? (rawWidth / 10f) : 0.5f;
 
                         NpcResData data = new NpcResData
                         {

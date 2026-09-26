@@ -315,7 +315,7 @@ namespace TopDownGame.Skills
             }
 
             float delaySec = (missileData != null && missileData.delayDeleteFrame > 0f)
-                ? (missileData.delayDeleteFrame / 30.0f)
+                ? (missileData.delayDeleteFrame / 15.0f)
                 : 0f;
 
             if (delaySec > 0.01f)
