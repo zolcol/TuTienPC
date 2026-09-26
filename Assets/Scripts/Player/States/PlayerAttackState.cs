@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Skills;
 
@@ -11,6 +12,7 @@ namespace TopDownGame.Player
         private bool hasTriggeredHit;
         private bool hasTriggeredSound;
         private bool hasBufferedComboInput;
+        private readonly HashSet<SkillEffectEvent> triggeredEvents = new HashSet<SkillEffectEvent>();
 
         public PlayerAttackState(PlayerController player, TopDownGame.StateMachine.StateMachine stateMachine) 
             : base(player, stateMachine) { }
@@ -52,6 +54,8 @@ namespace TopDownGame.Player
                 totalDuration = 0.6f;
             }
 
+            triggeredEvents.Clear();
+
             // Khởi động việc xoay người theo hướng bấm phím
             player.ResetTurnVelocity();
             Vector3 input = player.GetInputVector();
@@ -62,6 +66,16 @@ namespace TopDownGame.Player
 
             // Kích hoạt hiệu ứng tụ khí / phát sáng vũ khí khi bắt đầu vung đòn (CastEffect)
             player.PlaySkillCastEffect(currentSkill);
+            if (currentSkill.effectEvents != null)
+            {
+                foreach (var ev in currentSkill.effectEvents)
+                {
+                    if (ev.frame <= 0)
+                    {
+                        triggeredEvents.Add(ev);
+                    }
+                }
+            }
         }
 
         public override void Update()
@@ -110,6 +124,23 @@ namespace TopDownGame.Player
             {
                 hasTriggeredSound = true;
                 TopDownGame.Audio.SoundManager.Instance.PlaySkillSound(currentSkill, player.transform);
+            }
+
+            // 3.5. Kích hoạt các hiệu ứng timeline (frame > 0)
+            if (currentSkill.effectEvents != null && currentSkill.effectEvents.Count > 0)
+            {
+                foreach (var ev in currentSkill.effectEvents)
+                {
+                    if (!triggeredEvents.Contains(ev))
+                    {
+                        float evTime = ev.frame / SkillData.ACTION_EVENT_FPS;
+                        if (timer >= evTime)
+                        {
+                            triggeredEvents.Add(ev);
+                            player.PlaySkillEffectEvent(ev);
+                        }
+                    }
+                }
             }
 
             // 4. Kích hoạt gây sát thương tại mốc castSkill (frame/15s)

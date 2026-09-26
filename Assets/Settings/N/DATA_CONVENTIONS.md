@@ -1,6 +1,6 @@
 # 📘 TÀI LIỆU QUY ƯỚC & NGUYÊN LÝ DỮ LIỆU GAME (DATA CONVENTIONS & SYSTEM ARCHITECTURE)
 
-Tài liệu này tổng hợp toàn bộ quy ước, định nghĩa biến, công thức chuyển đổi sang Unity, bảng mã Enum và nguyên lý vận hành của hệ thống Combat / Animation Scale / NPC / VFX / Audio trích xuất từ dữ liệu game Kiếm Hiệp (Seasun / Kingsoft). Toàn bộ thông số đã được đối chiếu và kiểm chứng trực tiếp với các tệp dữ liệu CSV gốc.
+Tài liệu này tổng hợp toàn bộ quy ước, định nghĩa biến, công thức chuyển đổi sang Unity, bảng mã Enum và nguyên lý vận hành của hệ thống Combat / Animation Scale / Targeting & Selector / NPC / VFX / Audio trích xuất từ dữ liệu game Kiếm Hiệp (Seasun / Kingsoft). Toàn bộ thông số đã được đối chiếu và kiểm chứng trực tiếp với các tệp dữ liệu CSV gốc.
 
 ---
 
@@ -10,16 +10,17 @@ Tài liệu này tổng hợp toàn bộ quy ước, định nghĩa biến, côn
 3. [Chi Tiết Bảng `Missile.csv` (Đạn Đạo, Hitbox & Va Chạm)](#3-chi-tiết-bảng-missilecsv)
 4. [Chi Tiết Bảng `ActionEvent.csv` (Dòng Thời Gian Từng Frame Sự Kiện)](#4-chi-tiết-bảng-actioneventcsv)
 5. [Nguyên Lý Scale Animation & Đồng Bộ Hóa Timeline Chuyển Động](#5-nguyên-lý-scale-animation--đồng-bộ-hóa-timeline-chuyển-động)
-6. [Chi Tiết Bảng `NpcRes.csv` (Kích Thước 3D, Collider & Frame Hoạt Ảnh)](#6-chi-tiết-bảng-npcrescsv)
-7. [Chi Tiết Bảng `ActionName.csv` (Từ Điển Tên Hoạt Ảnh Chuẩn)](#7-chi-tiết-bảng-actionnamecsv)
-8. [Chi Tiết Bảng `NpcTemplate.csv` & `Field_HeaderBoss.csv` (Dữ Liệu Quái & Boss)](#8-chi-tiết-bảng-npctemplatecsv--field_headerbosscsv)
-9. [Chi Tiết Bảng `Character.csv` (Nhân Vật Người Chơi)](#9-chi-tiết-bảng-charactercsv)
-10. [Chi Tiết Bảng `NpcAttribute.csv` (Chỉ Số Chiến Đấu & Thuộc Tính Ngũ Hành)](#10-chi-tiết-bảng-npcattributecsv)
-11. [Chi Tiết Bảng `EffectRes.csv` (Tài Nguyên Prefab VFX & Vũ Khí Thần Binh)](#11-chi-tiết-bảng-effectrescsv)
-12. [Chi Tiết Bảng `StateEffect.csv`, `PartSlot.csv` & Quản Lý Khớp Gắn VFX](#12-chi-tiết-bảng-stateeffectcsv-partslotcsv--quản-lý-khớp-gắn-vfx)
-13. [Chi Tiết Bảng `FactionSkill.csv` & `AutoAiSkill.csv` (Cây Chiêu Thức & AI Tự Đánh)](#13-chi-tiết-bảng-factionskillcsv--autoaiskillcsv)
-14. [Chi Tiết Bảng `Sound.csv` (Âm Thanh SFX / Wwise Bank)](#14-chi-tiết-bảng-soundcsv)
-15. [Tổng Hợp Toàn Bộ Bảng Mã Enum Chuẩn C# Cho Unity](#15-tổng-hợp-toàn-bộ-bảng-mã-enum-chuẩn-c-cho-unity)
+6. [Hệ Thống Định Hướng, Chỉ Định Mục Tiêu & Quy Tắc Hiển Thị Selector (Aiming Indicator)](#6-hệ-thống-định-hướng-chỉ-định-mục-tiêu--quy-tắc-hiển-thị-selector)
+7. [Chi Tiết Bảng `NpcRes.csv` (Kích Thước 3D, Collider & Frame Hoạt Ảnh)](#7-chi-tiết-bảng-npcrescsv)
+8. [Chi Tiết Bảng `ActionName.csv` (Từ Điển Tên Hoạt Ảnh Chuẩn)](#8-chi-tiết-bảng-actionnamecsv)
+9. [Chi Tiết Bảng `NpcTemplate.csv` & `Field_HeaderBoss.csv` (Dữ Liệu Quái & Boss)](#9-chi-tiết-bảng-npctemplatecsv--field_headerbosscsv)
+10. [Chi Tiết Bảng `Character.csv` (Nhân Vật Người Chơi)](#10-chi-tiết-bảng-charactercsv)
+11. [Chi Tiết Bảng `NpcAttribute.csv` (Chỉ Số Chiến Đấu & Thuộc Tính Ngũ Hành)](#11-chi-tiết-bảng-npcattributecsv)
+12. [Chi Tiết Bảng `EffectRes.csv` (Tài Nguyên Prefab VFX & Vũ Khí Thần Binh)](#12-chi-tiết-bảng-effectrescsv)
+13. [Chi Tiết Bảng `StateEffect.csv`, `PartSlot.csv` & Quản Lý Khớp Gắn VFX](#13-chi-tiết-bảng-stateeffectcsv-partslotcsv--quản-lý-khớp-gắn-vfx)
+14. [Chi Tiết Bảng `FactionSkill.csv` & `AutoAiSkill.csv` (Cây Chiêu Thức & AI Tự Đánh)](#14-chi-tiết-bảng-factionskillcsv--autoaiskillcsv)
+15. [Chi Tiết Bảng `Sound.csv` (Âm Thanh SFX / Wwise Bank)](#15-chi-tiết-bảng-soundcsv)
+16. [Tổng Hợp Toàn Bộ Bảng Mã Enum Chuẩn C# Cho Unity](#16-tổng-hợp-toàn-bộ-bảng-mã-enum-chuẩn-c-cho-unity)
 
 ---
 
@@ -191,7 +192,35 @@ $$\text{Event Normalized Time} = \frac{\text{Event.Frame}}{\text{action\_frame}}
 
 ---
 
-## 6. CHI TIẾT BẢNG `NpcRes.csv`
+## 6. HỆ THỐNG ĐỊNH HƯỚNG, CHỈ ĐỊNH MỤC TIÊU & QUY TẮC HIỂN THỊ SELECTOR
+
+Hệ thống phân định chiêu thức và hiển thị vùng ngắm (Aiming Reticle / Selector) khi người chơi nhấn giữ / vuốt phím kỹ năng được quy định dựa trên sự kết hợp giữa `Missile.csv` và `Skill.csv`:
+
+---
+
+### 🔑 1. Quy Tắc Phân Định Loại Chiêu (Targeting Logic):
+
+| Loại Kỹ Năng | Cấu hình trong CSV | Nguyên lý vận hành & Xử lý mục tiêu | Ví dụ thực tế |
+| :--- | :--- | :--- | :--- |
+| **Chiêu Định Hướng Tự Do**<br>*(Linear Skillshot)* | **`MoveKind = 1`**<br>`SelectorType` = rỗng | • **Không bắt buộc có mục tiêu** $\rightarrow$ Người chơi có thể bấm hoặc vuốt Joystick bắn thẳng vào khoảng trống.<br>• Nếu có mục tiêu trong tầm: Xoay mặt bắn về mục tiêu.<br>• Đạn bay thẳng theo vector hướng bắn, không đổi hướng. | **Chiêu 310** (Sóng nước Nga Mi), **Chiêu 301..304** (Đánh thường), **Chiêu 401** (Đào Hoa bắn tên). |
+| **Chiêu Chỉ Định Mục Tiêu**<br>*(Target-Locked Homing)* | **`MoveKind = 2`**<br>hoặc `SelectorType != ""` | • **Bắt buộc phải có mục tiêu hợp lệ** (hoặc tự động chọn kẻ địch/đồng minh gần nhất).<br>• Đạn tự uốn lượn bám đuổi theo `Transform target`. | **Chiêu 308** (Cầu băng nảy), **Chiêu 306** (Đài sen hồi máu). |
+| **Chiêu AOE Tại Điểm Chỉ Định**<br>*(Ground Target AOE)* | **`MoveKind = 0`**<br>`StartPosType = 2` | • Người chơi kéo thả vùng tròn đặt bẫy / bãi nổ tại vị trí mặt đất chỉ định. | **Chiêu đặt bẫy**, Mưa tên, Thiên thạch rơi. |
+| **Chiêu Hào Quang Bản Thân**<br>*(PBAoE Self Circle)* | **`MoveKind = 0`**<br>`StartPosType = 1` hoặc `Relation = self` | • Sinh hiệu ứng hào quang hoặc nổ tròn tỏa ra xung quanh chân Caster. | **Chiêu 208** (Bá Vương Nộ Hống - Thiên Vương), **Chiêu 406** (Hỏa Phượng). |
+
+---
+
+### 📐 2. Quy Tắc Hiển Thị Selector (Aiming Indicator) Khi Vuốt Phím:
+
+| Loại Selector UI | Hình dạng hiển thị | Công thức tính Kích thước (Unity) | Ứng dụng thực tế |
+| :--- | :--- | :--- | :--- |
+| **1. Mũi tên / Khung chữ nhật đâm tới** *(Line / Box Indicator)* | Mũi tên hướng thẳng từ chân nhân vật | • **Chiều dài mũi tên:** `AttackRadius / 100.0f` (m)<br>• **Bề rộng khung:** `(DmgRange * 2) / 10.0f` (m) | **Chiêu 310:** Dài $7.0\text{m}$, Rộng $2.8\text{m}$ |
+| **2. Vòng tròn khóa mục tiêu** *(Target Lock-on Ring)* | Vòng tròn tầm bắn + Vòng khóa sáng dưới chân mục tiêu | • **Bán kính tầm với:** `AttackRadius / 100.0f` (m)<br>• Vòng sáng khóa chân kẻ địch khi Joystick rà trúng | **Chiêu 308:** Bán kính tầm với $10.0\text{m}$ |
+| **3. Vòng tròn chỉ định điểm rơi** *(Ground Target AOE)* | Vòng tròn di động theo cần gạt Joystick | • **Tầm ném xa tối đa:** `AttackRadius / 100.0f` (m)<br>• **Bán kính vòng nổ:** `DmgRange / 10.0f` (m) | Chiêu Bẫy / Vòng AOE đất |
+| **4. Vòng tròn tỏa quanh bản thân** *(PBAoE Self Circle)* | Vòng tròn cố định quanh chân Caster | • **Bán kính vòng:** `AttackRadius / 100.0f` (m) | **Chiêu 208:** Bán kính $3.5\text{m}$ |
+
+---
+
+## 7. CHI TIẾT BẢNG `NpcRes.csv`
 
 Bảng định nghĩa Model 3D, Kích thước Collider vật lý, Âm thanh di chuyển/chết và **Tổng số Frame chuẩn + Thời gian hòa trộn (CrossFade)** của từng clip hoạt ảnh.
 
@@ -209,7 +238,7 @@ Bảng định nghĩa Model 3D, Kích thước Collider vật lý, Âm thanh di 
 
 ---
 
-## 7. CHI TIẾT BẢNG `ActionName.csv`
+## 8. CHI TIẾT BẢNG `ActionName.csv`
 
 Từ điển mã hóa tên viết tắt các Clip hoạt ảnh chuẩn của game:
 
@@ -231,7 +260,7 @@ Từ điển mã hóa tên viết tắt các Clip hoạt ảnh chuẩn của gam
 
 ---
 
-## 8. CHI TIẾT BẢNG `NpcTemplate.csv` & `Field_HeaderBoss.csv`
+## 9. CHI TIẾT BẢNG `NpcTemplate.csv` & `Field_HeaderBoss.csv`
 
 | Tên Cột | Kiểu | Ý nghĩa |
 | :--- | :---: | :--- |
@@ -258,7 +287,7 @@ Từ điển mã hóa tên viết tắt các Clip hoạt ảnh chuẩn của gam
 
 ---
 
-## 9. CHI TIẾT BẢNG `Character.csv`
+## 10. CHI TIẾT BẢNG `Character.csv`
 
 Bảng cấu hình các nhân vật người chơi mặc định của các môn phái. Cấu trúc cột tương tự `NpcTemplate.csv`, bổ sung:
 * **`Sex`**: Giới tính (`1` = Nam, `2` = Nữ, `3` = Loli/Shota).
@@ -267,7 +296,7 @@ Bảng cấu hình các nhân vật người chơi mặc định của các môn
 
 ---
 
-## 10. CHI TIẾT BẢNG `NpcAttribute.csv`
+## 11. CHI TIẾT BẢNG `NpcAttribute.csv`
 
 | Tên Cột | Kiểu | Ý nghĩa trong Công thức Tính Dame |
 | :--- | :---: | :--- |
@@ -284,7 +313,7 @@ Bảng cấu hình các nhân vật người chơi mặc định của các môn
 
 ---
 
-## 11. CHI TIẾT BẢNG `EffectRes.csv`
+## 12. CHI TIẾT BẢNG `EffectRes.csv`
 
 | Tên Cột | Kiểu | Ý nghĩa & Cơ chế Override Thần Binh |
 | :--- | :---: | :--- |
@@ -296,7 +325,7 @@ Bảng cấu hình các nhân vật người chơi mặc định của các môn
 
 ---
 
-## 12. CHI TIẾT BẢNG `StateEffect.csv`, `PartSlot.csv` & QUẢN LÝ KHỚP GẮN VFX
+## 13. CHI TIẾT BẢNG `StateEffect.csv`, `PartSlot.csv` & QUẢN LÝ KHỚP GẮN VFX
 
 ### 🏛️ 1. Bảng Tra Cứu Toàn Bộ Khớp Xương (`PartSlot.csv`) & Chế Độ Xoay:
 
@@ -396,7 +425,7 @@ public class UprightBodyFollower : MonoBehaviour
 
 ---
 
-## 13. CHI TIẾT BẢNG `FactionSkill.csv` & `AutoAiSkill.csv`
+## 14. CHI TIẾT BẢNG `FactionSkill.csv` & `AutoAiSkill.csv`
 
 * **`FactionSkill.csv`**: Định vị vị trí nút bấm chiêu trên giao diện UI:
   * `BtnName`: Tên slot nút (`Attack`, `Skill1`, `Skill2`, `Skill3`, `Skill4`, `Skill_Dodge`).
@@ -408,7 +437,7 @@ public class UprightBodyFollower : MonoBehaviour
 
 ---
 
-## 14. CHI TIẾT BẢNG `Sound.csv`
+## 15. CHI TIẾT BẢNG `Sound.csv`
 
 * **`SoundID`**: Mã số âm thanh (Khóa chính).
 * **`Bank`**: Tên gói SoundBank Wwise (`Em` = Nga Mi, `Shaolin`, `Tianwang`...).
@@ -416,7 +445,7 @@ public class UprightBodyFollower : MonoBehaviour
 
 ---
 
-## 15. TỔNG HỢP TOÀN BỘ BẢNG MÃ ENUM CHUẨN C# CHO UNITY
+## 16. TỔNG HỢP TOÀN BỘ BẢNG MÃ ENUM CHUẨN C# CHO UNITY
 
 ```csharp
 namespace GameData.Combat
@@ -468,7 +497,7 @@ namespace GameData.Combat
     public enum MissileMoveKind
     {
         StaticTrap = 0,     // Đặt bẫy / Điểm hồi máu / Trận pháp cố định
-        Linear = 1,         // Bay thẳng theo vector ban đầu
+        Linear = 1,         // Bay thẳng theo vector ban đầu (Định hướng tự do)
         HomingTracking = 2, // Tự bám đuổi / uốn lượn theo mục tiêu đang khóa
         DashWithCaster = 3, // Di chuyển dính liền theo thân người lướt
         BoomerangCurved = 5 // Bay uốn lượn / quay ngược trở về

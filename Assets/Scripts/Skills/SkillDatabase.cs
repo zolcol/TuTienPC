@@ -67,6 +67,7 @@ namespace TopDownGame.Skills
             // Đảm bảo các Database phụ trợ đã nạp trước
             EffectDatabase.Instance.EnsureLoaded();
             FactionSkillDatabase.Instance.EnsureLoaded();
+            StateEffectDatabase.EnsureLoaded();
 
             string nSkillPath = Path.Combine(Application.dataPath, "Settings", "N", "Skill.csv");
             string nActionEventPath = Path.Combine(Application.dataPath, "Settings", "N", "ActionEvent.csv");
@@ -87,24 +88,25 @@ namespace TopDownGame.Skills
             LoadFromLegacySkillsCsv();
         }
 
-        private struct ActionEventSummary
+        private class ActionEventSummary
         {
-            public int instantDir;
-            public float crossFade;
-            public int candoskill;
-            public int castSkill;
-            public int canDoRun;
-            public int castLinkSkill;
-            public int param1;
-            public int param2;
-            public int playsound;
-            public int playsoundFrame;
-            public string effectPath;
-            public int slotId;
-            public float movePosDistance;
-            public float movePosSpeed;
-            public float movePosAccel;
-            public int movePosFrame;
+            public int instantDir = -1;
+            public float crossFade = 0.1f;
+            public int candoskill = -1;
+            public int castSkill = 2;
+            public int canDoRun = -1;
+            public int castLinkSkill = -1;
+            public int param1 = -1;
+            public int param2 = -1;
+            public int playsound = -1;
+            public int playsoundFrame = -1;
+            public string effectPath = "";
+            public int slotId = 0;
+            public float movePosDistance = 0f;
+            public float movePosSpeed = 0f;
+            public float movePosAccel = 0f;
+            public int movePosFrame = -1;
+            public List<SkillEffectEvent> effectEvents = new List<SkillEffectEvent>();
         }
 
         /// <summary>
@@ -272,7 +274,7 @@ namespace TopDownGame.Skills
                         // Bước C: Trích xuất các mốc Frame Timing từ ActionEvent
                         int rawCastSound = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "castsoundid", 68), -1);
                         int rawCastEffect = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "casteffectrestid", 73), 0);
-                        if (rawCastEffect <= 0) rawCastEffect = skillId;
+                        
 
                         ActionEventSummary evSummary = new ActionEventSummary
                         {
@@ -329,6 +331,22 @@ namespace TopDownGame.Skills
                             {
                                 evSummary.effectPath = matchedSummary.effectPath;
                             }
+                            if (matchedSummary.effectEvents != null && matchedSummary.effectEvents.Count > 0)
+                            {
+                                evSummary.effectEvents = new List<SkillEffectEvent>(matchedSummary.effectEvents);
+                            }
+                        }
+
+                        // Nếu danh sách effectEvents vẫn trống nhưng có effectPath đơn lẻ, đưa vào effectEvents
+                        if (evSummary.effectEvents.Count == 0 && !string.IsNullOrEmpty(evSummary.effectPath))
+                        {
+                            evSummary.effectEvents.Add(new SkillEffectEvent
+                            {
+                                frame = 0,
+                                effectPath = evSummary.effectPath,
+                                slotId = evSummary.slotId,
+                                duration = 2.5f
+                            });
                         }
 
                         // Xác định Slot gắn hiệu ứng chuẩn hóa theo DATA_CONVENTIONS.md (Mục 11)
@@ -339,16 +357,6 @@ namespace TopDownGame.Skills
                         else if (relation == SkillRelation.Recover)
                         {
                             slotId = (int)BoneSlotID.RightFoot; // 19: Bàn chân / Mặt đất
-                        }
-                        else if (missile != null && missile.IsProjectile)
-                        {
-                            slotId = (int)BoneSlotID.RightHand; // 1: Tay phải phóng đạn
-                        }
-
-                        // Nếu effectPath vẫn trống, tra cứu fallback theo missileResID từ Missile.csv
-                        if (string.IsNullOrEmpty(evSummary.effectPath) && missile != null && missile.missileResID > 0)
-                        {
-                            evSummary.effectPath = EffectDatabase.GetEffectPath(missile.missileResID);
                         }
 
                         // Nếu âm thanh vẫn trống, gán âm thanh mặc định từ Skill.csv
@@ -402,6 +410,8 @@ namespace TopDownGame.Skills
                             playsound = evSummary.playsound,
                             playsoundFrame = evSummary.playsoundFrame,
                             effectPath = evSummary.effectPath,
+                            stateEffectId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "stateeffectid", 23), 0),
+                            effectEvents = new List<SkillEffectEvent>(evSummary.effectEvents),
                             series = series,
                             skillParam1 = skillParam1,
                             skillParam2 = skillParam2,
@@ -488,18 +498,32 @@ namespace TopDownGame.Skills
                                 summary.playsound = CsvParserHelper.ParseInt(p1, -1);
                                 summary.playsoundFrame = 0;
                             }
-                            else if (eventName.Equals("PlayEffect", StringComparison.OrdinalIgnoreCase))
+                            else if (eventName.Equals("PlayEffect", StringComparison.OrdinalIgnoreCase) ||
+                                     eventName.Equals("PlayEffectNoClear", StringComparison.OrdinalIgnoreCase))
                             {
                                 int resId = CsvParserHelper.ParseInt(p1, 0);
                                 string path = EffectDatabase.GetEffectPath(resId);
+                                int slot = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 8), 0);
+                                float durFrames = CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 9), 0f);
+                                float durSec = durFrames > 0f ? (durFrames / 15.0f) : 2.5f;
+
                                 if (!string.IsNullOrEmpty(path))
                                 {
-                                    summary.effectPath = path;
-                                }
-                                int slot = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 8), 0);
-                                if (slot > 0)
-                                {
-                                    summary.slotId = slot;
+                                    if (string.IsNullOrEmpty(summary.effectPath))
+                                    {
+                                        summary.effectPath = path;
+                                    }
+                                    if (summary.slotId <= 0 && slot > 0)
+                                    {
+                                        summary.slotId = slot;
+                                    }
+                                    summary.effectEvents.Add(new SkillEffectEvent
+                                    {
+                                        frame = frame,
+                                        effectPath = path,
+                                        slotId = slot,
+                                        duration = durSec
+                                    });
                                 }
                             }
                         }
@@ -531,18 +555,32 @@ namespace TopDownGame.Skills
                                 summary.playsound = CsvParserHelper.ParseInt(p1, -1);
                                 summary.playsoundFrame = frame;
                             }
-                            else if (eventName.Equals("PlayEffect", StringComparison.OrdinalIgnoreCase))
+                            else if (eventName.Equals("PlayEffect", StringComparison.OrdinalIgnoreCase) ||
+                                     eventName.Equals("PlayEffectNoClear", StringComparison.OrdinalIgnoreCase))
                             {
                                 int resId = CsvParserHelper.ParseInt(p1, 0);
                                 string path = EffectDatabase.GetEffectPath(resId);
+                                int slot = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 8), 0);
+                                float durFrames = CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 9), 0f);
+                                float durSec = durFrames > 0f ? (durFrames / 15.0f) : 2.5f;
+
                                 if (!string.IsNullOrEmpty(path))
                                 {
-                                    summary.effectPath = path;
-                                }
-                                int slot = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 8), 0);
-                                if (slot > 0)
-                                {
-                                    summary.slotId = slot;
+                                    if (string.IsNullOrEmpty(summary.effectPath))
+                                    {
+                                        summary.effectPath = path;
+                                    }
+                                    if (summary.slotId <= 0 && slot > 0)
+                                    {
+                                        summary.slotId = slot;
+                                    }
+                                    summary.effectEvents.Add(new SkillEffectEvent
+                                    {
+                                        frame = frame,
+                                        effectPath = path,
+                                        slotId = slot,
+                                        duration = durSec
+                                    });
                                 }
                             }
                             else if (eventName.Equals("MovePos", StringComparison.OrdinalIgnoreCase))

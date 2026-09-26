@@ -30,9 +30,9 @@ namespace TopDownGame.Skills
             // 1. Kỹ năng Hồi phục / Hỗ trợ (Relation == Recover hoặc SkillStyle có "heal")
             if (skill.IsHeal)
             {
-                CastHeal(caster, casterStats, skill);
+                CastHeal(caster, casterStats, skill, explicitTarget);
 
-                // Kích hoạt chiêu phụ kèm theo (ví dụ 306 gọi 307 Hiệu quả)
+                // Kích hoạt chiêu phụ kèm theo (nếu có cấu hình trong CSV)
                 if (skill.HasSubSkill)
                 {
                     SkillData subSkill = SkillDatabase.GetSkill(skill.subSkillId);
@@ -44,13 +44,7 @@ namespace TopDownGame.Skills
                 return;
             }
 
-            // 2. Kỹ năng hỗn hợp đặc biệt: vừa sát thương địch vừa hồi máu phe mình (Thiên Vũ Bảo Luân 312)
-            if (skill.id == 312)
-            {
-                CastHeal(caster, casterStats, skill);
-            }
-
-            // 3. Tấn công gây sát thương kẻ địch
+            // 2. Tấn công gây sát thương kẻ địch
             float calculatedDamage = skill.CalculateDamage(casterStats);
             float actualWidth = skill.boxWidth > 0f ? skill.boxWidth : 1.6f;
             float actualRange = skill.range > 0f ? skill.range : 3.5f;
@@ -82,11 +76,11 @@ namespace TopDownGame.Skills
                 }
             }
 
-            // Kích hoạt sub-skill tấn công nếu có
-            if (skill.HasSubSkill && skill.id != 306 && skill.id != 312)
+            // 3. Kích hoạt chiêu phụ (SubSkill) nếu có theo cấu hình CSV (FlySkillId / StartSkillID / HitSkillID)
+            if (skill.HasSubSkill)
             {
                 SkillData subSkill = SkillDatabase.GetSkill(skill.subSkillId);
-                if (subSkill != null && subSkill.id != skill.id && !subSkill.IsHeal)
+                if (subSkill != null && subSkill.id != skill.id)
                 {
                     CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint);
                 }
@@ -96,7 +90,7 @@ namespace TopDownGame.Skills
         /// <summary>
         /// Kích hoạt hồi phục sinh lực cho Bản thân và Đồng đội (Relation == Recover)
         /// </summary>
-        public static void CastHeal(Transform caster, EntityStats casterStats, SkillData skill)
+        public static void CastHeal(Transform caster, EntityStats casterStats, SkillData skill, Transform explicitTarget = null)
         {
             float healAmount = skill.CalculateHeal(casterStats);
             float range = skill.range > 0f ? skill.range : 8.0f;
@@ -109,6 +103,20 @@ namespace TopDownGame.Skills
             if (myStats != null && (skill.targetSelf || skill.relation == SkillRelation.Recover || skill.relation == SkillRelation.Self))
             {
                 targetsToHeal.Add(myStats);
+            }
+
+            // Nếu có explicitTarget hợp lệ (đồng minh)
+            if (explicitTarget != null)
+            {
+                EntityStats explicitStats = explicitTarget.GetComponent<EntityStats>() ?? explicitTarget.GetComponentInParent<EntityStats>();
+                if (explicitStats != null && !explicitStats.IsDead)
+                {
+                    bool isExplicitPlayer = explicitStats.CompareTag("Player") || explicitStats.GetComponent<TopDownGame.Player.PlayerController>() != null;
+                    if (isCasterPlayer == isExplicitPlayer && !targetsToHeal.Contains(explicitStats))
+                    {
+                        targetsToHeal.Add(explicitStats);
+                    }
+                }
             }
 
             // Quét các đồng minh xung quanh trong phạm vi range
@@ -134,7 +142,29 @@ namespace TopDownGame.Skills
                 }
             }
 
-            // Thực hiện hồi máu và hiển thị log
+            // 1. Sinh hiệu ứng đài sen nở / hiệu ứng kết thúc chiêu trên mặt đất từ childId / missile
+            Transform groundTarget = explicitTarget != null ? explicitTarget : caster;
+            string groundEffectPath = "";
+            if (skill.childId > 0)
+            {
+                var missile = MissileDatabase.GetMissile(skill.childId);
+                if (missile != null && missile.missileResID > 0)
+                {
+                    groundEffectPath = EffectDatabase.GetEffectPath(missile.missileResID);
+                }
+                if (string.IsNullOrEmpty(groundEffectPath))
+                {
+                    groundEffectPath = EffectDatabase.GetEffectPath(skill.childId);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(groundEffectPath) && groundTarget != null)
+            {
+                int groundSlot = skill.slotId > 0 ? skill.slotId : (int)BoneSlotID.RightFoot;
+                EffectManager.Instance.SpawnEffectAtSlot(groundEffectPath, groundTarget, groundSlot, 5.0f, true);
+            }
+
+            // 2. Thực hiện hồi máu và hiển thị hiệu ứng Buff trên người từng mục tiêu theo StateEffect.csv
             foreach (var target in targetsToHeal)
             {
                 if (target != null && !target.IsDead)
@@ -144,11 +174,27 @@ namespace TopDownGame.Skills
                     float actualHealed = target.Health.CurrentValue - hpBefore;
                     Debug.Log($"💚 <color=green>[HỒI MÁU]</color> <b>{skill.name}</b> đã hồi cho <b>{target.gameObject.name}</b> +{actualHealed:F0} HP (Máu: {target.Health.CurrentValue:F0}/{target.Health.MaxValue:F0})");
 
-                    // Kích hoạt hiệu ứng hình ảnh (VFX hồi máu / Buff) trên mục tiêu được nhận hồi phục
-                    if (!string.IsNullOrEmpty(skill.effectPath))
+                    // Kích hoạt hiệu ứng hình ảnh (VFX hồi máu / Buff) trên mục tiêu theo stateEffectId cấu hình trong Skill.csv
+                    if (skill.stateEffectId > 0)
                     {
-                        int buffSlot = skill.slotId > 0 ? skill.slotId : 7; // Mặc định Slot 7: Bip01 Spine1 (Ngực / Trọng tâm thân)
-                        EffectManager.Instance.SpawnEffectAtSlot(skill.effectPath, target.transform, buffSlot, 3.5f, true);
+                        var stateEffect = TopDownGame.Data.StateEffectDatabase.GetStateEffect(skill.stateEffectId);
+                        if (stateEffect != null)
+                        {
+                            if (!string.IsNullOrEmpty(stateEffect.effectPath1))
+                            {
+                                int slot1 = stateEffect.slotId1 > 0 ? stateEffect.slotId1 : (int)BoneSlotID.ChestCenter;
+                                EffectManager.Instance.SpawnEffectAtSlot(stateEffect.effectPath1, target.transform, slot1, 5.0f, true);
+                            }
+                            if (!string.IsNullOrEmpty(stateEffect.effectPath2))
+                            {
+                                int slot2 = stateEffect.slotId2 > 0 ? stateEffect.slotId2 : (int)BoneSlotID.ChestCenter;
+                                EffectManager.Instance.SpawnEffectAtSlot(stateEffect.effectPath2, target.transform, slot2, 5.0f, true);
+                            }
+                            if (!string.IsNullOrEmpty(stateEffect.headResPath))
+                            {
+                                EffectManager.Instance.SpawnEffectAtSlot(stateEffect.headResPath, target.transform, (int)BoneSlotID.Head, 5.0f, true);
+                            }
+                        }
                     }
                 }
             }

@@ -162,6 +162,10 @@ namespace TopDownGame.Combat
             }
             else
             {
+                if (TopDownGame.Data.EffectDatabase.IsLockRotate(resourcePath))
+                {
+                    rotation = Quaternion.Euler(0f, rotation.eulerAngles.y, 0f);
+                }
                 effectInstance = Instantiate(prefab, position, rotation, null);
             }
 

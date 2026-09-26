@@ -532,7 +532,19 @@ namespace TopDownGame.Player
                 return true; 
             }
 
-            bool isTargetLockSkill = skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target && skill.relation == TopDownGame.Skills.SkillRelation.Enemy;
+            bool isTargetLockSkill = false;
+            if (skill.childId > 0)
+            {
+                var missile = TopDownGame.Data.MissileDatabase.GetMissile(skill.childId);
+                if (missile != null && (int)missile.moveKind == 2)
+                {
+                    isTargetLockSkill = true; // Target-Locked Homing (MoveKind = 2)
+                }
+            }
+            else if (skill.IsHeal)
+            {
+                isTargetLockSkill = true; // Hồi máu đồng minh (Target-Locked)
+            }
 
             if (usingMouse)
             {
@@ -586,7 +598,7 @@ namespace TopDownGame.Player
                     }
                     else
                     {
-                        return false; 
+                        return false; // Bắt buộc phải có mục tiêu hợp lệ
                     }
                 }
 
@@ -611,7 +623,7 @@ namespace TopDownGame.Player
                     }
                     else
                     {
-                        return false; // KhÃƒÂ´ng cÃƒÂ³ ai Ã„â€˜Ã¡Â»Æ’ Ã„â€˜ÃƒÂ¡nh
+                        return false; // Bắt buộc phải có mục tiêu hợp lệ
                     }
                 }
 
@@ -672,7 +684,7 @@ namespace TopDownGame.Player
 
             if (!AimSkill(skill)) 
             {
-                return false; 
+                currentTargetPoint = transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f); return true;
             }
 
             AttackState.SetSkill(skill);
@@ -711,15 +723,42 @@ namespace TopDownGame.Player
 
         public void PlaySkillCastEffect(SkillData skill)
         {
-            if (skill != null && !string.IsNullOrEmpty(skill.effectPath))
+            if (skill == null) return;
+
+            if (skill.effectEvents != null && skill.effectEvents.Count > 0)
+            {
+                foreach (var ev in skill.effectEvents)
+                {
+                    if (ev.frame <= 0 && !string.IsNullOrEmpty(ev.effectPath))
+                    {
+                        PlaySkillEffectEvent(ev);
+                    }
+                }
+            }
+            else if (!string.IsNullOrEmpty(skill.effectPath))
             {
                 TopDownGame.Combat.EffectManager.Instance.PlaySkillEffect(skill, transform);
             }
         }
 
+        public void PlaySkillEffectEvent(SkillEffectEvent ev)
+        {
+            if (ev == null || string.IsNullOrEmpty(ev.effectPath)) return;
+
+            float duration = ev.duration > 0f ? ev.duration : 2.5f;
+            if (ev.slotId > 0)
+            {
+                TopDownGame.Combat.EffectManager.Instance.SpawnEffectAtSlot(ev.effectPath, transform, ev.slotId, duration, true);
+            }
+            else
+            {
+                TopDownGame.Combat.EffectManager.Instance.SpawnEffect(ev.effectPath, transform.position, transform.rotation, null, duration);
+            }
+        }
+
         public void OnHitTriggered(SkillData skill)
         {
-            if (skill != null && !skill.HasProjectile)
+            if (skill != null && !skill.HasProjectile && !skill.IsHeal)
             {
                 TopDownGame.Combat.EffectManager.Instance.PlaySkillEffect(skill, transform);
             }

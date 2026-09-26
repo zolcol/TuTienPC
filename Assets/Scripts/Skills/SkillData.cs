@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Stats;
 using TopDownGame.Combat;
@@ -11,6 +12,15 @@ namespace TopDownGame.Skills
         Recover = 1,    // Hồi phục sinh lực (Bản thân và Đồng đội)
         Friend = 2,     // Hỗ trợ đồng minh (Buff công, thủ)
         Self = 3        // Tác dụng lên chính bản thân người thi triển
+    }
+
+    [Serializable]
+    public class SkillEffectEvent
+    {
+        public int frame = 0;
+        public string effectPath = "";
+        public int slotId = 0;
+        public float duration = 2.5f;
     }
 
     [Serializable]
@@ -116,8 +126,10 @@ namespace TopDownGame.Skills
 
         // --- AUDIO & VFX ---
         public int playsound = -1;           // Sound ID tra cứu từ Sound.csv (-1 nếu không có âm thanh)
-        public int playsoundFrame = -1;      // Mốc frame phát âm thanh (-1 nếu không có âm thanh)
-        public string effectPath = "";      // Đường dẫn Prefab VFX trong Resources
+        public int playsoundFrame = -1;      // Frame phát âm thanh từ ActionEvent.csv (-1 nếu theo mặc định)
+        public string effectPath = "";
+        public int stateEffectId = 0;      // Đường dẫn Prefab VFX trong Resources
+        public List<SkillEffectEvent> effectEvents = new List<SkillEffectEvent>(); // Danh sách toàn bộ sự kiện hiệu ứng từ ActionEvent.csv
 
         // --- CHUYỂN ĐỔI SANG GIÂY (TIME = FRAME / ACTION_EVENT_FPS, Chuẩn 30 FPS theo DATA_CONVENTIONS.md) ---
         public float CastSkillTime => castSkill >= 0 ? (castSkill / ACTION_EVENT_FPS) : 0f;

@@ -1,4 +1,4 @@
-﻿Desc,ActEventID,EventType,Frame,EventName,EventParam1,EventParam2,EventParam3,EventParam4,EventParam5,EventParamStr
+Desc,ActEventID,EventType,Frame,EventName,EventParam1,EventParam2,EventParam3,EventParam4,EventParam5,EventParamStr
 CastSkill Thông Dụng 1 Hình,6001,2,1,CastSkill,,,,,,
 CastSkill Thông Dụng 1 Hình,6001,2,1,PlayEffect,,,,,,
 CastSkill Thông Dụng 2 Hình,6002,2,2,CastSkill,,,,,,
@@ -664,7 +664,7 @@ Từ Hàng Phổ Độ,306,2,10,CanDoRun,,,,,,
 Từ Hàng Phổ Độ,306,2,10,CanDoSkill,1,,,,,
 Bạch Lộ Ngưng Sương,308,1,,CrossFade,1,,,,,
 Bạch Lộ Ngưng Sương,308,1,,InstantDir,1000,,,,,
-Bạch Lộ Ngưng Sương,308,1,,PlayEffect,,,,,,
+Bạch Lộ Ngưng Sương,308,1,,PlayEffect,6308,,,,,
 Bạch Lộ Ngưng Sương,308,2,3,CastSkill,308,,,,,
 Bạch Lộ Ngưng Sương,308,2,10,CanDoRun,,,,,,
 Bạch Lộ Ngưng Sương,308,2,10,CanDoSkill,1,,,,,
