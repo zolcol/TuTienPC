@@ -491,8 +491,16 @@ namespace TopDownGame.Player
             if (direction.sqrMagnitude > 0.001f)
             {
                 float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
-                float smoothAngle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, smoothTime);
-                transform.rotation = Quaternion.Euler(0f, smoothAngle, 0f);
+                if (smoothTime <= 0.001f)
+                {
+                    transform.rotation = Quaternion.Euler(0f, targetAngle, 0f);
+                    turnSmoothVelocity = 0f;
+                }
+                else
+                {
+                    float smoothAngle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, smoothTime);
+                    transform.rotation = Quaternion.Euler(0f, smoothAngle, 0f);
+                }
             }
         }
 
@@ -637,6 +645,63 @@ namespace TopDownGame.Player
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Cập nhật hướng ngắm và điểm đích tấn công trong suốt thời gian ra chiêu.
+        /// - PC (Chuột & Bàn phím): Khóa xoay và bám theo vị trí con trỏ chuột trên sàn (hoặc mục tiêu khóa).
+        ///   Phím di chuyển WASD hoàn toàn KHÔNG làm lệch hướng đánh.
+        /// - Console/Mobile (Gamepad): Hướng xoay bám theo cần gạt điều hướng.
+        /// </summary>
+        public bool UpdateAttackAim(SkillData skill, float smoothTime)
+        {
+            if (skill == null) return false;
+
+            if (skill.targetSelf || skill.relation == SkillRelation.Self)
+            {
+                currentTargetPoint = transform.position;
+                return true;
+            }
+
+            if (currentLockTarget != null)
+            {
+                currentTargetPoint = currentLockTarget.position;
+                Vector3 dirToTarget = currentLockTarget.position - transform.position;
+                dirToTarget.y = 0f;
+                RotateTowards(dirToTarget, smoothTime);
+                return true;
+            }
+
+            bool usingMouse = inputReader != null && !inputReader.IsUsingGamepad;
+            if (usingMouse)
+            {
+                if (UnityEngine.InputSystem.Mouse.current == null || mainCamera == null) return true;
+
+                Vector2 mouseScreenPos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
+                Ray ray = mainCamera.ScreenPointToRay(mouseScreenPos);
+                Plane groundPlane = new Plane(Vector3.up, transform.position);
+
+                if (groundPlane.Raycast(ray, out float enter))
+                {
+                    currentTargetPoint = ray.GetPoint(enter);
+                    Vector3 aimDir = currentTargetPoint - transform.position;
+                    aimDir.y = 0f;
+                    RotateTowards(aimDir, smoothTime);
+                    return true;
+                }
+            }
+            else
+            {
+                Vector3 inputVec = GetInputVector();
+                if (inputVec.sqrMagnitude > 0.01f)
+                {
+                    currentTargetPoint = transform.position + inputVec.normalized * (skill.range > 0 ? skill.range : 5f);
+                    RotateTowards(inputVec, smoothTime);
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private Transform FindTargetInFront(float range)

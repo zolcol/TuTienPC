@@ -56,13 +56,9 @@ namespace TopDownGame.Player
 
             triggeredEvents.Clear();
 
-            // Khởi động việc xoay người theo hướng bấm phím
+            // Cập nhật hướng ngắm và điểm đích tấn công ban đầu khi vung đòn
             player.ResetTurnVelocity();
-            Vector3 input = player.GetInputVector();
-            if (input.sqrMagnitude > 0.001f)
-            {
-                player.RotateTowards(input, player.AttackRotationSmoothTime);
-            }
+            player.UpdateAttackAim(currentSkill, 0f);
 
             // Kích hoạt hiệu ứng tụ khí / phát sáng vũ khí khi bắt đầu vung đòn (CastEffect)
             player.PlaySkillCastEffect(currentSkill);
@@ -86,23 +82,16 @@ namespace TopDownGame.Player
 
             timer += Time.deltaTime;
 
-            // 1. Bẻ lái hướng đánh trước mốc castSkill (áp damage)
+            // 1. Bám theo hướng ngắm (chuột trên PC hoặc cần gạt trên Gamepad) trước mốc khóa hướng
             float lockRotationTime = currentSkill.InstantDirTime >= 0f ? currentSkill.InstantDirTime : currentSkill.CastSkillTime;
 
             if (timer <= lockRotationTime)
             {
-                Vector3 input = player.GetInputVector();
-                if (input.sqrMagnitude > 0.001f)
-                {
-                    if (currentSkill.InstantDirTime >= 0f && timer >= currentSkill.InstantDirTime - Time.deltaTime)
-                    {
-                        player.RotateTowards(input, 0f);
-                    }
-                    else
-                    {
-                        player.RotateTowards(input, player.AttackRotationSmoothTime);
-                    }
-                }
+                float smooth = (currentSkill.InstantDirTime >= 0f && timer >= currentSkill.InstantDirTime - Time.deltaTime)
+                    ? 0f
+                    : player.AttackRotationSmoothTime;
+
+                player.UpdateAttackAim(currentSkill, smooth);
             }
 
             // 2. Bước nhích tiến về phía trước (Forward Lunge - MovePos)
