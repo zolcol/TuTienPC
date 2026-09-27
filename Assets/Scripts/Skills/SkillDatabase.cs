@@ -21,7 +21,14 @@ namespace TopDownGame.Skills
                     {
                         GameObject dbObj = new GameObject("[SkillDatabase]");
                         instance = dbObj.AddComponent<SkillDatabase>();
-                        DontDestroyOnLoad(dbObj);
+                        if (Application.isPlaying)
+                        {
+                            DontDestroyOnLoad(dbObj);
+                        }
+                        else
+                        {
+                            dbObj.hideFlags = HideFlags.HideAndDontSave;
+                        }
                     }
                     instance.EnsureLoaded();
                 }
@@ -40,7 +47,10 @@ namespace TopDownGame.Skills
             if (instance == null)
             {
                 instance = this;
-                DontDestroyOnLoad(gameObject);
+                if (Application.isPlaying)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
             }
             else if (instance != this)
             {

@@ -20,7 +20,14 @@ namespace TopDownGame.Audio
                     {
                         GameObject dbObj = new GameObject("[SoundDatabase]");
                         instance = dbObj.AddComponent<SoundDatabase>();
-                        DontDestroyOnLoad(dbObj);
+                        if (Application.isPlaying)
+                        {
+                            DontDestroyOnLoad(dbObj);
+                        }
+                        else
+                        {
+                            dbObj.hideFlags = HideFlags.HideAndDontSave;
+                        }
                     }
                     instance.EnsureLoaded();
                 }
@@ -40,7 +47,10 @@ namespace TopDownGame.Audio
             if (instance == null)
             {
                 instance = this;
-                DontDestroyOnLoad(gameObject);
+                if (Application.isPlaying)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
             }
             else if (instance != this)
             {

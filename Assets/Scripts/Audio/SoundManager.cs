@@ -19,7 +19,14 @@ namespace TopDownGame.Audio
                     {
                         GameObject go = new GameObject("[SoundManager]");
                         instance = go.AddComponent<SoundManager>();
-                        DontDestroyOnLoad(go);
+                        if (Application.isPlaying)
+                        {
+                            DontDestroyOnLoad(go);
+                        }
+                        else
+                        {
+                            go.hideFlags = HideFlags.HideAndDontSave;
+                        }
                     }
                 }
                 return instance;
@@ -60,7 +67,10 @@ namespace TopDownGame.Audio
             if (instance == null)
             {
                 instance = this;
-                DontDestroyOnLoad(gameObject);
+                if (Application.isPlaying)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
                 InitializeAudioEngine();
             }
             else if (instance != this)

@@ -20,7 +20,14 @@ namespace TopDownGame.NPC
                     {
                         GameObject dbObj = new GameObject("[NpcTemplateDatabase]");
                         instance = dbObj.AddComponent<NpcTemplateDatabase>();
-                        DontDestroyOnLoad(dbObj);
+                        if (Application.isPlaying)
+                        {
+                            DontDestroyOnLoad(dbObj);
+                        }
+                        else
+                        {
+                            dbObj.hideFlags = HideFlags.HideAndDontSave;
+                        }
                     }
                     instance.EnsureLoaded();
                 }
@@ -39,7 +46,10 @@ namespace TopDownGame.NPC
             if (instance == null)
             {
                 instance = this;
-                DontDestroyOnLoad(gameObject);
+                if (Application.isPlaying)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
             }
             else if (instance != this)
             {

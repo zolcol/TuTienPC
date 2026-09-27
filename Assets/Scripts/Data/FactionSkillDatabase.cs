@@ -33,7 +33,14 @@ namespace TopDownGame.Data
                     {
                         GameObject go = new GameObject("[FactionSkillDatabase]");
                         instance = go.AddComponent<FactionSkillDatabase>();
-                        DontDestroyOnLoad(go);
+                        if (Application.isPlaying)
+                        {
+                            DontDestroyOnLoad(go);
+                        }
+                        else
+                        {
+                            go.hideFlags = HideFlags.HideAndDontSave;
+                        }
                     }
                     instance.EnsureLoaded();
                 }
@@ -50,7 +57,10 @@ namespace TopDownGame.Data
             if (instance == null)
             {
                 instance = this;
-                DontDestroyOnLoad(gameObject);
+                if (Application.isPlaying)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
             }
             else if (instance != this)
             {

@@ -48,7 +48,14 @@ namespace TopDownGame.Data
                     {
                         GameObject go = new GameObject("[NpcResDatabase]");
                         instance = go.AddComponent<NpcResDatabase>();
-                        DontDestroyOnLoad(go);
+                        if (Application.isPlaying)
+                        {
+                            DontDestroyOnLoad(go);
+                        }
+                        else
+                        {
+                            go.hideFlags = HideFlags.HideAndDontSave;
+                        }
                     }
                     instance.EnsureLoaded();
                 }
@@ -64,7 +71,10 @@ namespace TopDownGame.Data
             if (instance == null)
             {
                 instance = this;
-                DontDestroyOnLoad(gameObject);
+                if (Application.isPlaying)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
             }
             else if (instance != this)
             {

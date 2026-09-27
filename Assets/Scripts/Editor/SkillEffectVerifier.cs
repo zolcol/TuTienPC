@@ -8,7 +8,6 @@ namespace TopDownGame.Editor
 {
     public static class SkillEffectVerifier
     {
-        [InitializeOnLoadMethod]
         [MenuItem("Tools/Verify Skill Effects")]
         public static void Verify()
         {

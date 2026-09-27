@@ -18,7 +18,14 @@ namespace TopDownGame.Combat
                     {
                         GameObject go = new GameObject("[EffectManager]");
                         instance = go.AddComponent<EffectManager>();
-                        DontDestroyOnLoad(go);
+                        if (Application.isPlaying)
+                        {
+                            DontDestroyOnLoad(go);
+                        }
+                        else
+                        {
+                            go.hideFlags = HideFlags.HideAndDontSave;
+                        }
                     }
                 }
                 return instance;
@@ -32,7 +39,10 @@ namespace TopDownGame.Combat
             if (instance == null)
             {
                 instance = this;
-                DontDestroyOnLoad(gameObject);
+                if (Application.isPlaying)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
             }
             else if (instance != this)
             {
