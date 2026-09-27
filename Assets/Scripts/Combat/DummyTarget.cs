@@ -36,7 +36,7 @@ namespace TopDownGame.Combat
         {
             currentHealth = Mathf.Max(0f, currentHealth - amount);
 
-            Debug.Log($"💥 <color=orange>[HIT]</color> {gameObject.name} bị chém -{amount} Máu! (Còn lại: {currentHealth}/{maxHealth})");
+            // Debug.Log($"💥 <color=orange>[HIT]</color> {gameObject.name} bị chém -{amount} Máu! (Còn lại: {currentHealth}/{maxHealth})");
 
             if (meshRenderer != null)
             {
@@ -48,7 +48,7 @@ namespace TopDownGame.Combat
 
             if (currentHealth <= 0f)
             {
-                Debug.Log($"💀 {gameObject.name} đã hết máu! Tự động hồi đầy máu sau 1s để test tiếp...");
+                // Debug.Log($"💀 {gameObject.name} đã hết máu! Tự động hồi đầy máu sau 1s để test tiếp...");
                 Invoke(nameof(ResetDummy), 1f);
             }
         }

@@ -66,7 +66,10 @@ namespace TopDownGame.Enemy
                     float timeInMove = timer - moveStartTime;
                     float progress = timeInMove / duration;
                     float currentSpeed = Mathf.Lerp(currentSkill.movePosSpeed, 0f, progress);
-                    enemy.CharacterController.Move(enemy.transform.forward * currentSpeed * Time.deltaTime);
+                    if (enemy.CharacterController != null && enemy.CharacterController.enabled && enemy.CharacterController.gameObject.activeInHierarchy)
+                    {
+                        enemy.CharacterController.Move(enemy.transform.forward * currentSpeed * Time.deltaTime);
+                    }
                 }
             }
 

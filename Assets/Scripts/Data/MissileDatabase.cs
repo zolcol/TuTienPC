@@ -231,7 +231,7 @@ namespace TopDownGame.Data
                 }
 
                 isLoaded = true;
-                Debug.Log($"✅ <color=cyan>[MissileDatabase]</color> Đã nạp thành công <b>{missiles.Count}</b> cấu hình Hitbox từ Settings/N/Missile.csv!");
+                // Debug.Log($"✅ <color=cyan>[MissileDatabase]</color> Đã nạp thành công <b>{missiles.Count}</b> cấu hình Hitbox từ Settings/N/Missile.csv!");
             }
             catch (Exception ex)
             {

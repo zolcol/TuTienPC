@@ -82,7 +82,7 @@ namespace TopDownGame.NPC
                 if (templates.Count > 0)
                 {
                     isLoaded = true;
-                    Debug.Log($"✅ <color=green>[NpcTemplateDatabase]</color> Đã nạp thành công <b>{templates.Count}</b> mẫu Quái vật & Nhân vật từ Settings/N (NpcTemplate.csv + Character.csv)!");
+                    // Debug.Log($"✅ <color=green>[NpcTemplateDatabase]</color> Đã nạp thành công <b>{templates.Count}</b> mẫu Quái vật & Nhân vật từ Settings/N (NpcTemplate.csv + Character.csv)!");
                     return;
                 }
             }
@@ -135,8 +135,8 @@ namespace TopDownGame.NPC
                         float visionMeters = rawVision > 0f ? (rawVision / 100f) : 10f;
                         float activeMeters = rawActive > 0f ? (rawActive / 100f) : 15f;
 
-                        float rawSpeed = GetColFloat(tokens, colMap, "runspeed", 25, 350f);
-                        float runSpeed = rawSpeed > 0f ? (rawSpeed / 100f) : 3.5f;
+                        float rawSpeed = GetColFloat(tokens, colMap, "runspeed", 25, 0f);
+                        float runSpeed = (rawSpeed >= 100f) ? (rawSpeed / 100f) : 5.0f;
 
                         // Đồng bộ file prefab từ NpcResDatabase
                         string prefab = "";
@@ -222,7 +222,7 @@ namespace TopDownGame.NPC
             }
 
             isLoaded = true;
-            Debug.Log($"✅ [NpcTemplateDatabase] Đã nạp {templates.Count} NPC từ file cũ (Fallback)!");
+            // Debug.Log($"✅ [NpcTemplateDatabase] Đã nạp {templates.Count} NPC từ file cũ (Fallback)!");
         }
 
         private string GetColRaw(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex)

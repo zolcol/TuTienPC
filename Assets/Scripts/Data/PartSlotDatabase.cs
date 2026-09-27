@@ -171,7 +171,7 @@ namespace TopDownGame.Data
                 }
 
                 isLoaded = true;
-                Debug.Log($"✅ <color=cyan>[PartSlotDatabase]</color> Đã nạp thành công <b>{slotById.Count}</b> vị trí khớp xương từ PartSlot.csv!");
+                // Debug.Log($"✅ <color=cyan>[PartSlotDatabase]</color> Đã nạp thành công <b>{slotById.Count}</b> vị trí khớp xương từ PartSlot.csv!");
             }
             catch (Exception ex)
             {

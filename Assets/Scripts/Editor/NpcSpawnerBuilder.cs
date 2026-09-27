@@ -119,6 +119,10 @@ namespace TopDownGame.Editor
             GameObject rootGO = new GameObject(rootName);
             Undo.RegisterCreatedObjectUndo(rootGO, "Create NPC from Template");
 
+            // Xác định Layer Enemy (Layer 6)
+            int enemyLayer = LayerMask.NameToLayer("Enemy");
+            if (enemyLayer == -1) enemyLayer = 6;
+
             // Đặt vị trí trước Scene View Camera nếu có
             if (SceneView.lastActiveSceneView != null)
             {
@@ -148,9 +152,16 @@ namespace TopDownGame.Editor
 
             EnemyController enemyCtrl = rootGO.AddComponent<EnemyController>();
 
-            // Gán Template ID qua SerializedObject
+            // Gán Template ID và Tốc độ di chuyển qua SerializedObject
             SerializedObject ctrlSO = new SerializedObject(enemyCtrl);
             ctrlSO.FindProperty("npcTemplateId").intValue = template.id;
+
+            float defaultSpeed = (template.runSpeed > 0f) ? template.runSpeed : 5.0f;
+            var moveSpeedProp = ctrlSO.FindProperty("moveSpeed");
+            if (moveSpeedProp != null)
+            {
+                moveSpeedProp.floatValue = defaultSpeed;
+            }
             ctrlSO.ApplyModifiedProperties();
 
             // 4. Nạp Model Prefab từ bảng làm GameObject Con
@@ -171,14 +182,37 @@ namespace TopDownGame.Editor
                 }
             }
 
+            // 5. Gán Tag và Layer "Enemy" đệ quy cho cả Root và toàn bộ Model/Xương/Colliders con
+            SetTagAndLayerRecursively(rootGO, "Enemy", enemyLayer);
+
             enemyCtrl.ApplyTemplateData();
             enemyCtrl.EnsureAnimationController();
+
+            EditorUtility.SetDirty(enemyCtrl);
+            EditorUtility.SetDirty(rootGO);
 
             Selection.activeGameObject = rootGO;
             EditorGUIUtility.PingObject(rootGO);
 
-            Debug.Log($"✅ Đã tạo thành công NPC: <b>{rootName}</b> với model <i>{template.prefab}</i> | Máu: {(attrib != null ? attrib.maxLife : 100)}!");
+            Debug.Log($"✅ Đã tạo thành công NPC: <b>{rootName}</b> với model <i>{template.prefab}</i> | Máu: {(attrib != null ? attrib.maxLife : 100)} | Tốc độ: {defaultSpeed:F1} m/s | Layer: Enemy ({enemyLayer}) | Tag: Enemy!");
             return rootGO;
+        }
+
+        private static void SetTagAndLayerRecursively(GameObject obj, string tag, int layer)
+        {
+            if (obj == null) return;
+            try
+            {
+                if (!string.IsNullOrEmpty(tag)) obj.tag = tag;
+            }
+            catch (Exception) { }
+
+            if (layer >= 0) obj.layer = layer;
+
+            foreach (Transform child in obj.transform)
+            {
+                SetTagAndLayerRecursively(child.gameObject, tag, layer);
+            }
         }
     }
 }

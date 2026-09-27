@@ -23,7 +23,7 @@ namespace TopDownGame.Enemy
         [SerializeField] private float attackRange = 3f;
 
         [Header("=== MOVEMENT SETTINGS ===")]
-        [SerializeField] private float moveSpeed = 3.5f;
+        [SerializeField] private float moveSpeed = 5.0f;
         [SerializeField] private float rotationSmoothTime = 0.1f;
         [SerializeField] private float gravity = -9.81f;
 
@@ -177,7 +177,7 @@ namespace TopDownGame.Enemy
             }
 
             // 3. Tầm nhìn & Tốc độ di chuyển
-            moveSpeed = template.runSpeed > 0f ? template.runSpeed : 3.5f;
+            moveSpeed = template.runSpeed > 0f ? template.runSpeed : 5.0f;
             detectionRange = template.visionRadius > 0f ? template.visionRadius : 10f;
 
             // 4. Nạp danh sách kỹ năng từ bảng
@@ -233,7 +233,40 @@ namespace TopDownGame.Enemy
                 }
             }
 
+            // 6. Gán chuẩn Tag và Layer "Enemy" cho Root và toàn bộ GameObject con
+            int enemyLayer = LayerMask.NameToLayer("Enemy");
+            if (enemyLayer != -1)
+            {
+                SetLayerRecursively(gameObject, enemyLayer);
+            }
+            SetTagRecursively(gameObject, "Enemy");
+
             EnsureAnimationController();
+        }
+
+        private void SetLayerRecursively(GameObject obj, int layer)
+        {
+            if (obj == null || layer < 0) return;
+            obj.layer = layer;
+            foreach (Transform child in obj.transform)
+            {
+                SetLayerRecursively(child.gameObject, layer);
+            }
+        }
+
+        private void SetTagRecursively(GameObject obj, string tag)
+        {
+            if (obj == null || string.IsNullOrEmpty(tag)) return;
+            try
+            {
+                obj.tag = tag;
+            }
+            catch (System.Exception) { }
+
+            foreach (Transform child in obj.transform)
+            {
+                SetTagRecursively(child.gameObject, tag);
+            }
         }
 
         private void Start()
@@ -276,7 +309,7 @@ namespace TopDownGame.Enemy
 
         private void HandleMovementAndGravity()
         {
-            if (!characterController.enabled) return;
+            if (characterController == null || !characterController.enabled || !characterController.gameObject.activeInHierarchy) return;
 
             isGrounded = characterController.isGrounded;
 

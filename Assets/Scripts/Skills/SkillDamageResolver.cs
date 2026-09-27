@@ -180,7 +180,7 @@ namespace TopDownGame.Skills
                     float hpBefore = target.Health.CurrentValue;
                     target.Heal(healAmount);
                     float actualHealed = target.Health.CurrentValue - hpBefore;
-                    Debug.Log($"💚 <color=green>[HỒI MÁU]</color> <b>{skill.name}</b> đã hồi cho <b>{target.gameObject.name}</b> +{actualHealed:F0} HP (Máu: {target.Health.CurrentValue:F0}/{target.Health.MaxValue:F0})");
+                    // Debug.Log($"💚 <color=green>[HỒI MÁU]</color> <b>{skill.name}</b> đã hồi cho <b>{target.gameObject.name}</b> +{actualHealed:F0} HP (Máu: {target.Health.CurrentValue:F0}/{target.Health.MaxValue:F0})");
 
                     // Kích hoạt hiệu ứng hình ảnh (VFX hồi máu / Buff) trên mục tiêu theo stateEffectId cấu hình trong Skill.csv
                     if (skill.stateEffectId > 0)
@@ -421,7 +421,7 @@ namespace TopDownGame.Skills
                     Vector3 ringSpawnPos = originPos + shotDir * spawnOffset;
                     SpawnSingleMissileObject(caster, casterStats, skill, missile, ringSpawnPos, shotDir, targetLayer, explicitTarget);
                 }
-                Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng <b>{count}</b> đạn vòng tròn <b>{skill.name}</b> (Missile ID: {missileId})");
+                // Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng <b>{count}</b> đạn vòng tròn <b>{skill.name}</b> (Missile ID: {missileId})");
                 return;
             }
 
@@ -429,7 +429,7 @@ namespace TopDownGame.Skills
             if (count <= 1)
             {
                 SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, aimDirection, targetLayer, explicitTarget);
-                Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng kiếm khí <b>{skill.name}</b> hướng thẳng tới đích con trỏ chuột (Missile ID: {missileId})");
+                // Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng kiếm khí <b>{skill.name}</b> hướng thẳng tới đích con trỏ chuột (Missile ID: {missileId})");
                 return;
             }
 
@@ -444,7 +444,7 @@ namespace TopDownGame.Skills
                 Vector3 shotDir = Quaternion.Euler(0, offsetAngle, 0) * aimDirection;
                 SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, shotDir, targetLayer, explicitTarget);
             }
-            Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng chùm <b>{count}</b> tia <b>{skill.name}</b> (Missile ID: {missileId}, Góc xòe: {angleStepSpread:F1}°)");
+            // Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng chùm <b>{count}</b> tia <b>{skill.name}</b> (Missile ID: {missileId}, Góc xòe: {angleStepSpread:F1}°)");
         }
 
         private static void SpawnSingleMissileObject(

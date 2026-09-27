@@ -132,7 +132,7 @@ namespace TopDownGame.Data
                 }
 
                 isLoaded = true;
-                Debug.Log($"✅ <color=cyan>[FactionSkillDatabase]</color> Đã nạp thành công kỹ năng cho <b>{factionSkills.Count}</b> môn phái từ Settings/N/FactionSkill.csv!");
+                // Debug.Log($"✅ <color=cyan>[FactionSkillDatabase]</color> Đã nạp thành công kỹ năng cho <b>{factionSkills.Count}</b> môn phái từ Settings/N/FactionSkill.csv!");
             }
             catch (Exception ex)
             {

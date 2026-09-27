@@ -153,7 +153,7 @@ namespace TopDownGame.Data
                 }
 
                 isLoaded = true;
-                Debug.Log($"✅ <color=cyan>[NpcAttributeDatabase]</color> Đã nạp thành công <b>{attributes.Count}</b> bộ chỉ số từ Settings/N/NpcAttribute.csv (Level 1)! ");
+                // Debug.Log($"✅ <color=cyan>[NpcAttributeDatabase]</color> Đã nạp thành công <b>{attributes.Count}</b> bộ chỉ số từ Settings/N/NpcAttribute.csv (Level 1)! ");
             }
             catch (Exception ex)
             {

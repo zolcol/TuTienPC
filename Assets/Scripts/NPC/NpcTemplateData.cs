@@ -25,7 +25,7 @@ namespace TopDownGame.NPC
         // Tầm quan sát và tốc độ
         public float visionRadius = 10f;
         public float activeRadius = 15f;
-        public float runSpeed = 3.5f;
+        public float runSpeed = 5.0f;
 
         // Đường dẫn Prefab Model (tự động đồng bộ từ NpcRes.csv)
         public string prefab;

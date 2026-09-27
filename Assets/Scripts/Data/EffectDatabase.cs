@@ -144,7 +144,7 @@ namespace TopDownGame.Data
                 }
 
                 isLoaded = true;
-                Debug.Log($"✅ <color=cyan>[EffectDatabase]</color> Đã nạp thành công <b>{effectsById.Count}</b> hiệu ứng kỹ năng từ Settings/N/EffectRes.csv!");
+                // Debug.Log($"✅ <color=cyan>[EffectDatabase]</color> Đã nạp thành công <b>{effectsById.Count}</b> hiệu ứng kỹ năng từ Settings/N/EffectRes.csv!");
             }
             catch (Exception ex)
             {

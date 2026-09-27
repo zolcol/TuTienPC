@@ -511,6 +511,11 @@ namespace TopDownGame.Player
 
         private Transform currentLockTarget;
         private Vector3 currentTargetPoint;
+        private Vector3 currentTargetDirection = Vector3.forward;
+
+        public Transform CurrentLockTarget => currentLockTarget;
+        public Vector3 CurrentTargetPoint => currentTargetPoint;
+        public Vector3 CurrentTargetDirection => currentTargetDirection;
 
         public bool StartNormalAttack()
         {
@@ -521,7 +526,7 @@ namespace TopDownGame.Player
             }
             else
             {
-                Debug.LogWarning($"[PlayerController] KhÃ´ng tÃ¬m th?y Skill ID {defaultNormalAttackId} trong Skills.csv!");
+                Debug.LogWarning($"[PlayerController] Không tìm thấy Skill ID {defaultNormalAttackId} trong Skills.csv!");
                 return false;
             }
         }
@@ -533,10 +538,12 @@ namespace TopDownGame.Player
             bool usingMouse = inputReader != null && !inputReader.IsUsingGamepad;
             currentLockTarget = null;
             currentTargetPoint = transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f);
+            currentTargetDirection = transform.forward;
 
             if (skill.targetSelf || skill.relation == SkillRelation.Self)
             {
                 currentTargetPoint = transform.position;
+                currentTargetDirection = transform.forward;
                 return true; 
             }
 
@@ -565,7 +572,7 @@ namespace TopDownGame.Player
                 {
                     Transform foundTarget = null;
                     
-                    // Su dung SphereCastAll tao hinh tru ban kinh 1.5f (Soft targeting)
+                    // Sử dụng SphereCastAll tạo hình trụ bán kính 1.5f (Soft targeting)
                     RaycastHit[] hits = Physics.SphereCastAll(ray, 1.5f, 100f, targetLayer);
                     if (hits.Length > 0)
                     {
@@ -590,7 +597,10 @@ namespace TopDownGame.Player
                         {
                             currentLockTarget = foundTarget;
                             currentTargetPoint = currentLockTarget.position;
-                            RotateTowardsInstantly(currentLockTarget.position - transform.position);
+                            Vector3 dirToTarget = currentLockTarget.position - transform.position;
+                            dirToTarget.y = 0f;
+                            currentTargetDirection = dirToTarget.sqrMagnitude > 0.001f ? dirToTarget.normalized : transform.forward;
+                            ApplySkillRotation(skill, currentTargetDirection);
                             return true;
                         }
                     }
@@ -601,7 +611,10 @@ namespace TopDownGame.Player
                     {
                         currentLockTarget = fallbackTarget;
                         currentTargetPoint = currentLockTarget.position;
-                        RotateTowardsInstantly(currentLockTarget.position - transform.position);
+                        Vector3 dirToTarget = currentLockTarget.position - transform.position;
+                        dirToTarget.y = 0f;
+                        currentTargetDirection = dirToTarget.sqrMagnitude > 0.001f ? dirToTarget.normalized : transform.forward;
+                        ApplySkillRotation(skill, currentTargetDirection);
                         return true;
                     }
                     else
@@ -610,11 +623,34 @@ namespace TopDownGame.Player
                     }
                 }
 
+                // Chiêu định hướng tự do (Linear Skillshot)
                 Plane groundPlane = new Plane(Vector3.up, transform.position);
                 if (groundPlane.Raycast(ray, out float enter))
                 {
-                    currentTargetPoint = ray.GetPoint(enter);
-                    RotateTowardsInstantly(currentTargetPoint - transform.position);
+                    Vector3 hitPoint = ray.GetPoint(enter);
+                    float maxRange = skill.selectorRange > 0f ? skill.selectorRange : skill.range;
+                    if (maxRange > 0f && skill.selectorType == SkillSelectorType.SmartcastCircleAOE)
+                    {
+                        Vector3 offset = hitPoint - transform.position;
+                        offset.y = 0f;
+                        if (offset.magnitude > maxRange)
+                        {
+                            currentTargetPoint = transform.position + offset.normalized * maxRange;
+                        }
+                        else
+                        {
+                            currentTargetPoint = hitPoint;
+                        }
+                    }
+                    else
+                    {
+                        currentTargetPoint = hitPoint;
+                    }
+
+                    Vector3 aimDir = currentTargetPoint - transform.position;
+                    aimDir.y = 0f;
+                    currentTargetDirection = aimDir.sqrMagnitude > 0.001f ? aimDir.normalized : transform.forward;
+                    ApplySkillRotation(skill, currentTargetDirection);
                 }
             }
             else
@@ -626,7 +662,10 @@ namespace TopDownGame.Player
                     {
                         currentLockTarget = bestTarget;
                         currentTargetPoint = currentLockTarget.position;
-                        RotateTowardsInstantly(currentLockTarget.position - transform.position);
+                        Vector3 dirToTarget = currentLockTarget.position - transform.position;
+                        dirToTarget.y = 0f;
+                        currentTargetDirection = dirToTarget.sqrMagnitude > 0.001f ? dirToTarget.normalized : transform.forward;
+                        ApplySkillRotation(skill, currentTargetDirection);
                         return true;
                     }
                     else
@@ -635,73 +674,62 @@ namespace TopDownGame.Player
                     }
                 }
 
-                // Gamepad: GiÃ¡Â»Â¯ nguyÃƒÂªn hÃ†Â°Ã¡Â»â€ºng quay hiÃ¡Â»â€¡n tÃ¡ÂºÂ¡i hoÃ¡ÂºÂ·c hÃ†Â°Ã¡Â»â€ºng input (nÃ¡ÂºÂ¿u Ã„â€˜ang Ã„â€˜Ã¡ÂºÂ©y cÃ¡ÂºÂ§n)
                 Vector3 inputVec = GetInputVector();
                 if (inputVec.sqrMagnitude > 0.01f)
                 {
-                    RotateTowardsInstantly(inputVec);
-                    currentTargetPoint = transform.position + inputVec.normalized * (skill.range > 0 ? skill.range : 5f);
+                    currentTargetDirection = inputVec.normalized;
+                    currentTargetPoint = transform.position + currentTargetDirection * (skill.range > 0 ? skill.range : 5f);
+                    ApplySkillRotation(skill, currentTargetDirection);
+                }
+                else
+                {
+                    currentTargetDirection = transform.forward;
+                    currentTargetPoint = transform.position + currentTargetDirection * (skill.range > 0 ? skill.range : 5f);
                 }
             }
 
             return true;
         }
 
+        private void ApplySkillRotation(SkillData skill, Vector3 targetDir)
+        {
+            float rotSpeed = (skill != null && skill.instantDirSpeed > 0f) ? skill.instantDirSpeed : 1000f;
+            if (rotSpeed >= 1000f)
+            {
+                RotateTowardsInstantly(targetDir);
+            }
+        }
+
         /// <summary>
-        /// Cập nhật hướng ngắm và điểm đích tấn công trong suốt thời gian ra chiêu.
-        /// - PC (Chuột & Bàn phím): Khóa xoay và bám theo vị trí con trỏ chuột trên sàn (hoặc mục tiêu khóa).
-        ///   Phím di chuyển WASD hoàn toàn KHÔNG làm lệch hướng đánh.
-        /// - Console/Mobile (Gamepad): Hướng xoay bám theo cần gạt điều hướng.
+        /// Xoay nhân vật về hướng thi triển đã được chốt từ lúc ấn chiêu theo tốc độ InstantDir (độ/giây theo DATA_CONVENTIONS.md Mục 1 & 4).
+        /// Chuột di chuyển sau khi ấn chiêu hoàn toàn không ảnh hưởng đến hướng này.
+        /// </summary>
+        public void RotateTowardsCastDirection(float speedDegPerSec)
+        {
+            Vector3 dir = currentTargetDirection;
+            if (currentLockTarget != null)
+            {
+                dir = currentLockTarget.position - transform.position;
+                dir.y = 0f;
+            }
+
+            if (dir.sqrMagnitude > 0.001f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
+                float speed = speedDegPerSec > 0f ? speedDegPerSec : 1000f;
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, speed * Time.deltaTime);
+            }
+        }
+
+        /// <summary>
+        /// Giữ tương thích: xoay nhân vật theo hướng thi triển đã chốt theo tốc độ InstantDir.
+        /// Tuyệt đối KHÔNG đọc lại vị trí chuột realtime để tránh lệch hướng thi triển.
         /// </summary>
         public bool UpdateAttackAim(SkillData skill, float smoothTime)
         {
-            if (skill == null) return false;
-
-            if (skill.targetSelf || skill.relation == SkillRelation.Self)
-            {
-                currentTargetPoint = transform.position;
-                return true;
-            }
-
-            if (currentLockTarget != null)
-            {
-                currentTargetPoint = currentLockTarget.position;
-                Vector3 dirToTarget = currentLockTarget.position - transform.position;
-                dirToTarget.y = 0f;
-                RotateTowards(dirToTarget, smoothTime);
-                return true;
-            }
-
-            bool usingMouse = inputReader != null && !inputReader.IsUsingGamepad;
-            if (usingMouse)
-            {
-                if (UnityEngine.InputSystem.Mouse.current == null || mainCamera == null) return true;
-
-                Vector2 mouseScreenPos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
-                Ray ray = mainCamera.ScreenPointToRay(mouseScreenPos);
-                Plane groundPlane = new Plane(Vector3.up, transform.position);
-
-                if (groundPlane.Raycast(ray, out float enter))
-                {
-                    currentTargetPoint = ray.GetPoint(enter);
-                    Vector3 aimDir = currentTargetPoint - transform.position;
-                    aimDir.y = 0f;
-                    RotateTowards(aimDir, smoothTime);
-                    return true;
-                }
-            }
-            else
-            {
-                Vector3 inputVec = GetInputVector();
-                if (inputVec.sqrMagnitude > 0.01f)
-                {
-                    currentTargetPoint = transform.position + inputVec.normalized * (skill.range > 0 ? skill.range : 5f);
-                    RotateTowards(inputVec, smoothTime);
-                    return true;
-                }
-            }
-
-            return false;
+            float rotSpeed = (skill != null && skill.instantDirSpeed > 0f) ? skill.instantDirSpeed : 1000f;
+            RotateTowardsCastDirection(rotSpeed);
+            return true;
         }
 
         private Transform FindTargetInFront(float range)

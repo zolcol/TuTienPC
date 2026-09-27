@@ -79,7 +79,7 @@ namespace TopDownGame.Skills
                 if (skills.Count > 0)
                 {
                     isLoaded = true;
-                    Debug.Log($"✅ <color=green>[SkillDatabase]</color> Đã nạp thành công <b>{skills.Count}</b> kỹ năng từ chuẩn Settings/N (Skill.csv + ActionEvent.csv)!");
+                    // Debug.Log($"✅ <color=green>[SkillDatabase]</color> Đã nạp thành công <b>{skills.Count}</b> kỹ năng từ chuẩn Settings/N (Skill.csv + ActionEvent.csv)!");
                     return;
                 }
             }
@@ -91,6 +91,7 @@ namespace TopDownGame.Skills
         private class ActionEventSummary
         {
             public int instantDir = -1;
+            public float instantDirSpeed = 1000f;
             public float crossFade = 0.1f;
             public int candoskill = -1;
             public int castSkill = 2;
@@ -294,7 +295,8 @@ namespace TopDownGame.Skills
                             movePosSpeed = 0f,
                             movePosAccel = 0f,
                             movePosFrame = -1,
-                            instantDir = -1
+                            instantDir = -1,
+                            instantDirSpeed = 1000f
                         };
 
                         if (actionEventId > 0 && eventMap.TryGetValue(actionEventId, out ActionEventSummary matchedSummary))
@@ -307,6 +309,7 @@ namespace TopDownGame.Skills
                             if (matchedSummary.param1 >= 0) evSummary.param1 = matchedSummary.param1;
                             if (matchedSummary.param2 >= 0) evSummary.param2 = matchedSummary.param2;
                             if (matchedSummary.instantDir >= 0) evSummary.instantDir = matchedSummary.instantDir;
+                            if (matchedSummary.instantDirSpeed > 0f) evSummary.instantDirSpeed = matchedSummary.instantDirSpeed;
                             if (matchedSummary.slotId > 0) evSummary.slotId = matchedSummary.slotId;
                             if (matchedSummary.movePosFrame >= 0)
                             {
@@ -409,6 +412,7 @@ namespace TopDownGame.Skills
                             canDoRun = evSummary.canDoRun,
                             castLinkSkill = evSummary.castLinkSkill,
                             instantDir = evSummary.instantDir,
+                            instantDirSpeed = evSummary.instantDirSpeed,
                             playsound = evSummary.playsound,
                             playsoundFrame = evSummary.playsoundFrame,
                             effectPath = evSummary.effectPath,
@@ -477,7 +481,9 @@ namespace TopDownGame.Skills
                                 movePosDistance = 0f,
                                 movePosSpeed = 0f,
                                 movePosAccel = 0f,
-                                movePosFrame = -1
+                                movePosFrame = -1,
+                                instantDir = -1,
+                                instantDirSpeed = 1000f
                             };
                         }
 
@@ -494,6 +500,15 @@ namespace TopDownGame.Skills
                             {
                                 summary.param1 = CsvParserHelper.ParseInt(p1, -1);
                                 summary.param2 = CsvParserHelper.ParseInt(p2, -1);
+                            }
+                            else if (eventName.Equals("InstantDir", StringComparison.OrdinalIgnoreCase))
+                            {
+                                float speed = CsvParserHelper.ParseFloat(p1, 1000f);
+                                if (speed > 0f)
+                                {
+                                    summary.instantDirSpeed = speed;
+                                }
+                                summary.instantDir = 0;
                             }
                             else if (eventName.Equals("PlaySound", StringComparison.OrdinalIgnoreCase))
                             {
@@ -550,6 +565,11 @@ namespace TopDownGame.Skills
                             }
                             else if (eventName.Equals("instantdir", StringComparison.OrdinalIgnoreCase))
                             {
+                                float speed = CsvParserHelper.ParseFloat(p1, 1000f);
+                                if (speed > 0f)
+                                {
+                                    summary.instantDirSpeed = speed;
+                                }
                                 summary.instantDir = frame;
                             }
                             else if (eventName.Equals("PlaySound", StringComparison.OrdinalIgnoreCase))
@@ -666,7 +686,7 @@ namespace TopDownGame.Skills
             }
 
             isLoaded = true;
-            Debug.Log($"✅ [SkillDatabase] Đã nạp {skills.Count} kỹ năng từ file cũ (Fallback)!");
+            // Debug.Log($"✅ [SkillDatabase] Đã nạp {skills.Count} kỹ năng từ file cũ (Fallback)!");
         }
 
         private string GetColRaw(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex)

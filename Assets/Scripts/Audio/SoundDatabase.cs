@@ -111,7 +111,7 @@ namespace TopDownGame.Audio
 
             ParseCsv(csvContent);
             isLoaded = true;
-            Debug.Log($"✅ <color=yellow>[SoundDatabase]</color> Đã nạp thành công <b>{sounds.Count}</b> âm thanh từ Sound.csv!");
+            // Debug.Log($"✅ <color=yellow>[SoundDatabase]</color> Đã nạp thành công <b>{sounds.Count}</b> âm thanh từ Sound.csv!");
         }
 
         private void ParseCsv(string text)

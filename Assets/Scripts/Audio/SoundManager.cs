@@ -42,7 +42,7 @@ namespace TopDownGame.Audio
         [Tooltip("Độ lan tỏa 3D (0 = 2D nghe toàn màn hình, 1 = 3D hoàn toàn theo vị trí)")]
         [Range(0f, 1f)] [SerializeField] private float sfxSpatialBlend = 0.25f;
 
-        [SerializeField] private bool logSoundPlayback = true;
+        [SerializeField] private bool logSoundPlayback = false;
 
         // Internal Pool & Cache
         private readonly List<AudioSource> audioSourcePool = new List<AudioSource>();
@@ -198,7 +198,7 @@ namespace TopDownGame.Audio
             {
                 PlayClipInternal(clip, position, 1.0f);
             }
-            else if (logSoundPlayback)
+            else
             {
                 Debug.LogWarning($"[SoundManager] ⚠️ Không tìm thấy AudioClip trong Assets/Audio/{soundData.bankBnk}/{soundData.CleanEventName} cho ID: {soundData.soundId}");
             }

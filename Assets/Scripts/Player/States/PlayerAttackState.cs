@@ -56,9 +56,9 @@ namespace TopDownGame.Player
 
             triggeredEvents.Clear();
 
-            // Cập nhật hướng ngắm và điểm đích tấn công ban đầu khi vung đòn
+            // Cập nhật hướng xoay ban đầu khi vung đòn theo InstantDir (DATA_CONVENTIONS.md Mục 1 & 4)
             player.ResetTurnVelocity();
-            player.UpdateAttackAim(currentSkill, 0f);
+            player.RotateTowardsCastDirection(currentSkill.instantDirSpeed);
 
             // Kích hoạt hiệu ứng tụ khí / phát sáng vũ khí khi bắt đầu vung đòn (CastEffect)
             player.PlaySkillCastEffect(currentSkill);
@@ -90,18 +90,12 @@ namespace TopDownGame.Player
                 if (speedFactor < 0.1f) speedFactor = 0.1f;
             }
 
-            // 1. Bám theo hướng ngắm (chuột trên PC hoặc cần gạt trên Gamepad) trước mốc khóa hướng
-            float rawLockTime = currentSkill.InstantDirTime >= 0f ? currentSkill.InstantDirTime : currentSkill.CastSkillTime;
-            float lockRotationTime = rawLockTime / speedFactor;
-
-            if (timer <= lockRotationTime)
+            // 1. Tự động xoay mặt về hướng thi triển theo InstantDir (độ/giây theo DATA_CONVENTIONS.md Mục 1 & 4)
+            // Hướng thi triển và điểm đích đã được chốt cố định ngay khi nhấn chiêu, chuột di chuyển sau đó không ảnh hưởng.
+            float castSkillTimeScaled = currentSkill.CastSkillTime / speedFactor;
+            if (timer <= castSkillTimeScaled)
             {
-                float instantDirScaled = currentSkill.InstantDirTime >= 0f ? (currentSkill.InstantDirTime / speedFactor) : -1f;
-                float smooth = (instantDirScaled >= 0f && timer >= instantDirScaled - Time.deltaTime)
-                    ? 0f
-                    : player.AttackRotationSmoothTime;
-
-                player.UpdateAttackAim(currentSkill, smooth);
+                player.RotateTowardsCastDirection(currentSkill.instantDirSpeed);
             }
 
             // 2. Bước nhích tiến về phía trước (Forward Lunge - MovePos)
@@ -182,19 +176,13 @@ namespace TopDownGame.Player
                 if (player.CheckAndTriggerSkills()) return;
             }
 
-            // 7. Cho phép hủy hoạt ảnh sớm để di chuyển (Recovery Cancel / canDoRun):
+            // 7. Cho phép hủy hoạt ảnh sớm để di chuyển (Animation Cancel / CanDoRun theo DATA_CONVENTIONS.md Mục 4 & 5):
             // - Tuyệt đối không hủy nếu đang buffer combo đòn kế tiếp
-            // - Chỉ hủy sau khi đã áp sát thương (hasTriggeredHit == true)
-            // - Đòn combo thường: cần hoàn thành tối thiểu 65% thời lượng hoạt ảnh
-            // - Kỹ năng đặc biệt (Q, E, R): cần hoàn thành tối thiểu 85% thời lượng hoạt ảnh để trọn vẹn phép thuật
+            // - Chỉ hủy sau khi đã áp sát thương (hasTriggeredHit == true) và đạt mốc canDoRun quy định trong ActionEvent.csv
             if (!hasBufferedComboInput && hasTriggeredHit && currentSkill.CanCancelByRun)
             {
                 float canDoRunScaled = currentSkill.CanDoRunTime / speedFactor;
-                float minActionDuration = currentSkill.HasCombo 
-                    ? Mathf.Max(canDoRunScaled, totalDuration * 0.65f)
-                    : Mathf.Max(canDoRunScaled, totalDuration * 0.85f);
-
-                if (timer >= minActionDuration)
+                if (timer >= canDoRunScaled)
                 {
                     Vector3 moveInput = player.GetInputVector();
                     if (moveInput.sqrMagnitude > 0.001f)

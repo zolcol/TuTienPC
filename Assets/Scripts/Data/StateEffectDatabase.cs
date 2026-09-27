@@ -79,7 +79,7 @@ namespace TopDownGame.Data
                         }
                     }
 
-                    Debug.Log($"✅ <color=cyan>[StateEffectDatabase]</color> Đã nạp thành công <b>{dataDict.Count}</b> cấu hình Buff/Debuff từ Settings/N/StateEffect.csv!");
+                    // Debug.Log($"✅ <color=cyan>[StateEffectDatabase]</color> Đã nạp thành công <b>{dataDict.Count}</b> cấu hình Buff/Debuff từ Settings/N/StateEffect.csv!");
                     return;
                 }
                 catch (Exception ex)
@@ -114,7 +114,7 @@ namespace TopDownGame.Data
 
                     dataDict[id] = data;
                 }
-                Debug.Log($"✅ [StateEffectDatabase] Đã nạp {dataDict.Count} cấu hình từ Resources fallback.");
+                // Debug.Log($"✅ [StateEffectDatabase] Đã nạp {dataDict.Count} cấu hình từ Resources fallback.");
             }
             else
             {

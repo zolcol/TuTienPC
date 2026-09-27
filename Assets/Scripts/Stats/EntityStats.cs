@@ -79,7 +79,7 @@ namespace TopDownGame.Stats
         {
             IsDead = true;
             OnDeath?.Invoke();
-            Debug.Log($"💀 <color=red>[DEATH]</color> {gameObject.name} đã bị hạ gục!");
+            // Debug.Log($"💀 <color=red>[DEATH]</color> {gameObject.name} đã bị hạ gục!");
         }
     }
 }

@@ -134,6 +134,7 @@ namespace TopDownGame.Skills
         public int canDoRun = -1;        // Có thể hủy hoạt ảnh để di chuyển (mốc frame, -1 nếu phải đánh hết clip)
         public int castLinkSkill = -1;   // Mốc bắt đầu chuyển sang animation chiêu combo tiếp theo (mốc frame)
         public int instantDir = -1;      // Mốc khóa xoay hướng (mốc frame)
+        public float instantDirSpeed = 1000f; // Tốc độ xoay mặt về hướng mục tiêu (°/s theo DATA_CONVENTIONS.md Mục 1 & 4)
 
         // --- AUDIO & VFX ---
         public int playsound = -1;           // Sound ID tra cứu từ Sound.csv (-1 nếu không có âm thanh)

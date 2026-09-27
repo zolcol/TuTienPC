@@ -461,8 +461,8 @@ namespace TopDownGame
                 scale = state.speed;
             }
 
-            string reqStr = targetDuration > 0f ? $"{targetDuration:F3}s ({targetFrame} frames)" : $"{actualLength:F3}s (mặc định)";
-            Debug.Log($"[Animation] Animation được gọi: <b>{realClip}</b> | Độ dài thực tế: <b>{actualLength:F3}s</b> | Độ dài yêu cầu: <b>{reqStr}</b> | Scale: <b>{scale:F3}</b>");
+            // string reqStr = targetDuration > 0f ? $"{targetDuration:F3}s ({targetFrame} frames)" : $"{actualLength:F3}s (mặc định)";
+            // Debug.Log($"[Animation] Animation được gọi: <b>{realClip}</b> | Độ dài thực tế: <b>{actualLength:F3}s</b> | Độ dài yêu cầu: <b>{reqStr}</b> | Scale: <b>{scale:F3}</b>");
         }
 
         private void CrossFadeOnComponent(Animation animComp, string clipName, WrapMode wrapMode, float fadeTime, bool forceRewind, float targetDuration, float attackSpeedMultiplier = 1.0f)
