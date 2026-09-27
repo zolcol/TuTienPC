@@ -178,12 +178,32 @@ namespace TopDownGame.Skills
                         float skillParam3 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param3", 46), 0f);
                         float skillParam4 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param4", 48), 0f);
 
-                        // Icon từ FactionSkill hoặc cột Icon
+                        // Icon từ FactionSkill hoặc cột Icon/IconAtlas
                         string iconName = GetColRaw(tokens, colMap, "icon", 7);
+                        string iconAtlas = GetColRaw(tokens, colMap, "iconatlas", 8);
+
                         var fSkill = FactionSkillDatabase.GetFactionSkill(skillId);
-                        if (fSkill != null && !string.IsNullOrEmpty(fSkill.btnIcon))
+                        if (fSkill != null)
                         {
-                            iconName = fSkill.btnIcon;
+                            if (!string.IsNullOrEmpty(fSkill.btnIcon))
+                            {
+                                iconName = fSkill.btnIcon;
+                            }
+                            if (!string.IsNullOrEmpty(fSkill.iconAtlas))
+                            {
+                                iconAtlas = fSkill.iconAtlas;
+                            }
+                        }
+
+                        string resolvedIconPath = "";
+                        if (!string.IsNullOrEmpty(iconAtlas) && !string.IsNullOrEmpty(iconName))
+                        {
+                            string atlasFolder = iconAtlas.Replace(".prefab", "").Trim().Replace("\\", "/");
+                            resolvedIconPath = $"{atlasFolder}/{iconName.Trim()}";
+                        }
+                        else if (!string.IsNullOrEmpty(iconName))
+                        {
+                            resolvedIconPath = iconName.Trim();
                         }
 
                         // Tra cứu cấu hình Hitbox chuẩn từ Missile.csv thông qua ChildID
@@ -384,7 +404,9 @@ namespace TopDownGame.Skills
                         {
                             id = skillId,
                             name = skillName,
-                            iconPath = iconName,
+                            iconAtlas = iconAtlas,
+                            iconName = iconName,
+                            iconPath = resolvedIconPath,
                             castActionId = castActionId,
                             crossFade = evSummary.crossFade,
                             relation = relation,

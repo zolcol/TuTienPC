@@ -7427,7 +7427,7 @@ MonoBehaviour:
   skillSlotQ_Id: 306
   skillSlotE_Id: 308
   skillSlotR_Id: 310
-  noCooldown: 1
+  noCooldown: 0
   noManaCost: 1
   showHitGizmos: 1
   gizmoDisplayDuration: 0.2

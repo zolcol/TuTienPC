@@ -43,6 +43,8 @@ namespace TopDownGame.Skills
         // --- IDENTITY & ANIMATION ---
         public int id;
         public string name;
+        public string iconAtlas;
+        public string iconName;
         public string iconPath;
         [Tooltip("Mã CastActionID theo chuẩn Database Animation")]
         public int castActionId = (int)CastActionID.at01;
@@ -164,7 +166,7 @@ namespace TopDownGame.Skills
         private bool attemptedIconLoad = false;
 
         /// <summary>
-        /// Lấy Sprite Icon từ thư mục Resources dựa theo đường dẫn iconPath
+        /// Lấy Sprite Icon từ thư mục Resources dựa theo IconAtlas và Icon Name (đã cắt sẵn theo thư mục)
         /// </summary>
         public Sprite GetIconSprite()
         {
@@ -172,10 +174,35 @@ namespace TopDownGame.Skills
             if (attemptedIconLoad) return null;
 
             attemptedIconLoad = true;
+
+            // 1. Thử load theo iconPath đã resolve (vd: UI/Atlas/SkillIcon/EM_Skill/EmeiSkill_01)
             if (!string.IsNullOrEmpty(iconPath))
             {
                 cachedIcon = Resources.Load<Sprite>(iconPath);
+                if (cachedIcon != null) return cachedIcon;
             }
+
+            // 2. Thử load ghép từ iconAtlas và iconName
+            if (!string.IsNullOrEmpty(iconAtlas) && !string.IsNullOrEmpty(iconName))
+            {
+                string folder = iconAtlas.Replace(".prefab", "").Trim().Replace("\\", "/");
+                cachedIcon = Resources.Load<Sprite>($"{folder}/{iconName.Trim()}");
+                if (cachedIcon != null) return cachedIcon;
+            }
+
+            // 3. Fallback tìm theo các thư mục icon phổ biến
+            if (!string.IsNullOrEmpty(iconName))
+            {
+                string name = iconName.Trim();
+                cachedIcon = Resources.Load<Sprite>($"UI/Atlas/SkillIcon/{name}");
+                if (cachedIcon != null) return cachedIcon;
+
+                cachedIcon = Resources.Load<Sprite>($"UI/SkillIcon/{name}");
+                if (cachedIcon != null) return cachedIcon;
+
+                cachedIcon = Resources.Load<Sprite>(name);
+            }
+
             return cachedIcon;
         }
 
