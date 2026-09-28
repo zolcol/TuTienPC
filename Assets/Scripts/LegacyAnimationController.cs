@@ -1,6 +1,8 @@
 using System;
 using UnityEngine;
 using TopDownGame.Skills;
+using TopDownGame.Combat;
+using TopDownGame.Stats;
 
 namespace TopDownGame
 {
@@ -32,6 +34,11 @@ namespace TopDownGame
         private string currentClip = "";
         private bool isLocked = false;
 
+        private TopDownGame.Player.PlayerController cachedPlayer;
+        private TopDownGame.Enemy.EnemyController cachedEnemy;
+        private EntityStats cachedStats;
+        private TopDownGame.Data.NpcResData cachedNpcResData;
+
         public string CurrentClip => currentClip;
         public bool IsLocked => isLocked;
         public Animation BodyAnimation => bodyAnimation;
@@ -39,6 +46,36 @@ namespace TopDownGame
         private void Awake()
         {
             AutoFindAnimationComponents();
+            CacheReferences();
+        }
+
+        public void CacheReferences()
+        {
+            if (cachedPlayer == null)
+            {
+                cachedPlayer = GetComponent<TopDownGame.Player.PlayerController>() ?? GetComponentInParent<TopDownGame.Player.PlayerController>();
+            }
+            if (cachedEnemy == null && cachedPlayer == null)
+            {
+                cachedEnemy = GetComponent<TopDownGame.Enemy.EnemyController>() ?? GetComponentInParent<TopDownGame.Enemy.EnemyController>();
+            }
+            if (cachedStats == null)
+            {
+                if (cachedPlayer != null) cachedStats = cachedPlayer.Stats;
+                else if (cachedEnemy != null) cachedStats = cachedEnemy.Stats;
+                else cachedStats = GetComponent<EntityStats>() ?? GetComponentInParent<EntityStats>();
+            }
+            if (cachedNpcResData == null)
+            {
+                GetNpcResData();
+            }
+        }
+
+        private EntityStats GetEntityStats()
+        {
+            if (cachedStats != null) return cachedStats;
+            CacheReferences();
+            return cachedStats;
         }
 
         public void AutoFindAnimationComponents()
@@ -332,25 +369,27 @@ namespace TopDownGame
             PlayAction(clip, wrapMode, customFadeTime);
         }
 
-        private TopDownGame.Data.NpcResData cachedNpcResData;
-
         public TopDownGame.Data.NpcResData GetNpcResData()
         {
             if (cachedNpcResData != null) return cachedNpcResData;
 
             int resId = 0;
-            var player = GetComponent<TopDownGame.Player.PlayerController>() ?? GetComponentInParent<TopDownGame.Player.PlayerController>();
-            if (player != null)
+            if (cachedPlayer == null && cachedEnemy == null)
             {
-                resId = player.NpcResId;
-            }
-            else
-            {
-                var enemy = GetComponent<TopDownGame.Enemy.EnemyController>() ?? GetComponentInParent<TopDownGame.Enemy.EnemyController>();
-                if (enemy != null)
+                cachedPlayer = GetComponent<TopDownGame.Player.PlayerController>() ?? GetComponentInParent<TopDownGame.Player.PlayerController>();
+                if (cachedPlayer == null)
                 {
-                    resId = enemy.NpcResId;
+                    cachedEnemy = GetComponent<TopDownGame.Enemy.EnemyController>() ?? GetComponentInParent<TopDownGame.Enemy.EnemyController>();
                 }
+            }
+
+            if (cachedPlayer != null)
+            {
+                resId = cachedPlayer.NpcResId;
+            }
+            else if (cachedEnemy != null)
+            {
+                resId = cachedEnemy.NpcResId;
             }
 
             if (resId > 0)
@@ -424,18 +463,10 @@ namespace TopDownGame
             }
             else
             {
-                var player = GetComponent<TopDownGame.Player.PlayerController>() ?? GetComponentInParent<TopDownGame.Player.PlayerController>();
-                if (player != null && player.Stats != null)
+                var stats = GetEntityStats();
+                if (stats != null)
                 {
-                    attackSpeedPercent = player.Stats.AttackSpeed;
-                }
-                else
-                {
-                    var enemy = GetComponent<TopDownGame.Enemy.EnemyController>() ?? GetComponentInParent<TopDownGame.Enemy.EnemyController>();
-                    if (enemy != null && enemy.Stats != null)
-                    {
-                        attackSpeedPercent = enemy.Stats.AttackSpeed;
-                    }
+                    attackSpeedPercent = stats.AttackSpeed;
                 }
             }
 
@@ -524,18 +555,10 @@ namespace TopDownGame
             }
             else
             {
-                var player = GetComponent<TopDownGame.Player.PlayerController>() ?? GetComponentInParent<TopDownGame.Player.PlayerController>();
-                if (player != null && player.Stats != null)
+                var stats = GetEntityStats();
+                if (stats != null)
                 {
-                    attackSpeedPercent = player.Stats.AttackSpeed;
-                }
-                else
-                {
-                    var enemy = GetComponent<TopDownGame.Enemy.EnemyController>() ?? GetComponentInParent<TopDownGame.Enemy.EnemyController>();
-                    if (enemy != null && enemy.Stats != null)
-                    {
-                        attackSpeedPercent = enemy.Stats.AttackSpeed;
-                    }
+                    attackSpeedPercent = stats.AttackSpeed;
                 }
             }
 

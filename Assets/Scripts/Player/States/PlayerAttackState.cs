@@ -40,7 +40,7 @@ namespace TopDownGame.Player
             // Chạy Animation clip từ LegacyAnimationController và scale theo NpcRes / AttackSpeed
             if (player.AnimationController != null)
             {
-                float fade = currentSkill.crossFade > 0f ? Mathf.Clamp(currentSkill.crossFade, 0.05f, 0.15f) : 0.08f;
+                float fade = currentSkill.crossFade > 0f ? currentSkill.crossFade : 0.08f;
                 player.AnimationController.PlayAction(currentSkill, WrapMode.ClampForever, fade);
                 totalDuration = player.AnimationController.GetClipDuration(currentSkill);
             }

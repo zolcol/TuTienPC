@@ -236,12 +236,12 @@ namespace TopDownGame.Enemy
             }
 
             // 6. Gán chuẩn Tag và Layer "Enemy" cho Root và toàn bộ GameObject con
-            int enemyLayer = LayerMask.NameToLayer("Enemy");
+            int enemyLayer = LayerMask.NameToLayer(CombatLayersAndTags.LayerEnemy);
             if (enemyLayer != -1)
             {
                 SetLayerRecursively(gameObject, enemyLayer);
             }
-            SetTagRecursively(gameObject, "Enemy");
+            SetTagRecursively(gameObject, CombatLayersAndTags.TagEnemy);
 
             EnsureAnimationController();
         }
@@ -405,7 +405,7 @@ namespace TopDownGame.Enemy
         {
             if (target != null) return;
 
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            GameObject playerObj = GameObject.FindGameObjectWithTag(CombatLayersAndTags.TagPlayer);
             if (playerObj != null)
             {
                 target = playerObj.transform;

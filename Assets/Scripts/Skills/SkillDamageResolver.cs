@@ -17,8 +17,14 @@ namespace TopDownGame.Skills
 
         // Độ cao chuẩn của vùng quét sát thương 3D (tính từ sàn lên 2.0m)
         public const float BoxHeight = 2.0f;
+        public const float DefaultBoxWidth = 1.6f;
+        public const float DefaultRange = 3.5f;
+        public const float BackwardOffset = 0.35f;
+        public const float RelativeYMin = -0.3f;
+        public const float RelativeYMaxOffset = 0.3f;
+        public const float CloseTargetThreshold = 0.8f;
+        public const float DefaultFanSpreadAngle = 15f;
 
-        /// <summary>
         /// <summary>
         /// Kích hoạt quét tác dụng chiêu thức (Gây sát thương kẻ địch hoặc Hồi máu/Buff đồng đội)
         /// </summary>
@@ -47,8 +53,8 @@ namespace TopDownGame.Skills
 
             // 2. Tấn công gây sát thương kẻ địch
             float calculatedDamage = skill.CalculateDamage(casterStats);
-            float actualWidth = skill.boxWidth > 0f ? skill.boxWidth : 1.6f;
-            float actualRange = skill.range > 0f ? skill.range : 3.5f;
+            float actualWidth = skill.boxWidth > 0f ? skill.boxWidth : DefaultBoxWidth;
+            float actualRange = skill.range > 0f ? skill.range : DefaultRange;
 
             if (skill.HasProjectile || skill.skillType == SkillType.Projectile)
             {
@@ -96,7 +102,7 @@ namespace TopDownGame.Skills
             float healAmount = skill.CalculateHeal(casterStats);
             float range = skill.range > 0f ? skill.range : 8.0f;
 
-            bool isCasterPlayer = caster.CompareTag("Player") || caster.GetComponent<TopDownGame.Player.PlayerController>() != null;
+            bool isCasterPlayer = caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null;
             targetsToHealBuffer.Clear();
 
             // Bản thân người tung chiêu (TargetSelf == true hoặc Relation là Recover/Self)
@@ -112,7 +118,7 @@ namespace TopDownGame.Skills
                 EntityStats explicitStats = explicitTarget.GetComponent<EntityStats>() ?? explicitTarget.GetComponentInParent<EntityStats>();
                 if (explicitStats != null && !explicitStats.IsDead)
                 {
-                    bool isExplicitPlayer = explicitStats.CompareTag("Player") || explicitStats.GetComponent<TopDownGame.Player.PlayerController>() != null;
+                    bool isExplicitPlayer = explicitStats.CompareTag(CombatLayersAndTags.TagPlayer) || explicitStats.GetComponent<TopDownGame.Player.PlayerController>() != null;
                     if (isCasterPlayer == isExplicitPlayer && !targetsToHealBuffer.Contains(explicitStats))
                     {
                         targetsToHealBuffer.Add(explicitStats);
@@ -131,7 +137,7 @@ namespace TopDownGame.Skills
                 EntityStats targetStats = col.GetComponent<EntityStats>() ?? col.GetComponentInParent<EntityStats>();
                 if (targetStats == null || targetStats.IsDead) continue;
 
-                bool isTargetPlayer = targetStats.CompareTag("Player") || targetStats.GetComponent<TopDownGame.Player.PlayerController>() != null;
+                bool isTargetPlayer = targetStats.CompareTag(CombatLayersAndTags.TagPlayer) || targetStats.GetComponent<TopDownGame.Player.PlayerController>() != null;
 
                 // Nếu người tung là Player -> đồng minh là Player/Pet; nếu là Quái -> đồng minh là Quái
                 if (isCasterPlayer == isTargetPlayer)
@@ -218,11 +224,11 @@ namespace TopDownGame.Skills
         {
             float halfWidth = boxWidth * 0.5f;
             float halfHeight = BoxHeight * 0.5f;
-            float backwardOffset = 0.35f;
+            float backwardOffset = BackwardOffset;
             float totalLength = range + backwardOffset;
             float halfLength = totalLength * 0.5f;
 
-            // Tâm Box dịch về sau 0.35m để bao quát cả mục tiêu đứng sát chân / ép sát người
+            // Tâm Box dịch về sau để bao quát cả mục tiêu đứng sát chân / ép sát người
             Vector3 boxCenter = caster.position + (Vector3.up * halfHeight) + (caster.forward * (halfLength - backwardOffset));
             Vector3 halfExtents = new Vector3(halfWidth, halfHeight, halfLength);
             Quaternion boxRotation = caster.rotation;
@@ -251,9 +257,9 @@ namespace TopDownGame.Skills
                 Collider col = hitBuffer[i];
                 if (col == null || col.gameObject == caster.gameObject) continue;
 
-                // Kiểm tra độ cao tương đối so với chân nhân vật (-0.3m đến +2.2m)
+                // Kiểm tra độ cao tương đối so với chân nhân vật (-0.3m đến +2.3m)
                 float relativeY = col.transform.position.y - caster.position.y;
-                if (relativeY < -0.3f || relativeY > BoxHeight + 0.3f) continue;
+                if (relativeY < RelativeYMin || relativeY > BoxHeight + RelativeYMaxOffset) continue;
 
                 Vector3 dirToTarget = (col.transform.position - caster.position);
                 dirToTarget.y = 0f;
@@ -261,8 +267,8 @@ namespace TopDownGame.Skills
                 if (dirToTarget.sqrMagnitude <= range * range)
                 {
                     float angle = Vector3.Angle(caster.forward, dirToTarget);
-                    // Mục tiêu áp sát trong phạm vi 0.8m luôn trúng, xa hơn thì kiểm tra góc quạt
-                    if (dirToTarget.sqrMagnitude <= 0.8f * 0.8f || angle <= halfAngle)
+                    // Mục tiêu áp sát trong phạm vi CloseTargetThreshold luôn trúng, xa hơn thì kiểm tra góc quạt
+                    if (dirToTarget.sqrMagnitude <= CloseTargetThreshold * CloseTargetThreshold || angle <= halfAngle)
                     {
                         ApplyDamage(col, damage, col.ClosestPoint(sphereCenter), dirToTarget.normalized, caster);
                     }
@@ -284,7 +290,7 @@ namespace TopDownGame.Skills
                 if (col == null || col.gameObject == caster.gameObject) continue;
 
                 float relativeY = col.transform.position.y - caster.position.y;
-                if (relativeY < -0.3f || relativeY > BoxHeight + 0.3f) continue;
+                if (relativeY < RelativeYMin || relativeY > BoxHeight + RelativeYMaxOffset) continue;
 
                 Vector3 hitDirection = (col.transform.position - caster.position).normalized;
                 ApplyDamage(col, damage, col.ClosestPoint(sphereCenter), hitDirection, caster);
@@ -438,7 +444,7 @@ namespace TopDownGame.Skills
 
             // 3. Bắn chùm rẻ quạt (Fan Spread): Tia trung tâm hướng tới con trỏ, các tia còn lại xòe đều hai bên
             float paramVal = CsvParserHelper.ParseFloat(skill.msGenerateParam, 0f);
-            float angleStepSpread = paramVal > 0f ? paramVal : (skill.fanAngle > 0f ? (skill.fanAngle / Mathf.Max(1, count - 1)) : 15f);
+            float angleStepSpread = paramVal > 0f ? paramVal : (skill.fanAngle > 0f ? (skill.fanAngle / Mathf.Max(1, count - 1)) : DefaultFanSpreadAngle);
             float startAngle = -(count - 1) * 0.5f * angleStepSpread;
 
             for (int i = 0; i < count; i++)
@@ -541,8 +547,8 @@ namespace TopDownGame.Skills
         {
             if (col == null || (caster != null && col.gameObject == caster.gameObject)) return false;
 
-            bool isCasterPlayer = caster != null && (caster.CompareTag("Player") || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
-            bool isTargetPlayer = col.CompareTag("Player") || col.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
+            bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
+            bool isTargetPlayer = col.CompareTag(CombatLayersAndTags.TagPlayer) || col.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
 
             // Không gây sát thương lên đồng minh (Player không đánh Player/Pet, Quái không tự đánh Quái)
             if (isCasterPlayer == isTargetPlayer) return false;
@@ -564,8 +570,8 @@ namespace TopDownGame.Skills
         {
             if (col == null || (caster != null && col.gameObject == caster.gameObject)) return false;
 
-            bool isCasterPlayer = caster != null && (caster.CompareTag("Player") || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
-            bool isTargetPlayer = col.CompareTag("Player") || col.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
+            bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
+            bool isTargetPlayer = col.CompareTag(CombatLayersAndTags.TagPlayer) || col.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
 
             if (isCasterPlayer == isTargetPlayer) return false;
 
@@ -625,7 +631,7 @@ namespace TopDownGame.Skills
         /// <summary>
         /// Vẽ Gizmo hiển thị vùng sát thương 3D trực quan trong Scene View
         /// </summary>
-        public static void DrawGizmo(SkillType type, Vector3 origin, Vector3 forward, float range, float fanAngle, float boxWidth = 1.6f)
+        public static void DrawGizmo(SkillType type, Vector3 origin, Vector3 forward, float range, float fanAngle, float boxWidth = DefaultBoxWidth)
         {
             Gizmos.color = new Color(1f, 0.15f, 0.15f, 0.85f);
 
@@ -634,11 +640,11 @@ namespace TopDownGame.Skills
                 case SkillType.StraightRay:
                 case SkillType.TargetLock:
                     float halfHeight = BoxHeight * 0.5f;
-                    float backwardOffset = 0.35f;
+                    float backwardOffset = BackwardOffset;
                     float totalLength = range + backwardOffset;
                     float halfLength = totalLength * 0.5f;
                     Vector3 boxCenter = origin + (Vector3.up * halfHeight) + (forward * (halfLength - backwardOffset));
-                    Vector3 boxSize = new Vector3(boxWidth > 0f ? boxWidth : 1.6f, BoxHeight, totalLength);
+                    Vector3 boxSize = new Vector3(boxWidth > 0f ? boxWidth : DefaultBoxWidth, BoxHeight, totalLength);
 
                     Matrix4x4 oldMatrix = Gizmos.matrix;
                     Gizmos.matrix = Matrix4x4.TRS(boxCenter, Quaternion.LookRotation(forward), Vector3.one);

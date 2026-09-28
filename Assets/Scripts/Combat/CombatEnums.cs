@@ -136,4 +136,15 @@ namespace TopDownGame.Combat
         public const int SelectedAllyAOE = 11;   // Vòng xanh lá hỗ trợ đồng đội
         public const int DangerWarning = 14;     // Vùng cảnh báo nguy hiểm Boss
     }
+
+    /// <summary>
+    /// Hằng số định danh Layer và Tag chuẩn cho toàn bộ hệ thống Combat
+    /// </summary>
+    public static class CombatLayersAndTags
+    {
+        public const string TagPlayer = "Player";
+        public const string TagEnemy = "Enemy";
+        public const string LayerPlayer = "Player";
+        public const string LayerEnemy = "Enemy";
+    }
 }
