@@ -103,8 +103,13 @@ namespace TopDownGame.Player
         private GameObject currentIndicator;
         private Vector3 aimGroundPosition;
 
-        // QuÃ¡ÂºÂ£n lÃƒÂ½ Cooldown theo Skill ID
+        // Quản lý Cooldown theo Skill ID (Zero-alloc buffer)
         private readonly Dictionary<int, float> cooldownTimers = new Dictionary<int, float>();
+        private readonly List<int> cooldownKeysBuffer = new List<int>(8);
+
+        // Physics NonAlloc Buffers (Tránh GC Alloc liên tục khi lia chuột/ngắm chiêu)
+        private static readonly RaycastHit[] aimSphereCastBuffer = new RaycastHit[32];
+        private static readonly Collider[] targetInFrontBuffer = new Collider[32];
 
         // Debug Gizmo Cache
         private struct GizmoDrawInfo
@@ -218,17 +223,21 @@ namespace TopDownGame.Player
         {
             if (cooldownTimers.Count == 0) return;
 
-            var keys = new List<int>(cooldownTimers.Keys);
-            foreach (var id in keys)
+            cooldownKeysBuffer.Clear();
+            foreach (var kvp in cooldownTimers)
             {
-                if (cooldownTimers[id] > 0f)
+                if (kvp.Value > 0f)
                 {
-                    cooldownTimers[id] -= Time.deltaTime;
-                    if (cooldownTimers[id] <= 0f)
-                    {
-                        cooldownTimers[id] = 0f;
-                    }
+                    cooldownKeysBuffer.Add(kvp.Key);
                 }
+            }
+
+            float dt = Time.deltaTime;
+            for (int i = 0; i < cooldownKeysBuffer.Count; i++)
+            {
+                int id = cooldownKeysBuffer[i];
+                float rem = cooldownTimers[id] - dt;
+                cooldownTimers[id] = rem > 0f ? rem : 0f;
             }
         }
 
@@ -386,7 +395,7 @@ namespace TopDownGame.Player
             aimingSkill = null;
             if (currentIndicator != null)
             {
-                Destroy(currentIndicator);
+                TopDownGame.Combat.EffectManager.Instance.RecycleEffect(currentIndicator);
                 currentIndicator = null;
             }
         }
@@ -572,13 +581,15 @@ namespace TopDownGame.Player
                 {
                     Transform foundTarget = null;
                     
-                    // Sử dụng SphereCastAll tạo hình trụ bán kính 1.5f (Soft targeting)
-                    RaycastHit[] hits = Physics.SphereCastAll(ray, 1.5f, 100f, targetLayer);
-                    if (hits.Length > 0)
+                    // Sử dụng SphereCastNonAlloc tạo hình trụ bán kính 1.5f (Soft targeting, 0 GC Alloc)
+                    int hitCount = Physics.SphereCastNonAlloc(ray, 1.5f, aimSphereCastBuffer, 100f, targetLayer);
+                    if (hitCount > 0)
                     {
                         float minDistanceToRay = float.MaxValue;
-                        foreach (var hit in hits)
+                        for (int i = 0; i < hitCount; i++)
                         {
+                            var hit = aimSphereCastBuffer[i];
+                            if (hit.collider == null) continue;
                             Vector3 enemyPos = hit.collider.transform.position;
                             float distToRay = Vector3.Cross(ray.direction, enemyPos - ray.origin).magnitude;
                             
@@ -734,13 +745,16 @@ namespace TopDownGame.Player
 
         private Transform FindTargetInFront(float range)
         {
-            Collider[] hits = Physics.OverlapSphere(transform.position, range, targetLayer);
+            int hitCount = Physics.OverlapSphereNonAlloc(transform.position, range, targetInFrontBuffer, targetLayer);
             Transform best = null;
-            float minDot = 0.3f; // KhoÃ¡ÂºÂ£ng 70 Ã„â€˜Ã¡Â»â„¢ nÃƒÂ³n phÃƒÂ­a trÃ†Â°Ã¡Â»â€ºc
+            float minDot = 0.3f; // Khoảng 70 độ nón phía trước
             float minDst = float.MaxValue;
 
-            foreach (var h in hits)
+            for (int i = 0; i < hitCount; i++)
             {
+                Collider h = targetInFrontBuffer[i];
+                if (h == null || h.gameObject == gameObject) continue;
+
                 Vector3 dir = (h.transform.position - transform.position);
                 dir.y = 0;
                 float dst = dir.magnitude;
@@ -756,7 +770,7 @@ namespace TopDownGame.Player
                 }
                 else
                 {
-                    return h.transform; // Ã„ÂÃ¡Â»Â©ng sÃƒÂ¡t cÃ¡ÂºÂ¡nh nhau
+                    return h.transform; // Đứng sát cạnh nhau
                 }
             }
             return best;

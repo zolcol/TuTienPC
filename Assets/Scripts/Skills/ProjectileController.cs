@@ -329,31 +329,38 @@ namespace TopDownGame.Skills
                         particles[i].Stop(true, ParticleSystemStopBehavior.StopEmitting);
                     }
                 }
-                Destroy(gameObject, delaySec);
+                StartCoroutine(RecycleAfterDelay(delaySec));
             }
             else
             {
-                if (flyingEffectInstance != null)
-                {
-                    var particles = flyingEffectInstance.GetComponentsInChildren<ParticleSystem>();
-                    for (int i = 0; i < particles.Length; i++)
-                    {
-                        particles[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                    }
-
-                    var renderers = flyingEffectInstance.GetComponentsInChildren<Renderer>();
-                    for (int i = 0; i < renderers.Length; i++)
-                    {
-                        renderers[i].enabled = false;
-                    }
-
-                    flyingEffectInstance.SetActive(false);
-                    Destroy(flyingEffectInstance);
-                    flyingEffectInstance = null;
-                }
-
-                Destroy(gameObject);
+                RecycleImmediately();
             }
+        }
+
+        private System.Collections.IEnumerator RecycleAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            RecycleImmediately();
+        }
+
+        private void RecycleImmediately()
+        {
+            if (flyingEffectInstance != null)
+            {
+                EffectManager.Instance.RecycleEffect(flyingEffectInstance);
+                flyingEffectInstance = null;
+            }
+
+            isInitialized = false;
+            isDestroying = false;
+            caster = null;
+            casterStats = null;
+            skillData = null;
+            missileData = null;
+            homingTarget = null;
+            lastHitTimes.Clear();
+
+            ProjectilePool.Instance.Release(this);
         }
 
         /// <summary>

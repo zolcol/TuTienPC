@@ -1,9 +1,87 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Skills;
 
 namespace TopDownGame.Combat
 {
+    public class PooledVfx : MonoBehaviour
+    {
+        public string PoolKey;
+        public Coroutine AutoRecycleCoroutine;
+        private VfxLockRotation lockRotationComponent;
+        private ParticleSystem[] cachedParticleSystems;
+        private TrailRenderer[] cachedTrailRenderers;
+        private Renderer[] cachedRenderers;
+
+        public void CacheComponents()
+        {
+            lockRotationComponent = GetComponent<VfxLockRotation>();
+            cachedParticleSystems = GetComponentsInChildren<ParticleSystem>(true);
+            cachedTrailRenderers = GetComponentsInChildren<TrailRenderer>(true);
+            cachedRenderers = GetComponentsInChildren<Renderer>(true);
+        }
+
+        public void ResetAndPlay()
+        {
+            if (cachedParticleSystems != null)
+            {
+                for (int i = 0; i < cachedParticleSystems.Length; i++)
+                {
+                    if (cachedParticleSystems[i] != null)
+                    {
+                        cachedParticleSystems[i].Clear();
+                        cachedParticleSystems[i].Play();
+                    }
+                }
+            }
+            if (cachedTrailRenderers != null)
+            {
+                for (int i = 0; i < cachedTrailRenderers.Length; i++)
+                {
+                    if (cachedTrailRenderers[i] != null)
+                    {
+                        cachedTrailRenderers[i].Clear();
+                    }
+                }
+            }
+            if (cachedRenderers != null)
+            {
+                for (int i = 0; i < cachedRenderers.Length; i++)
+                {
+                    if (cachedRenderers[i] != null)
+                    {
+                        cachedRenderers[i].enabled = true;
+                    }
+                }
+            }
+        }
+
+        public void StopEffects()
+        {
+            if (cachedParticleSystems != null)
+            {
+                for (int i = 0; i < cachedParticleSystems.Length; i++)
+                {
+                    if (cachedParticleSystems[i] != null)
+                    {
+                        cachedParticleSystems[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    }
+                }
+            }
+            if (cachedTrailRenderers != null)
+            {
+                for (int i = 0; i < cachedTrailRenderers.Length; i++)
+                {
+                    if (cachedTrailRenderers[i] != null)
+                    {
+                        cachedTrailRenderers[i].Clear();
+                    }
+                }
+            }
+        }
+    }
+
     public class EffectManager : MonoBehaviour
     {
         private static EffectManager instance;
@@ -33,6 +111,7 @@ namespace TopDownGame.Combat
         }
 
         private readonly Dictionary<string, GameObject> prefabCache = new Dictionary<string, GameObject>();
+        private readonly Dictionary<string, Queue<GameObject>> vfxPools = new Dictionary<string, Queue<GameObject>>(System.StringComparer.OrdinalIgnoreCase);
 
         private void Awake()
         {
@@ -110,7 +189,8 @@ namespace TopDownGame.Combat
 
             if (attachToBone)
             {
-                VfxLockRotation lockRot = effectInstance.AddComponent<VfxLockRotation>();
+                VfxLockRotation lockRot = effectInstance.GetComponent<VfxLockRotation>() ?? effectInstance.AddComponent<VfxLockRotation>();
+                lockRot.enabled = true;
                 lockRot.Initialize(characterRoot, mode == VfxRotationMode.FlatGround ? null : boneSlot, mode);
             }
 
@@ -132,7 +212,8 @@ namespace TopDownGame.Combat
             GameObject effectInstance = SpawnEffect(resourcePath, spawnPos, spawnRot, null, autoDestroyTime);
             if (effectInstance == null) return null;
 
-            VfxLockRotation lockRot = effectInstance.AddComponent<VfxLockRotation>();
+            VfxLockRotation lockRot = effectInstance.GetComponent<VfxLockRotation>() ?? effectInstance.AddComponent<VfxLockRotation>();
+            lockRot.enabled = true;
             lockRot.Initialize(characterRoot, null, VfxRotationMode.FlatGround);
 
             return effectInstance;
@@ -159,7 +240,8 @@ namespace TopDownGame.Combat
 
             if (attachToBone)
             {
-                VfxLockRotation lockRot = effectInstance.AddComponent<VfxLockRotation>();
+                VfxLockRotation lockRot = effectInstance.GetComponent<VfxLockRotation>() ?? effectInstance.AddComponent<VfxLockRotation>();
+                lockRot.enabled = true;
                 lockRot.Initialize(characterRoot, boneSlot, mode);
             }
 
@@ -167,49 +249,142 @@ namespace TopDownGame.Combat
         }
 
         /// <summary>
-        /// Sinh ra hiệu ứng từ đường dẫn prefab trong Resources
+        /// Sinh ra hiệu ứng từ đường dẫn prefab trong Resources có hỗ trợ Object Pooling
         /// </summary>
         public GameObject SpawnEffect(string resourcePath, Vector3 position, Quaternion rotation, Transform parent = null, float autoDestroyTime = 2.5f)
         {
             if (string.IsNullOrEmpty(resourcePath)) return null;
 
-            GameObject prefab = LoadEffectPrefab(resourcePath);
-            if (prefab == null)
+            string cleanKey = resourcePath.Replace("\\", "/").Trim().ToLowerInvariant();
+            GameObject effectInstance = null;
+            PooledVfx pooled = null;
+
+            if (vfxPools.TryGetValue(cleanKey, out Queue<GameObject> poolQueue))
             {
-                Debug.LogWarning($"[EffectManager] ⚠️ Không tìm thấy VFX prefab tại đường dẫn: Resources/{resourcePath}");
-                return null;
+                while (poolQueue.Count > 0)
+                {
+                    GameObject candidate = poolQueue.Dequeue();
+                    if (candidate != null)
+                    {
+                        effectInstance = candidate;
+                        pooled = effectInstance.GetComponent<PooledVfx>();
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                vfxPools[cleanKey] = new Queue<GameObject>();
             }
 
-            GameObject effectInstance;
+            if (effectInstance == null)
+            {
+                GameObject prefab = LoadEffectPrefab(resourcePath);
+                if (prefab == null)
+                {
+                    Debug.LogWarning($"[EffectManager] ⚠️ Không tìm thấy VFX prefab tại đường dẫn: Resources/{resourcePath}");
+                    return null;
+                }
+
+                effectInstance = Instantiate(prefab);
+                pooled = effectInstance.AddComponent<PooledVfx>();
+                pooled.PoolKey = cleanKey;
+                pooled.CacheComponents();
+            }
+
+            // Thiết lập vị trí / cha
             if (parent != null)
             {
-                effectInstance = Instantiate(prefab, parent);
+                effectInstance.transform.SetParent(parent);
                 effectInstance.transform.localPosition = Vector3.zero;
                 effectInstance.transform.localRotation = Quaternion.identity;
 
-                // Tự động kích hoạt khóa xoay phương ngang nếu cột LockRotate trong EffectRes.csv = 1
                 if (TopDownGame.Data.EffectDatabase.IsLockRotate(resourcePath))
                 {
-                    VfxLockRotation lockRot = effectInstance.AddComponent<VfxLockRotation>();
+                    VfxLockRotation lockRot = effectInstance.GetComponent<VfxLockRotation>() ?? effectInstance.AddComponent<VfxLockRotation>();
+                    lockRot.enabled = true;
                     Transform root = parent.root != null ? parent.root : parent;
                     lockRot.Initialize(root, parent, VfxRotationMode.FlatGround);
                 }
             }
             else
             {
+                effectInstance.transform.SetParent(null);
                 if (TopDownGame.Data.EffectDatabase.IsLockRotate(resourcePath))
                 {
                     rotation = Quaternion.Euler(0f, rotation.eulerAngles.y, 0f);
                 }
-                effectInstance = Instantiate(prefab, position, rotation, null);
+                effectInstance.transform.position = position;
+                effectInstance.transform.rotation = rotation;
+            }
+
+            effectInstance.SetActive(true);
+            pooled.ResetAndPlay();
+
+            // Lập lịch tự động thu hồi về Pool thay vì Destroy
+            if (pooled.AutoRecycleCoroutine != null)
+            {
+                StopCoroutine(pooled.AutoRecycleCoroutine);
+                pooled.AutoRecycleCoroutine = null;
             }
 
             if (autoDestroyTime > 0f)
             {
-                Destroy(effectInstance, autoDestroyTime);
+                pooled.AutoRecycleCoroutine = StartCoroutine(AutoRecycleRoutine(pooled, autoDestroyTime));
             }
 
             return effectInstance;
+        }
+
+        private IEnumerator AutoRecycleRoutine(PooledVfx pooled, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            if (pooled != null && pooled.gameObject != null && pooled.gameObject.activeInHierarchy)
+            {
+                RecycleEffect(pooled.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// Thu hồi hiệu ứng VFX về Object Pool (0 GC Alloc, 0 Destroy)
+        /// </summary>
+        public void RecycleEffect(GameObject effectInstance)
+        {
+            if (effectInstance == null) return;
+
+            if (effectInstance.TryGetComponent<PooledVfx>(out PooledVfx pooled))
+            {
+                if (pooled.AutoRecycleCoroutine != null)
+                {
+                    StopCoroutine(pooled.AutoRecycleCoroutine);
+                    pooled.AutoRecycleCoroutine = null;
+                }
+
+                VfxLockRotation lockRot = effectInstance.GetComponent<VfxLockRotation>();
+                if (lockRot != null)
+                {
+                    lockRot.enabled = false;
+                }
+
+                pooled.StopEffects();
+
+                effectInstance.transform.SetParent(transform);
+                effectInstance.SetActive(false);
+
+                if (!string.IsNullOrEmpty(pooled.PoolKey))
+                {
+                    if (!vfxPools.TryGetValue(pooled.PoolKey, out Queue<GameObject> poolQueue))
+                    {
+                        poolQueue = new Queue<GameObject>();
+                        vfxPools[pooled.PoolKey] = poolQueue;
+                    }
+                    poolQueue.Enqueue(effectInstance);
+                }
+            }
+            else
+            {
+                Destroy(effectInstance);
+            }
         }
 
         private GameObject LoadEffectPrefab(string path)

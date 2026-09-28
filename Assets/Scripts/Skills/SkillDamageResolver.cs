@@ -13,6 +13,7 @@ namespace TopDownGame.Skills
     {
         private static readonly Collider[] hitBuffer = new Collider[60];
         private static readonly HashSet<IDamageable> hitEntitiesThisCast = new HashSet<IDamageable>();
+        private static readonly List<EntityStats> targetsToHealBuffer = new List<EntityStats>(16);
 
         // Độ cao chuẩn của vùng quét sát thương 3D (tính từ sàn lên 2.0m)
         public const float BoxHeight = 2.0f;
@@ -96,13 +97,13 @@ namespace TopDownGame.Skills
             float range = skill.range > 0f ? skill.range : 8.0f;
 
             bool isCasterPlayer = caster.CompareTag("Player") || caster.GetComponent<TopDownGame.Player.PlayerController>() != null;
-            List<EntityStats> targetsToHeal = new List<EntityStats>();
+            targetsToHealBuffer.Clear();
 
             // Bản thân người tung chiêu (TargetSelf == true hoặc Relation là Recover/Self)
             EntityStats myStats = casterStats != null ? casterStats : caster.GetComponent<EntityStats>();
             if (myStats != null && (skill.targetSelf || skill.relation == SkillRelation.Recover || skill.relation == SkillRelation.Self))
             {
-                targetsToHeal.Add(myStats);
+                targetsToHealBuffer.Add(myStats);
             }
 
             // Nếu có explicitTarget hợp lệ (đồng minh)
@@ -112,9 +113,9 @@ namespace TopDownGame.Skills
                 if (explicitStats != null && !explicitStats.IsDead)
                 {
                     bool isExplicitPlayer = explicitStats.CompareTag("Player") || explicitStats.GetComponent<TopDownGame.Player.PlayerController>() != null;
-                    if (isCasterPlayer == isExplicitPlayer && !targetsToHeal.Contains(explicitStats))
+                    if (isCasterPlayer == isExplicitPlayer && !targetsToHealBuffer.Contains(explicitStats))
                     {
-                        targetsToHeal.Add(explicitStats);
+                        targetsToHealBuffer.Add(explicitStats);
                     }
                 }
             }
@@ -135,9 +136,9 @@ namespace TopDownGame.Skills
                 // Nếu người tung là Player -> đồng minh là Player/Pet; nếu là Quái -> đồng minh là Quái
                 if (isCasterPlayer == isTargetPlayer)
                 {
-                    if (!targetsToHeal.Contains(targetStats))
+                    if (!targetsToHealBuffer.Contains(targetStats))
                     {
-                        targetsToHeal.Add(targetStats);
+                        targetsToHealBuffer.Add(targetStats);
                     }
                 }
             }
@@ -173,8 +174,9 @@ namespace TopDownGame.Skills
             }
 
             // 2. Thực hiện hồi máu và hiển thị hiệu ứng Buff trên người từng mục tiêu theo StateEffect.csv
-            foreach (var target in targetsToHeal)
+            for (int i = 0; i < targetsToHealBuffer.Count; i++)
             {
+                var target = targetsToHealBuffer[i];
                 if (target != null && !target.IsDead)
                 {
                     float hpBefore = target.Health.CurrentValue;
@@ -206,6 +208,7 @@ namespace TopDownGame.Skills
                     }
                 }
             }
+            targetsToHealBuffer.Clear();
         }
 
         /// <summary>
@@ -457,8 +460,7 @@ namespace TopDownGame.Skills
             LayerMask targetLayer,
             Transform explicitTarget)
         {
-            GameObject projGo = new GameObject($"[Missile]_{skill.name}_{skill.id}");
-            ProjectileController controller = projGo.AddComponent<ProjectileController>();
+            ProjectileController controller = ProjectilePool.Instance.Get();
             controller.Launch(caster, casterStats, skill, missile, spawnPos, direction, targetLayer, explicitTarget);
         }
 

@@ -82,6 +82,8 @@ namespace TopDownGame.Enemy
         private float turnSmoothVelocity;
         private bool isGrounded;
         private readonly Dictionary<int, float> cooldownTimers = new Dictionary<int, float>();
+        private readonly List<int> cooldownKeysBuffer = new List<int>(8);
+        private readonly List<SkillData> readyAttacksBuffer = new List<SkillData>(4);
 
         // Debug Gizmo
         private struct GizmoDrawInfo
@@ -349,17 +351,21 @@ namespace TopDownGame.Enemy
         {
             if (cooldownTimers.Count == 0) return;
 
-            var keys = new List<int>(cooldownTimers.Keys);
-            foreach (var id in keys)
+            cooldownKeysBuffer.Clear();
+            foreach (var kvp in cooldownTimers)
             {
-                if (cooldownTimers[id] > 0f)
+                if (kvp.Value > 0f)
                 {
-                    cooldownTimers[id] -= Time.deltaTime;
-                    if (cooldownTimers[id] <= 0f)
-                    {
-                        cooldownTimers[id] = 0f;
-                    }
+                    cooldownKeysBuffer.Add(kvp.Key);
                 }
+            }
+
+            float dt = Time.deltaTime;
+            for (int i = 0; i < cooldownKeysBuffer.Count; i++)
+            {
+                int id = cooldownKeysBuffer[i];
+                float rem = cooldownTimers[id] - dt;
+                cooldownTimers[id] = rem > 0f ? rem : 0f;
             }
         }
 
@@ -378,20 +384,21 @@ namespace TopDownGame.Enemy
         {
             if (attackSkillIds == null || attackSkillIds.Count == 0) return null;
 
-            List<SkillData> readyAttacks = new List<SkillData>();
-            foreach (var id in attackSkillIds)
+            readyAttacksBuffer.Clear();
+            for (int i = 0; i < attackSkillIds.Count; i++)
             {
+                int id = attackSkillIds[i];
                 SkillData skill = SkillDatabase.GetSkill(id);
                 if (skill != null && !IsOnCooldown(skill.id))
                 {
-                    readyAttacks.Add(skill);
+                    readyAttacksBuffer.Add(skill);
                 }
             }
 
-            if (readyAttacks.Count == 0) return null;
+            if (readyAttacksBuffer.Count == 0) return null;
 
-            int randomIndex = Random.Range(0, readyAttacks.Count);
-            return readyAttacks[randomIndex];
+            int randomIndex = Random.Range(0, readyAttacksBuffer.Count);
+            return readyAttacksBuffer[randomIndex];
         }
 
         public void TryFindTarget()
