@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Combat;
 using TopDownGame.Input;
@@ -9,733 +7,94 @@ using TopDownGame.Stats;
 
 namespace TopDownGame.Player
 {
-    [RequireComponent(typeof(CharacterController))]
-    [RequireComponent(typeof(PlayerInputReader))]
+    [RequireComponent(typeof(CharacterController), typeof(PlayerInputReader))]
+    [RequireComponent(typeof(CharacterMovement), typeof(PlayerAiming), typeof(PlayerCombat))]
     public class PlayerController : MonoBehaviour
     {
-        [Header("=== MOVEMENT SETTINGS ===")]
-        [SerializeField] private float moveSpeed = 6f;
-        [SerializeField] private float rotationSmoothTime = 0.08f;
-        [Tooltip("Ã„ÂÃ¡Â»â„¢ mÃ†Â°Ã¡Â»Â£t/gia tÃ¡Â»â€˜c khi xoay ngÃ†Â°Ã¡Â»Âi Ã„â€˜Ã¡Â»â€¢i hÃ†Â°Ã¡Â»â€ºng lÃƒÂºc Ã„â€˜ang Ã„â€˜ÃƒÂ¡nh (0.12 - 0.18s giÃƒÂºp xoay Ã„â€˜Ã¡ÂºÂ§m tay, cÃƒÂ³ quÃƒÂ¡n tÃƒÂ­nh, khÃƒÂ´ng giÃ¡ÂºÂ­t ngoÃ¡ÂºÂ¯t)")]
-        [SerializeField] private float attackRotationSmoothTime = 0.14f;
-        [SerializeField] private float gravity = -9.81f;
-
-        [Header("=== COMBAT & TARGETING ===")]
-        [Tooltip("Layer nhÃ¡ÂºÂ­n sÃƒÂ¡t thÃ†Â°Ã†Â¡ng cÃ¡Â»Â§a mÃ¡Â»Â¥c tiÃƒÂªu (vd: Enemy hoÃ¡ÂºÂ·c Default)")]
-        [SerializeField] private LayerMask targetLayer = ~0;
-
-        [Tooltip("ID cÃ¡Â»Â§a Ã„â€˜ÃƒÂ²n Ã„â€˜ÃƒÂ¡nh thÃ†Â°Ã¡Â»Âng Ã„â€˜Ã¡ÂºÂ§u tiÃƒÂªn trong Skills.csv (vd: 301)")]
-        [SerializeField] private int defaultNormalAttackId = 301;
-
-        [Header("=== FACTION & SKILL SLOTS (Q - E - R) ===")]
-        [Tooltip("MÃƒÂ´n phÃƒÂ¡i cÃ¡Â»Â§a nhÃƒÂ¢n vÃ¡ÂºÂ­t (1: ThiÃƒÂªn VÃ†Â°Ã†Â¡ng, 2: Nga Mi, 3: Ã„ÂÃƒÂ o Hoa, 4: TiÃƒÂªu Dao, ...)")]
-        [SerializeField] private int factionId = 2;
-
-        [Tooltip("ID cÃ¡Â»Â§a Model trong NpcRes.csv (vd: 1 cho ThiÃƒÂªn VÃ†Â°Ã†Â¡ng Nam, 2 cho Nga Mi, 3 cho Ã„ÂÃƒÂ o Hoa)")]
-        [SerializeField] private int npcResId = 2;
-
-        [Tooltip("KÃ¡Â»Â¹ nÃ„Æ’ng 1: PhÃƒÂ­m Q (vd: 306 - Nga Mi Skill 1 / TÃ¡Â»Â¥ HÃƒÂ ng PhÃ¡Â»â€¢ Ã„ÂÃ¡Â»â„¢)")]
-        [SerializeField] private int skillSlotQ_Id = 306;
-
-        [Tooltip("KÃ¡Â»Â¹ nÃ„Æ’ng 2: PhÃƒÂ­m E (vd: 308 - Nga Mi Skill 2 / BÃ¡ÂºÂ¡ch LÃ¡Â»â„¢ NgÃ†Â°ng SÃ†Â°Ã†Â¡ng)")]
-        [SerializeField] private int skillSlotE_Id = 308;
-
-        [Tooltip("KÃ¡Â»Â¹ nÃ„Æ’ng 3: PhÃƒÂ­m R (vd: 346 - Nga Mi NÃ¡Â»â„¢ / BÃ„Æ’ng PhÃƒÂ¡ch HÃ¡Â»â€œng LiÃƒÂªn KiÃ¡ÂºÂ¿p)")]
-        [SerializeField] private int skillSlotR_Id = 346;
-
-        [Header("=== CHEAT & TESTING ===")]
-        [Tooltip("BÃ¡Â»Â qua thÃ¡Â»Âi gian hÃ¡Â»â€œi chiÃƒÂªu (No Cooldown / NoCD) khi test")]
-        [SerializeField] private bool noCooldown = false;
-        [Tooltip("BÃ¡Â»Â qua tiÃƒÂªu hao Mana / NÃ¡Â»â„¢i lÃ¡Â»Â±c khi test")]
-        [SerializeField] private bool noManaCost = false;
-
-        [Header("=== DEBUG & GIZMOS (TÃƒÂ¹y chÃ¡Â»Ân) ===")]
-        [Tooltip("HiÃ¡Â»Æ’n thÃ¡Â»â€¹ vÃƒÂ¹ng quÃƒÂ©t tia / quÃ¡ÂºÂ¡t / vÃƒÂ²ng trÃƒÂ²n trong Scene View khi tung Ã„â€˜ÃƒÂ²n")]
-        [SerializeField] private bool showHitGizmos = true;
-        [Tooltip("ThÃ¡Â»Âi gian lÃ†Â°u vÃ¡Â»â€¡t Gizmo (giÃƒÂ¢y)")]
-        [SerializeField] private float gizmoDisplayDuration = 0.25f;
-        [Tooltip("TrÃ¡ÂºÂ¡ng thÃƒÂ¡i hiÃ¡Â»â€¡n tÃ¡ÂºÂ¡i cÃ¡Â»Â§a Player (ChÃ¡Â»â€° xem)")]
-        [SerializeField] private string currentStateDisplay;
-        [Tooltip("Ã„Âang dÃƒÂ¹ng tay cÃ¡ÂºÂ§m Gamepad (ChÃ¡Â»â€° xem)")]
-        [SerializeField] private bool usingGamepadDisplay;
-
-        // State Machine
         public TopDownGame.StateMachine.StateMachine StateMachine { get; private set; }
         public PlayerIdleState IdleState { get; private set; }
         public PlayerMoveState MoveState { get; private set; }
         public PlayerAttackState AttackState { get; private set; }
 
-        // Internal References
-        private PlayerInputReader inputReader;
-        private LegacyAnimationController animationController;
-        private PlayerStats stats;
-        private UnityEngine.Camera mainCamera;
+        public CharacterMovement Movement { get; private set; }
+        public PlayerAiming Aiming { get; private set; }
+        public PlayerCombat Combat { get; private set; }
+        public PlayerInputReader InputReader { get; private set; }
+        public LegacyAnimationController AnimationController { get; private set; }
+        public PlayerStats Stats { get; private set; }
+        public CharacterController CharacterController => Movement != null ? Movement.CharacterController : GetComponent<CharacterController>();
 
-        // Components & Getters
-        public CharacterController CharacterController { get; private set; }
-        public PlayerInputReader InputReader => inputReader;
-        public LegacyAnimationController AnimationController => animationController;
-        public PlayerStats Stats => stats;
-        public float MoveSpeed => moveSpeed;
-        public float AttackRotationSmoothTime => attackRotationSmoothTime;
-
-        // Skills Getters from Database
-        public SkillData DefaultNormalAttack => SkillDatabase.GetSkill(defaultNormalAttackId);
-        public SkillData SkillSlotQ => SkillDatabase.GetSkill(skillSlotQ_Id);
-        public SkillData SkillSlotE => SkillDatabase.GetSkill(skillSlotE_Id);
-        public SkillData SkillSlotR => SkillDatabase.GetSkill(skillSlotR_Id);
-
-        public int SkillSlotQ_Id => skillSlotQ_Id;
-        public int SkillSlotE_Id => skillSlotE_Id;
-        public int SkillSlotR_Id => skillSlotR_Id;
-        public int NpcResId => npcResId;
-
-        public bool NoCooldown { get => noCooldown; set => noCooldown = value; }
-        public bool NoManaCost { get => noManaCost; set => noManaCost = value; }
-
-        private bool isGrounded;
-        private float turnSmoothVelocity;
-        private Vector3 moveDirection;
-        private Vector3 verticalVelocity;
-
-        // --- SKILL SELECTOR (AIMING) ---
-        private SkillData aimingSkill;
-        private GameObject currentIndicator;
-        private Vector3 aimGroundPosition;
-
-        // Quản lý Cooldown theo Skill ID (Zero-alloc buffer)
-        private readonly Dictionary<int, float> cooldownTimers = new Dictionary<int, float>();
-        private readonly List<int> cooldownKeysBuffer = new List<int>(8);
-
-        // Physics NonAlloc Buffers (Tránh GC Alloc liên tục khi lia chuột/ngắm chiêu)
-        private static readonly RaycastHit[] aimSphereCastBuffer = new RaycastHit[32];
-        private static readonly Collider[] targetInFrontBuffer = new Collider[32];
-
-        // Debug Gizmo Cache
-        private struct GizmoDrawInfo
-        {
-            public SkillType type;
-            public Vector3 origin;
-            public Vector3 forward;
-            public float range;
-            public float fanAngle;
-            public float boxWidth;
-        }
-        private GizmoDrawInfo lastGizmo;
-        private float gizmoTimer;
+        public float MoveSpeed => Movement != null ? Movement.MoveSpeed : 6f;
+        public float AttackRotationSmoothTime => Movement != null ? Movement.AttackRotationSmoothTime : 0.14f;
+        public int NpcResId => Combat != null ? Combat.NpcResId : 2;
+        public SkillData DefaultNormalAttack => Combat != null ? Combat.DefaultNormalAttack : null;
+        public SkillData SkillSlotQ => Combat != null ? Combat.SkillSlotQ : null;
+        public SkillData SkillSlotE => Combat != null ? Combat.SkillSlotE : null;
+        public SkillData SkillSlotR => Combat != null ? Combat.SkillSlotR : null;
+        public int SkillSlotQ_Id => Combat != null ? Combat.SkillSlotQ_Id : 0;
+        public int SkillSlotE_Id => Combat != null ? Combat.SkillSlotE_Id : 0;
+        public int SkillSlotR_Id => Combat != null ? Combat.SkillSlotR_Id : 0;
+        public bool NoCooldown { get => Combat != null && Combat.NoCooldown; set { if (Combat != null) Combat.NoCooldown = value; } }
+        public bool NoManaCost { get => Combat != null && Combat.NoManaCost; set { if (Combat != null) Combat.NoManaCost = value; } }
+        public Transform CurrentLockTarget => Aiming != null ? Aiming.CurrentLockTarget : null;
+        public Vector3 CurrentTargetPoint => Aiming != null ? Aiming.CurrentTargetPoint : transform.position + transform.forward * 5f;
+        public Vector3 CurrentTargetDirection => Aiming != null ? Aiming.CurrentTargetDirection : transform.forward;
 
         private void Awake()
         {
-            CharacterController = GetComponent<CharacterController>();
-            inputReader = GetComponent<PlayerInputReader>() ?? GetComponentInChildren<PlayerInputReader>();
-            animationController = GetComponent<LegacyAnimationController>() ?? GetComponentInChildren<LegacyAnimationController>();
-            stats = GetComponent<PlayerStats>() ?? GetComponentInChildren<PlayerStats>();
-            mainCamera = UnityEngine.Camera.main;
+            Movement = GetComponent<CharacterMovement>() ?? gameObject.AddComponent<CharacterMovement>();
+            Aiming = GetComponent<PlayerAiming>() ?? gameObject.AddComponent<PlayerAiming>();
+            Combat = GetComponent<PlayerCombat>() ?? gameObject.AddComponent<PlayerCombat>();
+            InputReader = GetComponent<PlayerInputReader>() ?? GetComponentInChildren<PlayerInputReader>();
+            AnimationController = GetComponent<LegacyAnimationController>() ?? GetComponentInChildren<LegacyAnimationController>();
+            Stats = GetComponent<PlayerStats>() ?? GetComponentInChildren<PlayerStats>();
 
-            SkillDatabase.Instance.EnsureLoaded();
-            TopDownGame.Data.FactionSkillDatabase.Instance.EnsureLoaded();
-
-            // ChÃ¡Â»â€° tÃ¡Â»Â± Ã„â€˜Ã¡Â»â„¢ng nÃ¡ÂºÂ¡p tÃ¡Â»Â« FactionSkill nÃ¡ÂºÂ¿u cÃƒÂ¡c ÃƒÂ´ kÃ¡Â»Â¹ nÃ„Æ’ng chÃ†Â°a Ã„â€˜Ã†Â°Ã¡Â»Â£c ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng thiÃ¡ÂºÂ¿t lÃ¡ÂºÂ­p trong Inspector (ID <= 0)
-            if (factionId > 0)
-            {
-                ApplyFactionSkills(factionId, false);
-            }
-
-            // KhÃ¡Â»Å¸i tÃ¡ÂºÂ¡o State Machine
             StateMachine = new TopDownGame.StateMachine.StateMachine();
             IdleState = new PlayerIdleState(this, StateMachine);
             MoveState = new PlayerMoveState(this, StateMachine);
             AttackState = new PlayerAttackState(this, StateMachine);
         }
 
-        [ContextMenu("NÃ¡ÂºÂ¡p KÃ¡Â»Â¹ NÃ„Æ’ng Theo MÃƒÂ´n PhÃƒÂ¡i")]
-        public void ApplyFactionSkills()
-        {
-            ApplyFactionSkills(factionId, true);
-        }
-
-        public void ApplyFactionSkills(int targetFaction, bool overwriteExisting = false)
-        {
-            this.factionId = targetFaction;
-            var list = TopDownGame.Data.FactionSkillDatabase.GetSkillsByFaction(targetFaction);
-            if (list == null || list.Count == 0) return;
-
-            foreach (var fSkill in list)
-            {
-                if (fSkill.btnName.Equals("Attack", System.StringComparison.OrdinalIgnoreCase))
-                {
-                    if (overwriteExisting || defaultNormalAttackId <= 0) defaultNormalAttackId = fSkill.skillId;
-                }
-                else if (fSkill.btnName.Equals("Skill1", System.StringComparison.OrdinalIgnoreCase))
-                {
-                    if (overwriteExisting || skillSlotQ_Id <= 0) skillSlotQ_Id = fSkill.skillId;
-                }
-                else if (fSkill.btnName.Equals("Skill2", System.StringComparison.OrdinalIgnoreCase))
-                {
-                    if (overwriteExisting || skillSlotE_Id <= 0) skillSlotE_Id = fSkill.skillId;
-                }
-                else if (fSkill.btnName.Equals("Skill3", System.StringComparison.OrdinalIgnoreCase))
-                {
-                    // Skill3 lÃƒÂ  chiÃƒÂªu hÃ¡Â»â€” trÃ¡Â»Â£/hÃ¡Â»â€œi phÃ¡Â»Â¥c (nhÃ†Â° 306 TÃ¡Â»Â« HÃƒÂ ng PhÃ¡Â»â€¢ Ã„ÂÃ¡Â»â„¢). NÃ¡ÂºÂ¿u Q chÃ†Â°a gÃƒÂ¡n thÃƒÂ¬ Ã†Â°u tiÃƒÂªn nÃ¡ÂºÂ¡p vÃƒÂ o Q
-                    if (overwriteExisting || skillSlotQ_Id <= 0) skillSlotQ_Id = fSkill.skillId;
-                }
-                else if (fSkill.btnName.Equals("Skill5", System.StringComparison.OrdinalIgnoreCase) || fSkill.isAnger)
-                {
-                    if (overwriteExisting || skillSlotR_Id <= 0) skillSlotR_Id = fSkill.skillId;
-                }
-            }
-        }
-
-        private void Start()
-        {
-            StateMachine.Initialize(IdleState);
-        }
+        private void Start() => StateMachine.Initialize(IdleState);
 
         private void Update()
         {
-            UpdateCooldowns();
+            if (Combat != null) Combat.TickCooldowns();
             StateMachine.Update();
-            UpdateSkillAiming();
-            HandleMovementAndGravity();
-
-            if (StateMachine.CurrentState != null)
-            {
-                currentStateDisplay = StateMachine.CurrentState.GetType().Name;
-            }
-
-            if (inputReader != null)
-            {
-                usingGamepadDisplay = inputReader.IsUsingGamepad;
-            }
-
-            if (gizmoTimer > 0f)
-            {
-                gizmoTimer -= Time.deltaTime;
-            }
+            if (Aiming != null) Aiming.UpdateSkillAiming(GetInputVector(), InputReader != null && InputReader.IsUsingGamepad);
+            if (Movement != null) Movement.UpdateMovementAndGravity();
         }
 
-        private void FixedUpdate()
-        {
-            StateMachine.PhysicsUpdate();
-        }
+        private void FixedUpdate() => StateMachine.PhysicsUpdate();
 
-        private void UpdateCooldowns()
-        {
-            if (cooldownTimers.Count == 0) return;
+        public void ApplyFactionSkills() => Combat?.ApplyFactionSkills();
+        public void ApplyFactionSkills(int targetFaction, bool overwriteExisting = false) => Combat?.ApplyFactionSkills(targetFaction, overwriteExisting);
+        public bool IsOnCooldown(int skillId) => Combat != null && Combat.IsOnCooldown(skillId);
+        public float GetRemainingCooldown(int skillId) => Combat != null ? Combat.GetRemainingCooldown(skillId) : 0f;
+        public void StartCooldown(int skillId, float duration) => Combat?.StartCooldown(skillId, duration);
+        public Vector3 GetInputVector() => Movement != null ? Movement.CalculateCameraRelativeInput(InputReader != null ? InputReader.MoveInput : Vector2.zero) : Vector3.zero;
+        public bool IsAttackPressed() => InputReader != null && (InputReader.AttackTriggered || InputReader.IsAttackHeld);
+        public bool CheckAndTriggerSkills() => Combat != null && Combat.CheckAndTriggerSkills();
+        public void CancelAiming() => Aiming?.CancelAiming();
+        public bool CanExecuteSkill(SkillData skill) => Combat != null && Combat.CanExecuteSkill(skill);
+        public void Move(Vector3 direction) => Movement?.Move(direction);
+        public void MoveWithSpeed(Vector3 direction, float speed) => Movement?.MoveWithSpeed(direction, speed);
+        public void RotateTowards(Vector3 direction) => Movement?.RotateTowards(direction);
+        public void RotateTowards(Vector3 direction, float smoothTime) => Movement?.RotateTowards(direction, smoothTime);
+        public void ResetTurnVelocity() => Movement?.ResetTurnVelocity();
 
-            cooldownKeysBuffer.Clear();
-            foreach (var kvp in cooldownTimers)
-            {
-                if (kvp.Value > 0f)
-                {
-                    cooldownKeysBuffer.Add(kvp.Key);
-                }
-            }
-
-            float dt = Time.deltaTime;
-            for (int i = 0; i < cooldownKeysBuffer.Count; i++)
-            {
-                int id = cooldownKeysBuffer[i];
-                float rem = cooldownTimers[id] - dt;
-                cooldownTimers[id] = rem > 0f ? rem : 0f;
-            }
-        }
-
-        public bool IsOnCooldown(int skillId)
-        {
-            if (noCooldown) return false;
-            return skillId > 0 && cooldownTimers.TryGetValue(skillId, out float timeRemaining) && timeRemaining > 0f;
-        }
-
-        public float GetRemainingCooldown(int skillId)
-        {
-            if (noCooldown || skillId <= 0) return 0f;
-            return cooldownTimers.TryGetValue(skillId, out float timeRemaining) ? Mathf.Max(0f, timeRemaining) : 0f;
-        }
-
-        public void StartCooldown(int skillId, float duration)
-        {
-            if (noCooldown || skillId <= 0 || duration <= 0f) return;
-            cooldownTimers[skillId] = duration;
-        }
-
-        private void HandleMovementAndGravity()
-        {
-            isGrounded = CharacterController.isGrounded;
-
-            if (isGrounded && verticalVelocity.y < 0f)
-            {
-                verticalVelocity.y = -2f;
-            }
-            else
-            {
-                verticalVelocity.y += gravity * Time.deltaTime;
-            }
-
-            Vector3 finalMove = (moveDirection + verticalVelocity) * Time.deltaTime;
-            CharacterController.Move(finalMove);
-            moveDirection = Vector3.zero;
-        }
-
-        public Vector3 GetInputVector()
-        {
-            if (inputReader == null) return Vector3.zero;
-
-            Vector2 rawInput = inputReader.MoveInput;
-            if (rawInput.sqrMagnitude < 0.001f) return Vector3.zero;
-
-            if (mainCamera == null)
-            {
-                mainCamera = UnityEngine.Camera.main;
-            }
-
-            if (mainCamera != null)
-            {
-                Vector3 camForward = mainCamera.transform.forward;
-                Vector3 camRight = mainCamera.transform.right;
-
-                camForward.y = 0f;
-                camRight.y = 0f;
-                camForward.Normalize();
-                camRight.Normalize();
-
-                return (camForward * rawInput.y + camRight * rawInput.x).normalized;
-            }
-
-            return new Vector3(rawInput.x, 0f, rawInput.y);
-        }
-
-        public bool IsAttackPressed()
-        {
-            return inputReader != null && (inputReader.AttackTriggered || inputReader.IsAttackHeld);
-        }
-
-        public bool CheckAndTriggerSkills()
-        {
-            if (inputReader == null) return false;
-
-            if (HandleSkillInput(inputReader.Skill2Triggered, inputReader.Skill2Held, inputReader.Skill2Released, SkillSlotQ)) return true;
-            if (HandleSkillInput(inputReader.Skill1Triggered, inputReader.Skill1Held, inputReader.Skill1Released, SkillSlotE)) return true;
-            if (HandleSkillInput(inputReader.Skill3Triggered, inputReader.Skill3Held, inputReader.Skill3Released, SkillSlotR)) return true;
-
-            return false;
-        }
-
-        private bool HandleSkillInput(bool triggered, bool held, bool released, SkillData skill)
-        {
-            if (skill == null || !CanExecuteSkill(skill)) 
-            {
-                if (aimingSkill == skill) CancelAiming();
-                return false;
-            }
-
-            if (skill.selectorType == SkillSelectorType.None)
-            {
-                // Quick Cast
-                if (triggered)
-                {
-                    CancelAiming();
-                    return ExecuteSkill(skill);
-                }
-            }
-            else
-            {
-                // Aiming Cast
-                if (triggered)
-                {
-                    StartAiming(skill);
-                }
-                else if (released && aimingSkill == skill)
-                {
-                    CancelAiming();
-                    return ExecuteSkill(skill);
-                }
-                else if (!held && aimingSkill == skill)
-                {
-                    CancelAiming();
-                }
-            }
-
-            return false;
-        }
-
-        private void StartAiming(SkillData skill)
-        {
-            if (aimingSkill != skill)
-            {
-                CancelAiming();
-            }
-            aimingSkill = skill;
-            
-            int resId = 0;
-            switch(skill.selectorType)
-            {
-                case SkillSelectorType.SmartcastCircleAOE:
-                    if (skill.IsHeal) resId = IndicatorVfxResID.SelectedAllyAOE;
-                    else if (skill.startPosType == VfxStartPosType.Target) resId = IndicatorVfxResID.SelectedEnemyAOE; // Lock Target
-                    else resId = IndicatorVfxResID.SelectedEnemyAOE; // Smartcast
-                    break;
-                case SkillSelectorType.DirectionalArrow:
-                    resId = IndicatorVfxResID.DirectionArrow;
-                    break;
-            }
-            
-            if (resId > 0)
-            {
-                string path = TopDownGame.Data.EffectDatabase.GetEffectPath(resId);
-                if (!string.IsNullOrEmpty(path))
-                {
-                    currentIndicator = TopDownGame.Combat.EffectManager.Instance.SpawnEffect(path, transform.position, transform.rotation, null, 99f);
-                }
-            }
-        }
-
-        public void CancelAiming()
-        {
-            aimingSkill = null;
-            if (currentIndicator != null)
-            {
-                TopDownGame.Combat.EffectManager.Instance.RecycleEffect(currentIndicator);
-                currentIndicator = null;
-            }
-        }
-
-        private void UpdateSkillAiming()
-        {
-            if (aimingSkill == null || currentIndicator == null) return;
-
-            bool usingMouse = inputReader != null && !inputReader.IsUsingGamepad;
-            float maxRange = aimingSkill.selectorRange > 0f ? aimingSkill.selectorRange : aimingSkill.range;
-            
-            Vector3 targetGroundPos = transform.position + transform.forward * maxRange;
-            Vector3 aimDir = transform.forward;
-
-            if (usingMouse)
-            {
-                if (UnityEngine.InputSystem.Mouse.current != null && mainCamera != null)
-                {
-                    Vector2 mouseScreenPos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
-                    Ray ray = mainCamera.ScreenPointToRay(mouseScreenPos);
-                    Plane groundPlane = new Plane(Vector3.up, transform.position);
-                    if (groundPlane.Raycast(ray, out float enter))
-                    {
-                        Vector3 hitPoint = ray.GetPoint(enter);
-                        Vector3 offset = hitPoint - transform.position;
-                        if (offset.magnitude > maxRange)
-                        {
-                            targetGroundPos = transform.position + offset.normalized * maxRange;
-                        }
-                        else
-                        {
-                            targetGroundPos = hitPoint;
-                        }
-                        aimDir = (targetGroundPos - transform.position).normalized;
-                    }
-                }
-            }
-            else
-            {
-                Vector3 inputDir = GetInputVector();
-                if (inputDir.sqrMagnitude > 0.01f)
-                {
-                    aimDir = inputDir;
-                    targetGroundPos = transform.position + aimDir * maxRange;
-                }
-            }
-
-            if (aimDir.sqrMagnitude < 0.01f) aimDir = transform.forward;
-
-            if (aimingSkill.selectorType == SkillSelectorType.DirectionalArrow)
-            {
-                currentIndicator.transform.position = transform.position;
-                currentIndicator.transform.rotation = Quaternion.LookRotation(aimDir, Vector3.up);
-            }
-            else if (aimingSkill.selectorType == SkillSelectorType.SmartcastCircleAOE)
-            {
-                aimGroundPosition = targetGroundPos;
-                currentIndicator.transform.position = targetGroundPos;
-            }
-        }
-
-        public bool CanExecuteSkill(SkillData skill)
-        {
-            if (skill == null) return false;
-            if (IsOnCooldown(skill.id)) return false;
-            if (!noManaCost && stats != null && skill.manaCost > 0f && !stats.HasEnoughMana(skill.manaCost)) return false;
-            return true;
-        }
-
-        private bool ExecuteSkill(SkillData skill)
-        {
-            if (!ExecuteAction(skill)) return false;
-
-            if (!noManaCost && stats != null && skill.manaCost > 0f)
-            {
-                stats.ConsumeMana(skill.manaCost);
-            }
-            if (!noCooldown)
-            {
-                StartCooldown(skill.id, skill.cooldown);
-            }
-            return true;
-        }
-
-        public void Move(Vector3 direction)
-        {
-            moveDirection = direction * moveSpeed;
-        }
-
-        public void MoveWithSpeed(Vector3 direction, float speed)
-        {
-            moveDirection = direction * speed;
-        }
-
-        public void RotateTowards(Vector3 direction)
-        {
-            RotateTowards(direction, rotationSmoothTime);
-        }
-
-        public void RotateTowards(Vector3 direction, float smoothTime)
-        {
-            if (direction.sqrMagnitude > 0.001f)
-            {
-                float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
-                if (smoothTime <= 0.001f)
-                {
-                    transform.rotation = Quaternion.Euler(0f, targetAngle, 0f);
-                    turnSmoothVelocity = 0f;
-                }
-                else
-                {
-                    float smoothAngle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, smoothTime);
-                    transform.rotation = Quaternion.Euler(0f, smoothAngle, 0f);
-                }
-            }
-        }
-
-        public void ResetTurnVelocity()
-        {
-            turnSmoothVelocity = 0f;
-        }
-
-        private Transform currentLockTarget;
-        private Vector3 currentTargetPoint;
-        private Vector3 currentTargetDirection = Vector3.forward;
-
-        public Transform CurrentLockTarget => currentLockTarget;
-        public Vector3 CurrentTargetPoint => currentTargetPoint;
-        public Vector3 CurrentTargetDirection => currentTargetDirection;
-
-        public bool StartNormalAttack()
-        {
-            SkillData normalAttack = DefaultNormalAttack;
-            if (normalAttack != null)
-            {
-                return ExecuteAction(normalAttack);
-            }
-            else
-            {
-                Debug.LogWarning($"[PlayerController] Không tìm thấy Skill ID {defaultNormalAttackId} trong Skills.csv!");
-                return false;
-            }
-        }
-
-        private bool AimSkill(SkillData skill)
-        {
-            if (skill == null) return false;
-            
-            bool usingMouse = inputReader != null && !inputReader.IsUsingGamepad;
-            currentLockTarget = null;
-            currentTargetPoint = transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f);
-            currentTargetDirection = transform.forward;
-
-            if (skill.targetSelf || skill.relation == SkillRelation.Self)
-            {
-                currentTargetPoint = transform.position;
-                currentTargetDirection = transform.forward;
-                return true; 
-            }
-
-            bool isTargetLockSkill = false;
-            if (skill.childId > 0)
-            {
-                var missile = TopDownGame.Data.MissileDatabase.GetMissile(skill.childId);
-                if (missile != null && (int)missile.moveKind == 2)
-                {
-                    isTargetLockSkill = true; // Target-Locked Homing (MoveKind = 2)
-                }
-            }
-            else if (skill.IsHeal)
-            {
-                isTargetLockSkill = true; // Hồi máu đồng minh (Target-Locked)
-            }
-
-            if (usingMouse)
-            {
-                if (UnityEngine.InputSystem.Mouse.current == null || mainCamera == null) return true;
-                
-                Vector2 mouseScreenPos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
-                Ray ray = mainCamera.ScreenPointToRay(mouseScreenPos);
-                
-                if (isTargetLockSkill)
-                {
-                    Transform foundTarget = null;
-                    
-                    // Sử dụng SphereCastNonAlloc tạo hình trụ bán kính 1.5f (Soft targeting, 0 GC Alloc)
-                    int hitCount = Physics.SphereCastNonAlloc(ray, 1.5f, aimSphereCastBuffer, 100f, targetLayer);
-                    if (hitCount > 0)
-                    {
-                        float minDistanceToRay = float.MaxValue;
-                        for (int i = 0; i < hitCount; i++)
-                        {
-                            var hit = aimSphereCastBuffer[i];
-                            if (hit.collider == null) continue;
-                            Vector3 enemyPos = hit.collider.transform.position;
-                            float distToRay = Vector3.Cross(ray.direction, enemyPos - ray.origin).magnitude;
-                            
-                            if (distToRay < minDistanceToRay)
-                            {
-                                minDistanceToRay = distToRay;
-                                foundTarget = hit.collider.transform;
-                            }
-                        }
-                    }
-
-                    if (foundTarget != null)
-                    {
-                        float distance = Vector3.Distance(transform.position, foundTarget.position);
-                        if (distance <= skill.range)
-                        {
-                            currentLockTarget = foundTarget;
-                            currentTargetPoint = currentLockTarget.position;
-                            Vector3 dirToTarget = currentLockTarget.position - transform.position;
-                            dirToTarget.y = 0f;
-                            currentTargetDirection = dirToTarget.sqrMagnitude > 0.001f ? dirToTarget.normalized : transform.forward;
-                            ApplySkillRotation(skill, currentTargetDirection);
-                            return true;
-                        }
-                    }
-
-                    // Nếu không hover trúng quái bằng chuột, tự động tìm mục tiêu trước mặt (Soft Auto-Lock)
-                    Transform fallbackTarget = FindTargetInFront(skill.range);
-                    if (fallbackTarget != null)
-                    {
-                        currentLockTarget = fallbackTarget;
-                        currentTargetPoint = currentLockTarget.position;
-                        Vector3 dirToTarget = currentLockTarget.position - transform.position;
-                        dirToTarget.y = 0f;
-                        currentTargetDirection = dirToTarget.sqrMagnitude > 0.001f ? dirToTarget.normalized : transform.forward;
-                        ApplySkillRotation(skill, currentTargetDirection);
-                        return true;
-                    }
-                    else
-                    {
-                        return false; // Bắt buộc phải có mục tiêu hợp lệ
-                    }
-                }
-
-                // Chiêu định hướng tự do (Linear Skillshot)
-                Plane groundPlane = new Plane(Vector3.up, transform.position);
-                if (groundPlane.Raycast(ray, out float enter))
-                {
-                    Vector3 hitPoint = ray.GetPoint(enter);
-                    float maxRange = skill.selectorRange > 0f ? skill.selectorRange : skill.range;
-                    if (maxRange > 0f && skill.selectorType == SkillSelectorType.SmartcastCircleAOE)
-                    {
-                        Vector3 offset = hitPoint - transform.position;
-                        offset.y = 0f;
-                        if (offset.magnitude > maxRange)
-                        {
-                            currentTargetPoint = transform.position + offset.normalized * maxRange;
-                        }
-                        else
-                        {
-                            currentTargetPoint = hitPoint;
-                        }
-                    }
-                    else
-                    {
-                        currentTargetPoint = hitPoint;
-                    }
-
-                    Vector3 aimDir = currentTargetPoint - transform.position;
-                    aimDir.y = 0f;
-                    currentTargetDirection = aimDir.sqrMagnitude > 0.001f ? aimDir.normalized : transform.forward;
-                    ApplySkillRotation(skill, currentTargetDirection);
-                }
-            }
-            else
-            {
-                if (isTargetLockSkill)
-                {
-                    Transform bestTarget = FindTargetInFront(skill.range);
-                    if (bestTarget != null)
-                    {
-                        currentLockTarget = bestTarget;
-                        currentTargetPoint = currentLockTarget.position;
-                        Vector3 dirToTarget = currentLockTarget.position - transform.position;
-                        dirToTarget.y = 0f;
-                        currentTargetDirection = dirToTarget.sqrMagnitude > 0.001f ? dirToTarget.normalized : transform.forward;
-                        ApplySkillRotation(skill, currentTargetDirection);
-                        return true;
-                    }
-                    else
-                    {
-                        return false; // Bắt buộc phải có mục tiêu hợp lệ
-                    }
-                }
-
-                Vector3 inputVec = GetInputVector();
-                if (inputVec.sqrMagnitude > 0.01f)
-                {
-                    currentTargetDirection = inputVec.normalized;
-                    currentTargetPoint = transform.position + currentTargetDirection * (skill.range > 0 ? skill.range : 5f);
-                    ApplySkillRotation(skill, currentTargetDirection);
-                }
-                else
-                {
-                    currentTargetDirection = transform.forward;
-                    currentTargetPoint = transform.position + currentTargetDirection * (skill.range > 0 ? skill.range : 5f);
-                }
-            }
-
-            return true;
-        }
-
-        private void ApplySkillRotation(SkillData skill, Vector3 targetDir)
-        {
-            float rotSpeed = (skill != null && skill.instantDirSpeed > 0f) ? skill.instantDirSpeed : 1000f;
-            if (rotSpeed >= 1000f)
-            {
-                RotateTowardsInstantly(targetDir);
-            }
-        }
-
-        /// <summary>
-        /// Xoay nhân vật về hướng thi triển đã được chốt từ lúc ấn chiêu theo tốc độ InstantDir (độ/giây theo DATA_CONVENTIONS.md Mục 1 & 4).
-        /// Chuột di chuyển sau khi ấn chiêu hoàn toàn không ảnh hưởng đến hướng này.
-        /// </summary>
         public void RotateTowardsCastDirection(float speedDegPerSec)
         {
-            Vector3 dir = currentTargetDirection;
-            if (currentLockTarget != null)
+            if (Movement == null) return;
+            Vector3 dir = Aiming != null ? Aiming.CurrentTargetDirection : transform.forward;
+            if (Aiming != null && Aiming.CurrentLockTarget != null)
             {
-                dir = currentLockTarget.position - transform.position;
+                dir = Aiming.CurrentLockTarget.position - transform.position;
                 dir.y = 0f;
             }
-
-            if (dir.sqrMagnitude > 0.001f)
-            {
-                Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
-                float speed = speedDegPerSec > 0f ? speedDegPerSec : 1000f;
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, speed * Time.deltaTime);
-            }
+            Movement.RotateTowardsDirection(dir, speedDegPerSec);
         }
 
-        /// <summary>
-        /// Giữ tương thích: xoay nhân vật theo hướng thi triển đã chốt theo tốc độ InstantDir.
-        /// Tuyệt đối KHÔNG đọc lại vị trí chuột realtime để tránh lệch hướng thi triển.
-        /// </summary>
         public bool UpdateAttackAim(SkillData skill, float smoothTime)
         {
             float rotSpeed = (skill != null && skill.instantDirSpeed > 0f) ? skill.instantDirSpeed : 1000f;
@@ -743,144 +102,11 @@ namespace TopDownGame.Player
             return true;
         }
 
-        private Transform FindTargetInFront(float range)
-        {
-            int hitCount = Physics.OverlapSphereNonAlloc(transform.position, range, targetInFrontBuffer, targetLayer);
-            Transform best = null;
-            float minDot = 0.3f; // Khoảng 70 độ nón phía trước
-            float minDst = float.MaxValue;
-
-            for (int i = 0; i < hitCount; i++)
-            {
-                Collider h = targetInFrontBuffer[i];
-                if (h == null || h.gameObject == gameObject) continue;
-
-                Vector3 dir = (h.transform.position - transform.position);
-                dir.y = 0;
-                float dst = dir.magnitude;
-                if (dst > 0.01f)
-                {
-                    dir /= dst;
-                    float dot = Vector3.Dot(transform.forward, dir);
-                    if (dot > minDot && dst < minDst)
-                    {
-                        minDst = dst;
-                        best = h.transform;
-                    }
-                }
-                else
-                {
-                    return h.transform; // Đứng sát cạnh nhau
-                }
-            }
-            return best;
-        }
-
-        private void RotateTowardsInstantly(Vector3 dir)
-        {
-            dir.y = 0f;
-            if (dir.sqrMagnitude > 0.001f)
-            {
-                transform.rotation = Quaternion.LookRotation(dir.normalized);
-            }
-        }
-
-        public bool ExecuteAction(SkillData skill)
-        {
-            if (skill == null) return false;
-
-            if (!AimSkill(skill)) 
-            {
-                currentTargetPoint = transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f); return true;
-            }
-
-            AttackState.SetSkill(skill);
-
-            if (StateMachine.CurrentState == AttackState)
-            {
-                AttackState.Enter();
-            }
-            else
-            {
-                StateMachine.ChangeState(AttackState);
-            }
-            return true;
-        }
-
-        public void ExecuteSkillDamage(SkillData skill)
-        {
-            if (skill == null) return;
-
-            SkillDamageResolver.CastDamage(transform, stats, skill, targetLayer, currentLockTarget, currentTargetPoint);
-
-            if (showHitGizmos)
-            {
-                lastGizmo = new GizmoDrawInfo
-                {
-                    type = skill.skillType,
-                    origin = transform.position,
-                    forward = transform.forward,
-                    range = skill.range,
-                    fanAngle = skill.fanAngle,
-                    boxWidth = skill.boxWidth
-                };
-                gizmoTimer = gizmoDisplayDuration;
-            }
-        }
-
-        public void PlaySkillCastEffect(SkillData skill)
-        {
-            if (skill == null) return;
-
-            if (skill.effectEvents != null && skill.effectEvents.Count > 0)
-            {
-                foreach (var ev in skill.effectEvents)
-                {
-                    if (ev.frame <= 0 && !string.IsNullOrEmpty(ev.effectPath))
-                    {
-                        PlaySkillEffectEvent(ev);
-                    }
-                }
-            }
-            else if (!string.IsNullOrEmpty(skill.effectPath))
-            {
-                TopDownGame.Combat.EffectManager.Instance.PlaySkillEffect(skill, transform);
-            }
-        }
-
-        public void PlaySkillEffectEvent(SkillEffectEvent ev)
-        {
-            if (ev == null || string.IsNullOrEmpty(ev.effectPath)) return;
-
-            float duration = ev.duration > 0f ? ev.duration : 2.5f;
-            if (ev.slotId > 0)
-            {
-                TopDownGame.Combat.EffectManager.Instance.SpawnEffectAtSlot(ev.effectPath, transform, ev.slotId, duration, true);
-            }
-            else
-            {
-                TopDownGame.Combat.EffectManager.Instance.SpawnEffect(ev.effectPath, transform.position, transform.rotation, null, duration);
-            }
-        }
-
-        public void OnHitTriggered(SkillData skill)
-        {
-            if (skill != null && !skill.HasProjectile && !skill.IsHeal)
-            {
-                TopDownGame.Combat.EffectManager.Instance.PlaySkillEffect(skill, transform);
-            }
-        }
-
-        private void OnDrawGizmos()
-        {
-            if (!showHitGizmos || gizmoTimer <= 0f) return;
-            SkillDamageResolver.DrawGizmo(lastGizmo.type, lastGizmo.origin, lastGizmo.forward, lastGizmo.range, lastGizmo.fanAngle, lastGizmo.boxWidth);
-        }
+        public bool StartNormalAttack() => Combat != null && Combat.StartNormalAttack();
+        public bool ExecuteAction(SkillData skill) => Combat != null && Combat.ExecuteAction(skill);
+        public void ExecuteSkillDamage(SkillData skill) => Combat?.ExecuteSkillDamage(skill, Aiming?.CurrentLockTarget, Aiming != null ? Aiming.CurrentTargetPoint : transform.position);
+        public void PlaySkillCastEffect(SkillData skill) => Combat?.PlaySkillCastEffect(skill);
+        public void PlaySkillEffectEvent(SkillEffectEvent ev) => Combat?.PlaySkillEffectEvent(ev);
+        public void OnHitTriggered(SkillData skill) => Combat?.OnHitTriggered(skill);
     }
 }
-
-
-
-
-
-

@@ -4121,7 +4121,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1735904058}
-  m_LocalRotation: {x: 0.4872477, y: -0.000000052358338, z: 0.000000029225287, w: 0.87326384}
+  m_LocalRotation: {x: 0.4872478, y: -0.000000052184554, z: 0.000000029116986, w: 0.8732638}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -7352,6 +7352,9 @@ GameObject:
   - component: {fileID: 2137775175}
   - component: {fileID: 2137775176}
   - component: {fileID: 2137775177}
+  - component: {fileID: 2137775180}
+  - component: {fileID: 2137775179}
+  - component: {fileID: 2137775178}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -7421,25 +7424,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d6af50591bb09047837eeae1166607f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 6
-  rotationSmoothTime: 0.08
-  attackRotationSmoothTime: 0.14
-  gravity: -9.81
-  targetLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  defaultNormalAttackId: 301
-  factionId: 2
-  npcResId: 2
-  skillSlotQ_Id: 306
-  skillSlotE_Id: 308
-  skillSlotR_Id: 310
-  noCooldown: 1
-  noManaCost: 1
-  showHitGizmos: 1
-  gizmoDisplayDuration: 0.2
-  currentStateDisplay: 
-  usingGamepadDisplay: 1
 --- !u!114 &2137775176
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7476,3 +7460,56 @@ MonoBehaviour:
     maxValue: 100
     currentValue: 0
     regenRate: 5
+--- !u!114 &2137775178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2137775169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ea0680fae5d0094b97ad74d3993ebbd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  defaultNormalAttackId: 301
+  factionId: 2
+  npcResId: 2
+  skillSlotQ_Id: 306
+  skillSlotE_Id: 308
+  skillSlotR_Id: 310
+  noCooldown: 1
+  noManaCost: 1
+  showHitGizmos: 1
+  gizmoDisplayDuration: 0.25
+--- !u!114 &2137775179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2137775169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4441b991e748e449b0d0d7bcf040f2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!114 &2137775180
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2137775169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e836fbbd3628f9d468cede36454abb48, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 6
+  rotationSmoothTime: 0.08
+  attackRotationSmoothTime: 0.14
+  gravity: -9.81
