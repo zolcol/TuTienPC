@@ -269,11 +269,19 @@ namespace TopDownGame.Skills
 
                 if (col.TryGetComponent<IDamageable>(out var dmg) || (dmg = col.GetComponentInParent<IDamageable>()) != null)
                 {
-                    float dist = Vector3.Distance(origin, col.transform.position);
-                    if (dist < closestDist)
+                    if (dmg is EntityStats stats && stats.IsDead) continue;
+                    if (dmg is Component comp)
                     {
-                        closestDist = dist;
-                        best = col.transform;
+                        bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
+                        bool isTargetPlayer = comp.CompareTag(CombatLayersAndTags.TagPlayer) || comp.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
+                        if (isCasterPlayer == isTargetPlayer) continue;
+
+                        float dist = Vector3.Distance(origin, comp.transform.position);
+                        if (dist < closestDist)
+                        {
+                            closestDist = dist;
+                            best = comp.transform;
+                        }
                     }
                 }
             }

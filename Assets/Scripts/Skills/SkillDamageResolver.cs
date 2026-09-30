@@ -924,32 +924,40 @@ namespace TopDownGame.Skills
             return false;
         }
 
-        /// <summary>
-        /// Tìm mục tiêu gần nhất trước mặt trong góc quét
-        /// </summary>
         public static Transform FindBestTargetInFront(Transform caster, float maxRange, LayerMask targetLayer, float maxAngle = 100f)
         {
             Vector3 sphereCenter = caster.position + Vector3.up * (BoxHeight * 0.5f);
             int count = Physics.OverlapSphereNonAlloc(sphereCenter, maxRange, hitBuffer, targetLayer);
             Transform bestTarget = null;
             float closestDist = float.MaxValue;
+            bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
 
             for (int i = 0; i < count; i++)
             {
                 Collider col = hitBuffer[i];
                 if (col == null || col.gameObject == caster.gameObject) continue;
 
-                Vector3 dirToTarget = (col.transform.position - caster.position);
-                dirToTarget.y = 0f;
-                float dist = dirToTarget.magnitude;
+                var damageable = col.GetComponent<IDamageable>() ?? col.GetComponentInParent<IDamageable>();
+                if (damageable == null) continue;
+                if (damageable is EntityStats stats && stats.IsDead) continue;
 
-                if (dist <= maxRange)
+                if (damageable is Component comp)
                 {
-                    float angle = Vector3.Angle(caster.forward, dirToTarget);
-                    if (angle <= maxAngle * 0.5f && dist < closestDist)
+                    bool isTargetPlayer = comp.CompareTag(CombatLayersAndTags.TagPlayer) || comp.GetComponent<TopDownGame.Player.PlayerController>() != null;
+                    if (isCasterPlayer == isTargetPlayer) continue;
+
+                    Vector3 dirToTarget = (comp.transform.position - caster.position);
+                    dirToTarget.y = 0f;
+                    float dist = dirToTarget.magnitude;
+
+                    if (dist <= maxRange)
                     {
-                        closestDist = dist;
-                        bestTarget = col.transform;
+                        float angle = Vector3.Angle(caster.forward, dirToTarget);
+                        if (angle <= maxAngle * 0.5f && dist < closestDist)
+                        {
+                            closestDist = dist;
+                            bestTarget = comp.transform;
+                        }
                     }
                 }
             }

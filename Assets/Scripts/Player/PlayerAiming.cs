@@ -1,6 +1,7 @@
 using UnityEngine;
 using TopDownGame.Skills;
 using TopDownGame.Combat;
+using TopDownGame.Stats;
 
 namespace TopDownGame.Player
 {
@@ -98,16 +99,16 @@ namespace TopDownGame.Player
             currentTargetDirection = transform.forward;
             if (skill.targetSelf || skill.relation == SkillRelation.Self) { currentTargetPoint = transform.position; return true; }
 
-            bool isTargetLockSkill = skill.IsHeal || (skill.childId > 0 && TopDownGame.Data.MissileDatabase.GetMissile(skill.childId)?.moveKind == MissileMoveKind.HomingTracking);
+            bool isTargetLockSkill = skill.IsHeal || (skill.childId > 0 && TopDownGame.Data.MissileDatabase.GetMissile(skill.childId)?.moveKind == MissileMoveKind.HomingTracking) || skill.skillAttackType == SkillAttackType.Target;
             if (!isUsingGamepad)
             {
                 if (UnityEngine.InputSystem.Mouse.current == null || (mainCamera == null && (mainCamera = UnityEngine.Camera.main) == null)) return true;
                 Ray ray = mainCamera.ScreenPointToRay(UnityEngine.InputSystem.Mouse.current.position.ReadValue());
                 if (isTargetLockSkill)
                 {
-                    Transform found = RaycastTarget(ray);
+                    Transform found = RaycastTarget(ray, skill.IsHeal);
                     if (found != null && Vector3.Distance(transform.position, found.position) <= skill.range) return SetTarget(found);
-                    Transform fallback = FindTargetInFront(skill.range);
+                    Transform fallback = FindTargetInFront(skill.range, skill.IsHeal);
                     return fallback != null && SetTarget(fallback);
                 }
                 if (new Plane(Vector3.up, transform.position).Raycast(ray, out float enter))
@@ -124,14 +125,55 @@ namespace TopDownGame.Player
             }
             else
             {
-                if (isTargetLockSkill) return SetTarget(FindTargetInFront(skill.range));
+                if (isTargetLockSkill) return SetTarget(FindTargetInFront(skill.range, skill.IsHeal));
                 currentTargetDirection = inputVector.sqrMagnitude > 0.01f ? inputVector.normalized : transform.forward;
                 currentTargetPoint = transform.position + currentTargetDirection * (skill.range > 0 ? skill.range : 5f);
             }
             return true;
         }
 
-        private Transform RaycastTarget(Ray ray)
+        private bool IsValidTarget(Collider col, bool isHeal, out Transform targetRoot)
+        {
+            targetRoot = null;
+            if (col == null || col.gameObject == gameObject || col.transform.IsChildOf(transform)) return false;
+
+            var stats = col.GetComponent<EntityStats>() ?? col.GetComponentInParent<EntityStats>();
+            if (stats != null)
+            {
+                if (stats.IsDead) return false;
+                bool isPlayer = stats.CompareTag(CombatLayersAndTags.TagPlayer) || stats.GetComponent<PlayerController>() != null;
+                if (isHeal)
+                {
+                    if (isPlayer) { targetRoot = stats.transform; return true; }
+                    return false;
+                }
+                else
+                {
+                    if (!isPlayer) { targetRoot = stats.transform; return true; }
+                    return false;
+                }
+            }
+
+            if (isHeal) return false;
+
+            var dummy = col.GetComponent<DummyTarget>() ?? col.GetComponentInParent<DummyTarget>();
+            if (dummy != null)
+            {
+                targetRoot = dummy.transform;
+                return true;
+            }
+
+            var damageable = col.GetComponent<IDamageable>() ?? col.GetComponentInParent<IDamageable>();
+            if (damageable is Component comp)
+            {
+                bool isPlayer = comp.CompareTag(CombatLayersAndTags.TagPlayer) || comp.GetComponent<PlayerController>() != null;
+                if (!isPlayer) { targetRoot = comp.transform; return true; }
+            }
+
+            return false;
+        }
+
+        private Transform RaycastTarget(Ray ray, bool isHeal)
         {
             int hitCount = Physics.SphereCastNonAlloc(ray, 1.5f, aimSphereCastBuffer, 100f, targetLayer);
             Transform found = null;
@@ -140,8 +182,10 @@ namespace TopDownGame.Player
             {
                 var hit = aimSphereCastBuffer[i];
                 if (hit.collider == null) continue;
-                float dist = Vector3.Cross(ray.direction, hit.collider.transform.position - ray.origin).magnitude;
-                if (dist < minDist) { minDist = dist; found = hit.collider.transform; }
+                if (!IsValidTarget(hit.collider, isHeal, out Transform validRoot)) continue;
+
+                float dist = Vector3.Cross(ray.direction, validRoot.position - ray.origin).magnitude;
+                if (dist < minDist) { minDist = dist; found = validRoot; }
             }
             return found;
         }
@@ -157,7 +201,7 @@ namespace TopDownGame.Player
             return true;
         }
 
-        public Transform FindTargetInFront(float range)
+        public Transform FindTargetInFront(float range, bool isHeal = false)
         {
             int hitCount = Physics.OverlapSphereNonAlloc(transform.position, range, targetInFrontBuffer, targetLayer);
             Transform best = null;
@@ -165,12 +209,14 @@ namespace TopDownGame.Player
             for (int i = 0; i < hitCount; i++)
             {
                 Collider h = targetInFrontBuffer[i];
-                if (h == null || h.gameObject == gameObject) continue;
-                Vector3 dir = h.transform.position - transform.position;
+                if (h == null) continue;
+                if (!IsValidTarget(h, isHeal, out Transform validRoot)) continue;
+
+                Vector3 dir = validRoot.position - transform.position;
                 dir.y = 0;
                 float dst = dir.magnitude;
-                if (dst > 0.01f && Vector3.Dot(transform.forward, dir / dst) > 0.3f && dst < minDst) { minDst = dst; best = h.transform; }
-                else if (dst <= 0.01f) return h.transform;
+                if (dst > 0.01f && Vector3.Dot(transform.forward, dir / dst) > 0.3f && dst < minDst) { minDst = dst; best = validRoot; }
+                else if (dst <= 0.01f && best == null) best = validRoot;
             }
             return best;
         }

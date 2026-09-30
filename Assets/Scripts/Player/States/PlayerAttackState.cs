@@ -51,9 +51,9 @@ namespace TopDownGame.Player
                 totalDuration = 0.5f;
             }
 
-            if (totalDuration <= 0.1f)
+            if (totalDuration <= 0.01f)
             {
-                totalDuration = 0.6f;
+                totalDuration = 0.05f;
             }
 
             triggeredEvents.Clear();

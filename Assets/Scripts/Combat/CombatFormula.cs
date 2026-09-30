@@ -44,7 +44,7 @@ namespace TopDownGame.Combat
             if (originalFrame <= 0) return (originalFrame, 1.0f);
             float speedReduction = Mathf.Floor(attackSpeedPercent / 10f) / 20f;
             float calculatedFrame = originalFrame * (1.0f - speedReduction);
-            int finalFrame = Mathf.Clamp(Mathf.RoundToInt(calculatedFrame), 9, 100);
+            int finalFrame = Mathf.Clamp(Mathf.RoundToInt(calculatedFrame), 1, 100);
             float factor = (float)originalFrame / finalFrame;
             return (finalFrame, factor);
         }
