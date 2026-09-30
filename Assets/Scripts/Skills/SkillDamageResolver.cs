@@ -53,6 +53,10 @@ namespace TopDownGame.Skills
                 SkillData startSkill = SkillDatabase.GetSkill(skill.startSkillId);
                 if (startSkill != null && startSkill.id != skill.id)
                 {
+                    if (startSkill.HasSound && SoundManager.Instance != null)
+                    {
+                        SoundManager.Instance.PlaySkillSound(startSkill, caster);
+                    }
                     CastDamage(caster, casterStats, startSkill, targetLayer, explicitTarget, explicitTargetPoint);
                 }
             }
@@ -68,6 +72,10 @@ namespace TopDownGame.Skills
                     SkillData subSkill = SkillDatabase.GetSkill(skill.subSkillId);
                     if (subSkill != null && subSkill.id != skill.id)
                     {
+                        if (subSkill.HasSound && SoundManager.Instance != null)
+                        {
+                            SoundManager.Instance.PlaySkillSound(subSkill, caster);
+                        }
                         CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint);
                     }
                 }
@@ -128,6 +136,10 @@ namespace TopDownGame.Skills
                 SkillData subSkill = SkillDatabase.GetSkill(skill.subSkillId);
                 if (subSkill != null && subSkill.id != skill.id)
                 {
+                    if (subSkill.HasSound && SoundManager.Instance != null)
+                    {
+                        SoundManager.Instance.PlaySkillSound(subSkill, caster);
+                    }
                     CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint);
                 }
             }
@@ -308,7 +320,7 @@ namespace TopDownGame.Skills
                 Collider col = hitBuffer[i];
                 if (col == null || col.gameObject == caster.gameObject) continue;
 
-                ApplyDamage(col, damage, col.ClosestPoint(boxCenter), caster.forward, caster);
+                ApplyDamage(col, damage, CombatFormula.GetSafeClosestPoint(col, boxCenter), caster.forward, caster);
             }
         }
 
@@ -339,7 +351,7 @@ namespace TopDownGame.Skills
                     // Mục tiêu áp sát trong phạm vi CloseTargetThreshold luôn trúng, xa hơn thì kiểm tra góc quạt
                     if (dirToTarget.sqrMagnitude <= CloseTargetThreshold * CloseTargetThreshold || angle <= halfAngle)
                     {
-                        ApplyDamage(col, damage, col.ClosestPoint(sphereCenter), dirToTarget.normalized, caster);
+                        ApplyDamage(col, damage, CombatFormula.GetSafeClosestPoint(col, sphereCenter), dirToTarget.normalized, caster);
                     }
                 }
             }
@@ -362,7 +374,7 @@ namespace TopDownGame.Skills
                 if (relativeY < RelativeYMin || relativeY > BoxHeight + RelativeYMaxOffset) continue;
 
                 Vector3 hitDirection = (col.transform.position - caster.position).normalized;
-                ApplyDamage(col, damage, col.ClosestPoint(sphereCenter), hitDirection, caster);
+                ApplyDamage(col, damage, CombatFormula.GetSafeClosestPoint(col, sphereCenter), hitDirection, caster);
             }
         }
 
@@ -777,7 +789,7 @@ namespace TopDownGame.Skills
                     if (relativeY < RelativeYMin || relativeY > BoxHeight + RelativeYMaxOffset) continue;
 
                     Vector3 hitDirection = (col.transform.position - centerPos).normalized;
-                    Vector3 hitPoint = col.ClosestPoint(sphereCenter);
+                    Vector3 hitPoint = CombatFormula.GetSafeClosestPoint(col, sphereCenter);
                     if (ApplyDamage(col, damage, hitPoint, hitDirection, caster, tickHitFilter))
                     {
                         if (!string.IsNullOrEmpty(collEffectPath))

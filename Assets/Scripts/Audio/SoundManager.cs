@@ -194,17 +194,22 @@ namespace TopDownGame.Audio
         public void PlaySkillSound(SkillData skill, Transform emitter = null)
         {
             if (skill == null || skill.playsound <= 0) return;
+            if (logSoundPlayback)
+            {
+                Debug.Log($"<color=#38bdf8>[SoundManager] 🎯 Kỹ năng:</color> <b>[{skill.id}] {skill.name}</b> ➔ Phát Sound ID: <b>#{skill.playsound}</b> (Frame: {skill.playsoundFrame})");
+            }
             PlaySound(skill.playsound, emitter);
         }
 
         private void PlaySoundData(SoundData soundData, Vector3? position)
         {
+            AudioClip clip = GetAudioClip(soundData);
             if (logSoundPlayback)
             {
-                Debug.Log($"<color=#38bdf8>[SoundManager] 🔊 Phát âm thanh:</color> <b>#{soundData.soundId}</b> ({soundData.description}) | Event: <i>{soundData.wwiseEvent}</i>");
+                string clipInfo = clip != null ? clip.name : "<color=#f87171>Clip Not Found</color>";
+                Debug.Log($"<color=#38bdf8>[SoundManager] 🔊 Phát âm thanh:</color> <b>ID #{soundData.soundId}</b> ({soundData.description}) | Event: <i>{soundData.wwiseEvent}</i> | Bank: <i>{soundData.bankBnk}</i> | Clip: <b>{clipInfo}</b>");
             }
 
-            AudioClip clip = GetAudioClip(soundData);
             if (clip != null)
             {
                 PlayClipInternal(clip, position, 1.0f);

@@ -100,7 +100,14 @@ namespace TopDownGame.Enemy
                             if (castEv.skillId > 0 && castEv.skillId != currentSkill.id)
                             {
                                 SkillData subSkill = SkillDatabase.GetSkill(castEv.skillId);
-                                if (subSkill != null) targetSkill = subSkill;
+                                if (subSkill != null)
+                                {
+                                    targetSkill = subSkill;
+                                    if (subSkill.HasSound)
+                                    {
+                                        TopDownGame.Audio.SoundManager.Instance.PlaySkillSound(subSkill, enemy.transform);
+                                    }
+                                }
                             }
                             enemy.ExecuteSkillDamage(targetSkill);
                         }

@@ -109,5 +109,18 @@ namespace TopDownGame.Combat
             float baseHeal = 100f * (magicScale > 0f ? magicScale : 1f);
             return baseHeal + (magicDamage * 2.2f);
         }
+
+        /// <summary>
+        /// Tìm điểm gần nhất trên Collider an toàn cho mọi loại Collider (kể cả non-convex MeshCollider, CharacterController, TerrainCollider...).
+        /// </summary>
+        public static Vector3 GetSafeClosestPoint(Collider col, Vector3 point)
+        {
+            if (col == null) return point;
+            if (col is BoxCollider || col is SphereCollider || col is CapsuleCollider || (col is MeshCollider mc && mc.convex))
+            {
+                return col.ClosestPoint(point);
+            }
+            return col.bounds.ClosestPoint(point);
+        }
     }
 }

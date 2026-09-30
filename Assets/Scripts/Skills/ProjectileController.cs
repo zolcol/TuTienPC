@@ -178,7 +178,7 @@ namespace TopDownGame.Skills
                     RaycastHit hit = raycastBuffer[i];
                     if (hit.collider == null) continue;
 
-                    Vector3 hitPoint = hit.point != Vector3.zero ? hit.point : hit.collider.ClosestPoint(castOrigin);
+                    Vector3 hitPoint = hit.point != Vector3.zero ? hit.point : CombatFormula.GetSafeClosestPoint(hit.collider, castOrigin);
                     if (hitPoint == Vector3.zero) hitPoint = targetCenter;
 
                     if (ProcessHit(hit.collider, hitPoint, moveDirection))
@@ -219,7 +219,7 @@ namespace TopDownGame.Skills
                 Collider col = overlapBuffer[i];
                 if (col == null) continue;
 
-                Vector3 hitPoint = col.ClosestPoint(targetCenter);
+                Vector3 hitPoint = CombatFormula.GetSafeClosestPoint(col, targetCenter);
                 if (hitPoint == Vector3.zero) hitPoint = targetCenter;
 
                 if (ProcessHit(col, hitPoint, moveDirection))
@@ -342,6 +342,10 @@ namespace TopDownGame.Skills
                     SkillData hitSkill = SkillDatabase.GetSkill(skillData.hitSkillId);
                     if (hitSkill != null && hitSkill.id != skillData.id)
                     {
+                        if (hitSkill.HasSound && SoundManager.Instance != null)
+                        {
+                            SoundManager.Instance.PlaySkillSound(hitSkill, col.transform);
+                        }
                         SkillDamageResolver.CastDamage(caster, casterStats, hitSkill, targetLayer, col.transform, hitPoint);
                     }
                 }
@@ -359,6 +363,10 @@ namespace TopDownGame.Skills
             if (flySkill == null || flySkill.id == skillData.id) return;
 
             Transform target = homingTarget != null ? homingTarget : null;
+            if (flySkill.HasSound && SoundManager.Instance != null)
+            {
+                SoundManager.Instance.PlaySkillSound(flySkill, target != null ? target : transform);
+            }
             Vector3 targetPt = target != null ? target.position : transform.position;
             SkillDamageResolver.CastDamage(caster, casterStats, flySkill, targetLayer, target, targetPt);
         }
@@ -393,6 +401,10 @@ namespace TopDownGame.Skills
                 SkillData vanishSkill = SkillDatabase.GetSkill(skillData.vanishedSkillId);
                 if (vanishSkill != null && vanishSkill.id != skillData.id)
                 {
+                    if (vanishSkill.HasSound && SoundManager.Instance != null)
+                    {
+                        SoundManager.Instance.PlaySoundAtPosition(vanishSkill.playsound, explosionPos);
+                    }
                     SkillDamageResolver.CastDamage(caster, casterStats, vanishSkill, targetLayer, homingTarget, explosionPos);
                 }
             }

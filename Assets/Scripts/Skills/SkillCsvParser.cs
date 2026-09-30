@@ -217,6 +217,10 @@ namespace TopDownGame.Skills
                             {
                                 evSummary.effectEvents = new List<SkillEffectEvent>(matchedSummary.effectEvents);
                             }
+                            if (matchedSummary.castEvents != null && matchedSummary.castEvents.Count > 0)
+                            {
+                                evSummary.castEvents = new List<SkillCastEvent>(matchedSummary.castEvents);
+                            }
                         }
 
                         if (evSummary.effectEvents.Count == 0 && !string.IsNullOrEmpty(evSummary.effectPath))
