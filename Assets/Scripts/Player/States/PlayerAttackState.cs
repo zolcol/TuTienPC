@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Skills;
+using TopDownGame.Combat;
 
 namespace TopDownGame.Player
 {
@@ -92,7 +93,7 @@ namespace TopDownGame.Player
                 {
                     originalFrame = actFrame;
                 }
-                var (_, factor) = LegacyAnimationController.CalculateScaledActionFrame(originalFrame, player.Stats.AttackSpeed);
+                var (_, factor) = CombatFormula.CalculateScaledActionFrame(originalFrame, player.Stats.AttackSpeed);
                 speedFactor = factor;
                 if (speedFactor < 0.1f) speedFactor = 0.1f;
             }
@@ -133,7 +134,7 @@ namespace TopDownGame.Player
                 {
                     if (!triggeredEvents.Contains(ev))
                     {
-                        float evTime = (ev.frame / SkillData.ACTION_EVENT_FPS) / speedFactor;
+                        float evTime = CombatFormula.FrameToSeconds(ev.frame) / speedFactor;
                         if (timer >= evTime)
                         {
                             triggeredEvents.Add(ev);

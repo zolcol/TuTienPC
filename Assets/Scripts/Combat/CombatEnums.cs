@@ -7,12 +7,15 @@ namespace TopDownGame.Combat
     {
         None = -1,
         Monster = 0,    // Quái vật thường / Quái tinh anh / Boss
+        Normal = 0,     // Alias: Quái vật / Kẻ địch
         Player = 1,     // Người chơi / Phân thân
         DialogNpc = 2,  // NPC giao tiếp / Nhiệm vụ
+        Dialoger = 2,   // Alias: NPC giao tiếp
         Partner = 3,    // Đồng hành / Pet
         Silencer = 4,   // NPC tĩnh / Câm lặng / Cơ quan
         Portal = 4,     // Cổng dịch chuyển / Cơ quan (alias)
         GatherBox = 5,  // Rương báu / Lửa trại / Khoáng sản
+        Gather = 5,     // Alias: Vật phẩm thu thập
         Trap = 6        // Cạm bẫy
     }
 

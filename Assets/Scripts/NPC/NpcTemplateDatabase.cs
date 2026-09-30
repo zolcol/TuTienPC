@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using TopDownGame.Data;
+using TopDownGame.Combat;
 
 namespace TopDownGame.NPC
 {

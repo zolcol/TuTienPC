@@ -36,8 +36,8 @@ namespace TopDownGame.Skills
     public class SkillData
     {
         // Tốc độ khung hình chuẩn theo chuẩn Logic Engine
-        public const float ACTION_EVENT_FPS = 15f; // Chuẩn 15 FPS cho ActionEvent, Frame Timing (Animation)
-        public const float LOGIC_GAME_FPS = 15f;   // Alias giữ tương thích ngược
+        public const float ACTION_EVENT_FPS = CombatFormula.ACTION_EVENT_FPS; // Chuẩn 15 FPS cho ActionEvent, Frame Timing (Animation)
+        public const float LOGIC_GAME_FPS = CombatFormula.ACTION_EVENT_FPS;   // Alias giữ tương thích ngược
         public const float COOLDOWN_FPS = 15f;     // Chuẩn 15 FPS cho TimePerCast / Cooldown trong Skill.csv
 
         // --- IDENTITY & ANIMATION ---
@@ -155,15 +155,15 @@ namespace TopDownGame.Skills
         public int stateEffectId = 0;      // Đường dẫn Prefab VFX trong Resources
         public List<SkillEffectEvent> effectEvents = new List<SkillEffectEvent>(); // Danh sách toàn bộ sự kiện hiệu ứng từ ActionEvent.csv
 
-        // --- CHUYỂN ĐỔI SANG GIÂY (TIME = FRAME / ACTION_EVENT_FPS, Chuẩn 30 FPS theo DATA_CONVENTIONS.md) ---
-        public float CastSkillTime => castSkill >= 0 ? (castSkill / ACTION_EVENT_FPS) : 0f;
-        public float CanDoSkillTime => candoskill >= 0 ? (candoskill / ACTION_EVENT_FPS) : -1f;
-        public float ComboEndTime => (candoskill >= 0 && param1 > 0) ? ((candoskill + param1) / ACTION_EVENT_FPS) : -1f;
-        public float CanDoRunTime => canDoRun >= 0 ? (canDoRun / ACTION_EVENT_FPS) : -1f;
-        public float CastLinkSkillTime => castLinkSkill >= 0 ? (castLinkSkill / ACTION_EVENT_FPS) : (candoskill >= 0 ? (candoskill / ACTION_EVENT_FPS) : -1f);
-        public float InstantDirTime => instantDir >= 0 ? (instantDir / ACTION_EVENT_FPS) : -1f;
-        public float PlaySoundTime => playsoundFrame >= 0 ? (playsoundFrame / ACTION_EVENT_FPS) : 0f;
-        public float MovePosTime => movePosFrame >= 0 ? (movePosFrame / ACTION_EVENT_FPS) : -1f;
+        // --- CHUYỂN ĐỔI SANG GIÂY (TIME = FRAME / ACTION_EVENT_FPS, Chuẩn 15 FPS theo DATA_CONVENTIONS.md) ---
+        public float CastSkillTime => castSkill >= 0 ? CombatFormula.FrameToSeconds(castSkill) : 0f;
+        public float CanDoSkillTime => CombatFormula.FrameToSeconds(candoskill);
+        public float ComboEndTime => (candoskill >= 0 && param1 > 0) ? CombatFormula.FrameToSeconds(candoskill + param1) : -1f;
+        public float CanDoRunTime => CombatFormula.FrameToSeconds(canDoRun);
+        public float CastLinkSkillTime => castLinkSkill >= 0 ? CombatFormula.FrameToSeconds(castLinkSkill) : (candoskill >= 0 ? CombatFormula.FrameToSeconds(candoskill) : -1f);
+        public float InstantDirTime => CombatFormula.FrameToSeconds(instantDir);
+        public float PlaySoundTime => playsoundFrame >= 0 ? CombatFormula.FrameToSeconds(playsoundFrame) : 0f;
+        public float MovePosTime => movePosFrame >= 0 ? CombatFormula.FrameToSeconds(movePosFrame) : -1f;
 
         // --- HELPER FLAGS KIỂM TRA HỢP LỆ ---
         public bool HasSound => playsound > 0;
@@ -221,11 +221,7 @@ namespace TopDownGame.Skills
         /// </summary>
         public float CalculateDamage(EntityStats attackerStats)
         {
-            if (attackerStats == null)
-            {
-                return (20f * physScale) + (10f * magicScale);
-            }
-            return (attackerStats.PhysicalDamage * physScale) + (attackerStats.MagicDamage * magicScale);
+            return CombatFormula.CalculateDamage(attackerStats, physScale, magicScale);
         }
 
         /// <summary>
@@ -233,12 +229,7 @@ namespace TopDownGame.Skills
         /// </summary>
         public float CalculateHeal(EntityStats casterStats)
         {
-            float baseHeal = 100f * (magicScale > 0f ? magicScale : 1f);
-            if (casterStats == null)
-            {
-                return baseHeal;
-            }
-            return baseHeal + (casterStats.MagicDamage * 2.2f);
+            return CombatFormula.CalculateHeal(casterStats, magicScale);
         }
     }
 }

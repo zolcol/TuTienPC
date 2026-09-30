@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Data;
+using TopDownGame.Combat;
 
 namespace TopDownGame.NPC
 {
