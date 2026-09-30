@@ -83,6 +83,8 @@ namespace TopDownGame.Skills
         public int movePosFrame = -1;
         public List<SkillMoveEvent> moveEvents = new List<SkillMoveEvent>();
         public SkillType skillType = SkillType.StraightRay;
+        public SkillTypeDef skillTypeDef = SkillTypeDef.None;
+        public SkillAttackType skillAttackType = SkillAttackType.Normal;
         public float range = 5f;
         public float fanAngle = 0f;
         public float boxWidth = 1.5f;
@@ -91,19 +93,27 @@ namespace TopDownGame.Skills
         public int childId = 0;             // ID tra cứu cấu hình đạn đạo từ Missile.csv
         public int childCount = 1;          // Số lượng đạn/tia sinh ra trong 1 lần xuất chiêu (ChildCount trong Skill.csv)
         public int missileForm = 0;          // Dạng đạn đạo: 1=Thẳng, 2=Quạt, 3=Tròn, 4=Nảy bật, 5=Rơi trời
-        public int msGenerate = 1;          // Kiểu sinh đạn: 1=Đồng loạt, 2=Tuần tự cách quãng, 3=Xoay tròn
+        public int msGenerate = 1;          // Kiểu sinh đạn: 0=Tức thời, 1=Vệt, 2=DoT bãi đất, 3=Mưa đạn, 4=Bẫy, 5=Tụ lực
         public string msGenerateParam = ""; // Tham số đi kèm (góc lệch độ hoặc delay frame giữa các đợt)
         public MissileFormType missileFormType => Enum.IsDefined(typeof(MissileFormType), missileForm) ? (MissileFormType)missileForm : MissileFormType.None;
+        public MSGenerateType msGenerateType => Enum.IsDefined(typeof(MSGenerateType), msGenerate) ? (MSGenerateType)msGenerate : MSGenerateType.Instant;
         public bool isMelee = true;          // Kỹ năng cận chiến (true) hay tầm xa bắn đạn (false)
 
         // Ngũ hành thuộc tính (DATA_CONVENTIONS.md Mục 2 & 14)
         public ElementalSeries series = ElementalSeries.None;
 
-        // Các tham số logic mở rộng từ Skill.csv (DATA_CONVENTIONS.md Mục 2: Param1..Param4)
+        // Các tham số logic mở rộng từ Skill.csv (DATA_CONVENTIONS_V2.md Mục 3: Param1..Param6)
         public float skillParam1 = 0f;    // vd khi MissileForm=4: Số lần nảy tối đa
-        public float skillParam2 = 0f;    // vd khi MissileForm=4: 1 = Bật tìm mục tiêu kế tiếp
+        public float skillParam2 = 0f;    // vd khi MissileForm=4: 1 = Bật tìm mục tiêu kế tiếp; MissileForm=2: Góc chia
         public float skillParam3 = 0f;    // vd khi MissileForm=4: Bán kính tìm mục tiêu nảy (cm)
         public float skillParam4 = 0f;    // vd khi MissileForm=4: Số lần lặp lại trên 1 người (0=không hạn chế)
+        public float skillParam5 = 0f;
+        public float skillParam6 = 0f;
+
+        // Tham số chuỗi gia tốc / lướt / khinh công (AcceSpeedInfo1..3)
+        public AcceSpeedInfo acceSpeedInfo1;
+        public AcceSpeedInfo acceSpeedInfo2;
+        public AcceSpeedInfo acceSpeedInfo3;
 
         /// <summary>
         /// Kỹ năng có bắn ra viên đạn / ám khí / kiếm khí thực tế hay không

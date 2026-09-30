@@ -1635,4 +1635,4 @@ xianqu_baihexian1,6369,Bạch Hạc Tiên,2,0,LeisureHousePlantNpc,,5001,9100,30
 xianqu_baihexian2,6370,Bạch Hạc Tiên,2,0,LeisureHousePlantNpc,,5001,9100,300,,,1,,,,,,,,,Setting/Npc/Ai/CommonActive.ini,,,0,15,1,,,,,,NoTurn,,,,,,,,,,,,,
 xianqu_baihexian3,6371,Bạch Hạc Tiên,2,0,LeisureHousePlantNpc,,5002,9100,300,,,1,,,,,,,,,Setting/Npc/Ai/CommonActive.ini,,,0,15,1,,,,,,NoTurn,,,,,,,,,,,,,
 Marry_huajiaoLevel4,6389,Kiệu Hoa,0,0,,,5006,,,,,1,,,,,,,,,Setting/Npc/Ai/KeepMoving.ini,,,0,7,3,,,,,,,,7,,,,,,,,,,,
-Marry_HorseLevel4,6390,Tân Lang Cưỡi Ngựa,0,0,,,5007,,,,,1,,,,,,,,,Setting/Npc/Ai/KeepMoving.ini,,,0,7,3,,,,,,,,7,,,,,,,,,,,
+Marry_HorseLevel4,6390,Tân Lang Cưỡi Ngựa,0,0,,,5007,,,,,1,,,,,,,,,Setting/Npc/Ai/KeepMoving.ini,,,0,7,3,,,,,,,,7

@@ -146,7 +146,11 @@ namespace TopDownGame.NPC
                         float activeMeters = rawActive > 0f ? (rawActive / 100f) : 15f;
 
                         float rawSpeed = GetColFloat(tokens, colMap, "runspeed", 25, 0f);
-                        float runSpeed = (rawSpeed >= 100f) ? (rawSpeed / 100f) : 5.0f;
+                        // DATA_CONVENTIONS_V2.md Mục 1 & 13: Đơn vị là cm/frame ở 15 FPS -> moveSpeed = speed * 15 / 100 (m/s)
+                        float runSpeed = rawSpeed > 0f ? (rawSpeed * 15.0f / 100.0f) : 5.0f;
+
+                        float rawWalkSpeed = GetColFloat(tokens, colMap, "walkspeed", 34, 0f);
+                        float walkSpeed = rawWalkSpeed > 0f ? (rawWalkSpeed * 15.0f / 100.0f) : (runSpeed * 0.5f);
 
                         // Đồng bộ file prefab từ NpcResDatabase
                         string prefab = "";
@@ -171,6 +175,7 @@ namespace TopDownGame.NPC
                             visionRadius = visionMeters,
                             activeRadius = activeMeters,
                             runSpeed = runSpeed,
+                            walkSpeed = walkSpeed,
                             prefab = prefab
                         };
 

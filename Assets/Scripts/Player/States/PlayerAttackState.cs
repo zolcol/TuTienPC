@@ -82,11 +82,18 @@ namespace TopDownGame.Player
 
             timer += Time.deltaTime;
 
-            // Hệ số tăng tốc hoạt ảnh theo AttackSpeed (DATA_CONVENTIONS.md Mục 5)
+            // Hệ số tăng tốc hoạt ảnh theo AttackSpeed (DATA_CONVENTIONS_V2.md Mục 6 - SkillSetting.ini L83-L95)
             float speedFactor = 1.0f;
             if (player.Stats != null && !currentSkill.notChangeActFrame)
             {
-                speedFactor = 1.0f + (player.Stats.AttackSpeed / 100.0f);
+                int originalFrame = 15;
+                var resData = player.AnimationController != null ? player.AnimationController.GetNpcResData() : null;
+                if (resData != null && player.AnimationController != null && player.AnimationController.TryGetActionFrame(resData, currentSkill.ClipName, out int actFrame))
+                {
+                    originalFrame = actFrame;
+                }
+                var (_, factor) = LegacyAnimationController.CalculateScaledActionFrame(originalFrame, player.Stats.AttackSpeed);
+                speedFactor = factor;
                 if (speedFactor < 0.1f) speedFactor = 0.1f;
             }
 

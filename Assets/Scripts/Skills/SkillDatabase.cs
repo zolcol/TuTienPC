@@ -170,13 +170,19 @@ namespace TopDownGame.Skills
                         float cooldown = timePerCast > 0f ? (timePerCast / SkillData.COOLDOWN_FPS) : (waitTime > 0f ? (waitTime / SkillData.COOLDOWN_FPS) : 0f);
                         float manaCost = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "costvalue", 55), 0f);
 
-                        // Ngũ hành thuộc tính & Các tham số mở rộng (DATA_CONVENTIONS.md Mục 2)
+                        // Ngũ hành thuộc tính & Các tham số mở rộng (DATA_CONVENTIONS_V2.md Mục 2 & 3)
+                        SkillTypeDef skillTypeDef = Enum.IsDefined(typeof(SkillTypeDef), rawSkillType) ? (SkillTypeDef)rawSkillType : SkillTypeDef.None;
                         int rawSeries = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "series", 18), 0);
                         ElementalSeries series = Enum.IsDefined(typeof(ElementalSeries), rawSeries) ? (ElementalSeries)rawSeries : ElementalSeries.None;
                         float skillParam1 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param1", 42), 0f);
                         float skillParam2 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param2", 44), 0f);
                         float skillParam3 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param3", 46), 0f);
                         float skillParam4 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param4", 48), 0f);
+                        float skillParam5 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param5", 50), 0f);
+                        float skillParam6 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param6", 52), 0f);
+                        AcceSpeedInfo acceSpeedInfo1 = AcceSpeedInfo.Parse(GetColRaw(tokens, colMap, "accespeedinfo1", 69));
+                        AcceSpeedInfo acceSpeedInfo2 = AcceSpeedInfo.Parse(GetColRaw(tokens, colMap, "accespeedinfo2", 70));
+                        AcceSpeedInfo acceSpeedInfo3 = AcceSpeedInfo.Parse(GetColRaw(tokens, colMap, "accespeedinfo3", 71));
 
                         // Icon từ FactionSkill hoặc cột Icon/IconAtlas
                         string iconName = GetColRaw(tokens, colMap, "icon", 7);
@@ -239,6 +245,12 @@ namespace TopDownGame.Skills
                         int msGenerate = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "msgenerate", 13), 1);
                         string msGenerateParam = GetColRaw(tokens, colMap, "msgenerateparam", 14).Trim();
                         float fanAngle = 0f;
+                        if (missileForm == 2 && skillParam2 > 0f)
+                        {
+                            // Binary Angle (64 units = 360°) theo DATA_CONVENTIONS_V2.md Mục 1 & 3
+                            float stepDeg = skillParam2 * (360f / 64f);
+                            fanAngle = (childCount > 1) ? ((childCount - 1) * stepDeg) : stepDeg;
+                        }
                         float boxWidth = 1.6f;
                         bool notChangeActFrame = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "notchangeactframe", 75), 0) == 1;
 
@@ -283,7 +295,7 @@ namespace TopDownGame.Skills
                                         break;
                                     case HitboxShape.Fan:
                                         skillType = SkillType.Sector;
-                                        fanAngle = missile.dmgRangeY > 0f ? missile.dmgRangeY : 90f;
+                                        if (fanAngle <= 0f) fanAngle = missile.dmgRangeY > 0f ? missile.dmgRangeY : 90f;
                                         break;
                                     case HitboxShape.LineBox:
                                         skillType = SkillType.StraightRay;
@@ -298,8 +310,10 @@ namespace TopDownGame.Skills
                         }
                         else
                         {
-                            if (rawSkillType == 2) skillType = SkillType.Circle;
-                            else if (rawSkillType == 3) { skillType = SkillType.Sector; fanAngle = 90f; }
+                            if (skillTypeDef == SkillTypeDef.Missile || skillTypeDef == SkillTypeDef.InstMissile) skillType = SkillType.Projectile;
+                            else if (skillTypeDef == SkillTypeDef.InstSingle) skillType = SkillType.TargetLock;
+                            else if (rawSkillType == 2) skillType = SkillType.Circle;
+                            else if (rawSkillType == 3) { skillType = SkillType.Sector; if (fanAngle <= 0f) fanAngle = 90f; }
                             else skillType = SkillType.StraightRay;
                         }
 
@@ -428,6 +442,7 @@ namespace TopDownGame.Skills
                             movePosAccel = evSummary.movePosAccel,
                             movePosFrame = evSummary.movePosFrame,
                             skillType = skillType,
+                            skillTypeDef = skillTypeDef,
                             range = rangeInMeters,
                             fanAngle = fanAngle,
                             boxWidth = boxWidth,
@@ -454,7 +469,12 @@ namespace TopDownGame.Skills
                             skillParam1 = skillParam1,
                             skillParam2 = skillParam2,
                             skillParam3 = skillParam3,
-                            skillParam4 = skillParam4
+                            skillParam4 = skillParam4,
+                            skillParam5 = skillParam5,
+                            skillParam6 = skillParam6,
+                            acceSpeedInfo1 = acceSpeedInfo1,
+                            acceSpeedInfo2 = acceSpeedInfo2,
+                            acceSpeedInfo3 = acceSpeedInfo3
                         };
 
                         skills[skillId] = data;

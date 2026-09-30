@@ -454,8 +454,10 @@ namespace TopDownGame
                 }
             }
 
-            // Tính toán AttackSpeed theo DATA_CONVENTIONS.md Mục 5:
-            // Final Anim Speed = Base Anim Speed Multiplier * (1.0f + AttackSpeed / 100.0f)
+            // Tính toán AttackSpeed theo DATA_CONVENTIONS_V2.md Mục 6 (SkillSetting.ini L83-L95):
+            // Calculated Frame = Original Frame * (1.0 - floor(AttackSpeed / 10) / 20)
+            // Final Action Frame = Clamp(Calculated Frame, Min = 9, Max = 100)
+            // Target Duration = Final Action Frame / 15.0f
             float attackSpeedPercent = 0f;
             if (skill != null && skill.notChangeActFrame)
             {
@@ -470,15 +472,18 @@ namespace TopDownGame
                 }
             }
 
-            float attackSpeedMultiplier = 1.0f + (attackSpeedPercent / 100.0f);
-            if (attackSpeedMultiplier < 0.1f) attackSpeedMultiplier = 0.1f;
+            if (targetFrame > 0)
+            {
+                var (finalFrame, _) = CalculateScaledActionFrame(targetFrame, attackSpeedPercent);
+                targetDuration = finalFrame / TopDownGame.Skills.SkillData.ACTION_EVENT_FPS;
+            }
 
-            CrossFadeOnComponent(bodyAnimation, realClip, wrapMode, fadeTime, forceRewind, targetDuration, attackSpeedMultiplier);
-            CrossFadeOnComponent(headAnimation, realClip, wrapMode, fadeTime, forceRewind, targetDuration, attackSpeedMultiplier);
+            CrossFadeOnComponent(bodyAnimation, realClip, wrapMode, fadeTime, forceRewind, targetDuration);
+            CrossFadeOnComponent(headAnimation, realClip, wrapMode, fadeTime, forceRewind, targetDuration);
 
             // In debug thông số theo yêu cầu: animation được gọi, độ dài thực tế, độ dài yêu cầu, scale
             float actualLength = 0f;
-            float scale = attackSpeedMultiplier;
+            float scale = 1.0f;
             if (bodyAnimation != null && bodyAnimation[realClip] != null)
             {
                 var state = bodyAnimation[realClip];
@@ -496,7 +501,20 @@ namespace TopDownGame
             // Debug.Log($"[Animation] Animation được gọi: <b>{realClip}</b> | Độ dài thực tế: <b>{actualLength:F3}s</b> | Độ dài yêu cầu: <b>{reqStr}</b> | Scale: <b>{scale:F3}</b>");
         }
 
-        private void CrossFadeOnComponent(Animation animComp, string clipName, WrapMode wrapMode, float fadeTime, bool forceRewind, float targetDuration, float attackSpeedMultiplier = 1.0f)
+        /// <summary>
+        /// Tính toán số frame thực tế sau khi áp dụng Tốc Đánh theo DATA_CONVENTIONS_V2.md Mục 6
+        /// </summary>
+        public static (int finalFrame, float speedFactor) CalculateScaledActionFrame(int originalFrame, float attackSpeedPercent)
+        {
+            if (originalFrame <= 0) return (originalFrame, 1.0f);
+            float speedReduction = Mathf.Floor(attackSpeedPercent / 10f) / 20f;
+            float calculatedFrame = originalFrame * (1.0f - speedReduction);
+            int finalFrame = Mathf.Clamp(Mathf.RoundToInt(calculatedFrame), 9, 100);
+            float factor = (float)originalFrame / finalFrame;
+            return (finalFrame, factor);
+        }
+
+        private void CrossFadeOnComponent(Animation animComp, string clipName, WrapMode wrapMode, float fadeTime, bool forceRewind, float targetDuration)
         {
             if (animComp == null) return;
 
@@ -507,17 +525,15 @@ namespace TopDownGame
                 state.wrapMode = wrapMode;
                 state.blendMode = AnimationBlendMode.Blend;
 
-                // Áp dụng công thức chuẩn DATA_CONVENTIONS.md Mục 5:
-                // Base Speed = state.clip.length / Target Duration = state.clip.length * 15.0f / action_frame
-                // Final Speed = Base Speed * (1.0f + AttackSpeed / 100.0f)
+                // Áp dụng công thức chuẩn DATA_CONVENTIONS_V2.md Mục 6:
+                // Speed = state.clip.length / Target Duration = state.clip.length * 15.0f / Final Action Frame
                 if (targetDuration > 0f && state.clip != null && state.clip.length > 0f)
                 {
-                    float baseSpeed = state.clip.length / targetDuration;
-                    state.speed = baseSpeed * attackSpeedMultiplier;
+                    state.speed = state.clip.length / targetDuration;
                 }
                 else
                 {
-                    state.speed = attackSpeedMultiplier;
+                    state.speed = 1.0f;
                 }
 
                 if (forceRewind)
@@ -562,14 +578,11 @@ namespace TopDownGame
                 }
             }
 
-            float attackSpeedMultiplier = 1.0f + (attackSpeedPercent / 100.0f);
-            if (attackSpeedMultiplier < 0.1f) attackSpeedMultiplier = 0.1f;
-
             string key = !string.IsNullOrEmpty(realClip) ? realClip : clipName;
             if (resData != null && TryGetActionFrame(resData, key, out int targetFrame))
             {
-                float targetDuration = targetFrame / TopDownGame.Skills.SkillData.ACTION_EVENT_FPS;
-                return targetDuration / attackSpeedMultiplier;
+                var (finalFrame, _) = CalculateScaledActionFrame(targetFrame, attackSpeedPercent);
+                return finalFrame / TopDownGame.Skills.SkillData.ACTION_EVENT_FPS;
             }
 
             if (!string.IsNullOrEmpty(realClip))

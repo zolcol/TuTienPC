@@ -443,8 +443,17 @@ namespace TopDownGame.Skills
             }
 
             // 3. Bắn chùm rẻ quạt (Fan Spread): Tia trung tâm hướng tới con trỏ, các tia còn lại xòe đều hai bên
-            float paramVal = CsvParserHelper.ParseFloat(skill.msGenerateParam, 0f);
-            float angleStepSpread = paramVal > 0f ? paramVal : (skill.fanAngle > 0f ? (skill.fanAngle / Mathf.Max(1, count - 1)) : DefaultFanSpreadAngle);
+            float angleStepSpread = DefaultFanSpreadAngle;
+            if (skill.missileForm == 2 && skill.skillParam2 > 0f)
+            {
+                // DATA_CONVENTIONS_V2.md Mục 1 & 3: Binary Angle (64 units = 360°) -> góc = param2 * (360 / 64)
+                angleStepSpread = skill.skillParam2 * (360f / 64f);
+            }
+            else
+            {
+                float paramVal = CsvParserHelper.ParseFloat(skill.msGenerateParam, 0f);
+                angleStepSpread = paramVal > 0f ? paramVal : (skill.fanAngle > 0f ? (skill.fanAngle / Mathf.Max(1, count - 1)) : DefaultFanSpreadAngle);
+            }
             float startAngle = -(count - 1) * 0.5f * angleStepSpread;
 
             for (int i = 0; i < count; i++)

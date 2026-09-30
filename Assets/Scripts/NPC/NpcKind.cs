@@ -5,6 +5,8 @@ namespace TopDownGame.NPC
     /// </summary>
     public enum NpcKind
     {
+        None = -1,
+
         /// <summary>
         /// 0 - Quái vật / Kẻ địch (Monster / Enemy):
         /// Có thanh máu, tự tìm đánh người chơi, có thể bị tiêu diệt và rơi đồ.

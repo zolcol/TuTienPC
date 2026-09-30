@@ -1,0 +1,104 @@
+# =========================================
+# .geminiignore for Unity (cú pháp giống .gitignore)
+# Đặt ở thư mục gốc dự án (cùng cấp với Assets/)
+# =========================================
+
+# --- Thư mục Unity tự sinh (rất nặng, vô giá trị với AI) ---
+/Library/
+/Temp/
+/Obj/
+/obj/
+/Logs/
+/UserSettings/
+/MemoryCaptures/
+/Recordings/
+/Builds/
+/Build/
+/[Bb]uilds/
+
+# --- Cache của IDE / công cụ ---
+/.vs/
+/.vscode/
+/.idea/
+/.gradle/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# --- Git & hệ điều hành ---
+/.git/
+.DS_Store
+Thumbs.db
+
+# --- File .meta (chỉ chứa GUID, không cần đọc) ---
+*.meta
+
+# --- File tự sinh khi build ---
+*.apk
+*.aab
+*.unitypackage
+*.app
+*.exe
+sysinfo.txt
+crashlytics-build.properties
+
+# --- Asset nhị phân (AI không đọc được, chỉ tốn công quét) ---
+*.png
+*.jpg
+*.jpeg
+*.tga
+*.psd
+*.tif
+*.tiff
+*.gif
+*.bmp
+*.exr
+*.hdr
+*.fbx
+*.obj
+*.blend
+*.max
+*.ma
+*.mb
+*.dae
+*.wav
+*.mp3
+*.ogg
+*.aif
+*.mp4
+*.mov
+*.ttf
+*.otf
+*.dll
+*.so
+*.bundle
+
+# --- Dữ liệu sinh tự động / rất lớn ---
+/Assets/StreamingAssets/**/*.json.bak
+/Assets/AddressableAssetsData/*/*.bin
+/Assets/Plugins/**
+/Assets/TextMesh Pro/**
+/Assets/Samples/**
+
+# --- Asset của Unity dạng YAML dài (scene, prefab, material...) ---
+# Bỏ comment nếu AI KHÔNG cần sửa scene/prefab. Nếu cần sửa thì giữ comment.
+*.unity
+*.prefab
+*.mat
+*.anim
+*.controller
+*.asset
+*.lighting
+*.mixer
+*.physicMaterial
+*.flare
+*.cubemap

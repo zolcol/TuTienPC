@@ -5,11 +5,13 @@ namespace TopDownGame.Combat
     /// </summary>
     public enum NpcKind
     {
-        Monster = 0,    // Quái vật thường / Quái tinh anh
+        None = -1,
+        Monster = 0,    // Quái vật thường / Quái tinh anh / Boss
         Player = 1,     // Người chơi / Phân thân
         DialogNpc = 2,  // NPC giao tiếp / Nhiệm vụ
         Partner = 3,    // Đồng hành / Pet
-        Portal = 4,     // Cổng dịch chuyển / Cơ quan
+        Silencer = 4,   // NPC tĩnh / Câm lặng / Cơ quan
+        Portal = 4,     // Cổng dịch chuyển / Cơ quan (alias)
         GatherBox = 5,  // Rương báu / Lửa trại / Khoáng sản
         Trap = 6        // Cạm bẫy
     }
@@ -27,7 +29,31 @@ namespace TopDownGame.Combat
     }
 
     /// <summary>
-    /// Dạng đạn đạo / Hình thái kỹ năng theo DATA_CONVENTIONS.md (Mục 2 & 14)
+    /// Phân loại hình thức kỹ năng theo DATA_CONVENTIONS_V2.md (Mục 2 & 18)
+    /// </summary>
+    public enum SkillTypeDef
+    {
+        None = 0,
+        Melee = 1,          // Kỹ năng áp sát cận chiến / Khinh công (skill_type_melee)
+        InstSingle = 2,     // Tác dụng tức thì đơn thể (skill_type_inst_single)
+        Passivity = 3,      // Kỹ năng bị động / Buff nội tại (skill_type_passivity)
+        InstMissile = 4,    // Đạn tức thì / Không delay (skill_type_inst_missile)
+        Missile = 5         // Đạn có quỹ đạo bay (skill_type_missile)
+    }
+
+    /// <summary>
+    /// Cơ chế phân loại tấn công UI & Selector theo DATA_CONVENTIONS_V2.md (Mục 7 & 18)
+    /// </summary>
+    public enum SkillAttackType
+    {
+        Normal = 1,         // Kỹ năng đánh thường / PBAOE quanh thân
+        Direction = 2,      // Kỹ năng định hướng tự do (Linear Skillshot)
+        Target = 3,         // Kỹ năng khóa mục tiêu (Target-Locked)
+        Line = 4            // Kỹ năng đường thẳng xuyên thấu
+    }
+
+    /// <summary>
+    /// Dạng đạn đạo / Hình thái kỹ năng theo DATA_CONVENTIONS_V2.md (Mục 2 & 18)
     /// </summary>
     public enum MissileFormType
     {
@@ -36,18 +62,35 @@ namespace TopDownGame.Combat
         SpreadFan = 2,      // Đạn bắn chùm nhiều tia hình quạt
         CircularRing = 3,   // Vòng tròn tỏa rộng quanh Caster
         ChainBouncing = 4,  // Đạn nảy bật liên hoàn giữa các mục tiêu
-        SkyDrop = 5         // Mưa tên / Thiên thạch rơi từ trên trời xuống
+        SkyDrop = 5,        // Mưa tên / Thiên thạch rơi từ trên trời xuống
+        StaticCircle = 6,   // Vòng tròn AOE tĩnh
+        MultiMissileWave = 7// Chùm đa đạn đồng loạt / Sóng nước tỏa rộng
     }
 
     /// <summary>
-    /// Cơ chế di chuyển của đạn theo DATA_CONVENTIONS.md (Mục 3 & 14)
+    /// Cơ chế di chuyển của đạn theo DATA_CONVENTIONS_V2.md (Mục 4 & 18)
     /// </summary>
     public enum MissileMoveKind
     {
         StaticTrap = 0,     // Đặt bẫy / Bãi nổ cố định tại chỗ
         Linear = 1,         // Bay thẳng theo vector ban đầu
         HomingTracking = 2, // Tự bám đuổi / uốn lượn theo mục tiêu đang khóa
-        DashWithCaster = 3  // Di chuyển dính liền theo thân người lướt
+        DashWithCaster = 3, // Di chuyển dính liền theo thân người lướt
+        BoomerangCurved = 5,// Bay uốn lượn / quay ngược trở về
+        OrbitAroundCaster = 6// Xoay vòng quanh người ra chiêu
+    }
+
+    /// <summary>
+    /// Kiểu sinh đạn theo nhịp theo DATA_CONVENTIONS_V2.md (Mục 3 & 18)
+    /// </summary>
+    public enum MSGenerateType
+    {
+        Instant = 0,        // Sinh tức thời 1 lần
+        Trail = 1,          // Sinh theo vệt đường đi
+        AreaDoT = 2,        // Duy trì bãi sát thương tại chỗ
+        MeteorRain = 3,     // Mưa rơi ngẫu nhiên liên hoàn
+        TimedTrap = 4,      // Bẫy hẹn giờ phát nổ
+        ChargeAccumulate = 5// Tụ lực tăng dần số lượng đạn
     }
 
     /// <summary>
@@ -146,5 +189,66 @@ namespace TopDownGame.Combat
         public const string TagEnemy = "Enemy";
         public const string LayerPlayer = "Player";
         public const string LayerEnemy = "Enemy";
+    }
+
+    /// <summary>
+    /// Trạng thái bất lợi & khống chế theo DATA_CONVENTIONS_V2.md (Mục 18 - NpcDefine.lua)
+    /// </summary>
+    public enum NpcSpecialState
+    {
+        Hurt = 0,           // Bị thương
+        Zhican = 1,         // Tàn phế
+        SlowAll = 2,        // Trì hoãn
+        Palsy = 3,          // Tê liệt
+        Stun = 4,           // Choáng
+        Fixed = 5,          // Định thân
+        Weak = 6,           // Suy yếu
+        Burn = 7,           // Thiêu đốt
+        SlowRun = 8,        // Giảm tốc chạy
+        Freeze = 9,         // Đóng băng
+        Confuse = 10,       // Hỗn loạn
+        Knock = 11,         // Đẩy lùi
+        Drag = 12,          // Kéo lại
+        Silence = 13,       // Câm lặng
+        Float = 14,         // Hất tung
+        SelfFreeze = 15,    // Tự đóng băng (Hộ mệnh)
+        Sleep = 16,         // Ngủ say
+        Knock2 = 17,        // Lùi xa
+        NoJump = 18,        // Cấm khinh công
+        ForceAtk = 19,      // Khiêu khích
+        DragFloat = 20,     // Kéo từ trên không xuống đất
+        NpcHurt = 21,       // Npc bị thương
+        NpcKnock = 22,      // Npc bị đẩy lùi
+        NpcHide = 23,       // Tàng hình
+        Shield = 24,        // Khiên hộ thể
+        FixShield = 25,     // Khiên cố định
+        ShieldExt = 26,     // Khiên mở rộng
+        ShieldShare = 27    // Khiên chia sẻ đồng đội
+    }
+
+    /// <summary>
+    /// Struct phân tích chuỗi Gia Tốc / Lướt / Khinh Công theo DATA_CONVENTIONS_V2.md (Mục 3 & 18)
+    /// </summary>
+    [System.Serializable]
+    public struct AcceSpeedInfo
+    {
+        public float Acceleration;  // Gia tốc (m/s^2)
+        public float InitialSpeed;   // Vận tốc ban đầu (m/s)
+        public float MaxSpeed;       // Vận tốc kẹp tối đa (m/s)
+
+        public static AcceSpeedInfo Parse(string rawString)
+        {
+            var info = new AcceSpeedInfo();
+            if (string.IsNullOrEmpty(rawString)) return info;
+
+            string[] parts = rawString.Split('|');
+            if (parts.Length >= 3)
+            {
+                float.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out info.Acceleration);
+                float.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out info.InitialSpeed);
+                float.TryParse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out info.MaxSpeed);
+            }
+            return info;
+        }
     }
 }
