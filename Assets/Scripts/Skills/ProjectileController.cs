@@ -37,6 +37,7 @@ namespace TopDownGame.Skills
         private float distanceTraveled;
         private float maxDistance;
         private float lifeTimer;
+        private float flyTimer;
         private bool isInitialized = false;
         private GameObject flyingEffectInstance;
         private readonly Dictionary<IDamageable, float> lastHitTimes = new Dictionary<IDamageable, float>();
@@ -63,7 +64,7 @@ namespace TopDownGame.Skills
 
             this.skillId = skill != null ? skill.id : 0;
             this.missileId = missile != null ? missile.missileId : 0;
-            this.damage = skill != null ? skill.CalculateDamage(casterStats) : 20f;
+            this.damage = (skill != null && skill.IsHeal) ? skill.CalculateHeal(casterStats) : (skill != null ? skill.CalculateDamage(casterStats) : 20f);
 
             this.moveDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : caster.forward;
             this.speed = missile != null ? missile.SpeedInUnitsPerSec : 10f;
@@ -71,6 +72,7 @@ namespace TopDownGame.Skills
             this.maxDistance = skill != null && skill.range > 0f ? skill.range : (missile != null && missile.dmgRange > 0f ? (missile.dmgRange / 10f) : 15f);
             this.lifeTimer = missile != null ? missile.LifeTimeInSeconds : 2.5f;
             this.distanceTraveled = 0f;
+            this.flyTimer = 0f;
 
             // Thiết lập nảy bật liên hoàn (MissileForm = 4 theo DATA_CONVENTIONS.md Mục 2)
             this.bouncesRemaining = (skill != null && skill.missileForm == 4 && skill.skillParam1 > 0) ? (int)skill.skillParam1 : 0;
@@ -107,6 +109,18 @@ namespace TopDownGame.Skills
                 return;
             }
 
+            // 0. Chu kỳ kích hoạt Sub-Skill theo nhịp đạn bay (FlySkillId & FlyEventInterval)
+            if (skillData != null && skillData.HasFlySkill && skillData.flyEventInterval > 0)
+            {
+                flyTimer += dt;
+                float intervalSec = skillData.FlyEventIntervalInSeconds;
+                if (intervalSec > 0f && flyTimer >= intervalSec)
+                {
+                    flyTimer -= intervalSec;
+                    TriggerFlySkill();
+                }
+            }
+
             // 1. Tự động bẻ lái uốn lượn bám theo mục tiêu (Homing / Target tracking theo DATA_CONVENTIONS.md: MoveKind = 2)
             bool isHoming = missileData != null && (missileData.moveKind == MissileMoveKind.HomingTracking || (int)missileData.moveKind == 2 || missileData.isFollowTarget);
             if (isHoming && homingTarget != null)
@@ -126,24 +140,27 @@ namespace TopDownGame.Skills
                 speed += missileData.AccelerationInUnitsPerSec2 * dt;
             }
 
-            // 2. Tính toán bước di chuyển
+            // 2. Tính toán bước di chuyển & va chạm
             float stepDistance = speed * dt;
             Vector3 currentPos = transform.position;
             Vector3 nextPos = currentPos + moveDirection * stepDistance;
 
-            // 3. Quét va chạm liên tục (Continuous Collision Detection) tránh xuyên vật cản khi bay tốc độ cao
+            // 3. Quét va chạm liên tục (Continuous Collision Detection)
             if (CheckCollision(currentPos, nextPos, stepDistance))
             {
                 return;
             }
 
             // 4. Cập nhật vị trí
-            transform.position = nextPos;
-            distanceTraveled += stepDistance;
-
-            if (distanceTraveled >= maxDistance)
+            if (speed > 0f)
             {
-                ExplodeAndDestroy(nextPos, false);
+                transform.position = nextPos;
+                distanceTraveled += stepDistance;
+
+                if (distanceTraveled >= maxDistance)
+                {
+                    ExplodeAndDestroy(nextPos, false);
+                }
             }
         }
 
@@ -270,7 +287,37 @@ namespace TopDownGame.Skills
                 ? (missileData.dmgInterval / 15.0f)
                 : 0f;
 
-            if (SkillDamageResolver.ApplyDamage(col, damage, hitPoint, hitDir, caster, lastHitTimes, repeatInterval))
+            bool isHitSuccess = false;
+
+            if (skillData != null && skillData.IsHeal)
+            {
+                bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
+                bool isTargetPlayer = col.CompareTag(CombatLayersAndTags.TagPlayer) || col.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
+
+                if (isCasterPlayer == isTargetPlayer)
+                {
+                    var targetStats = col.GetComponent<EntityStats>() ?? col.GetComponentInParent<EntityStats>();
+                    if (targetStats != null && !targetStats.IsDead)
+                    {
+                        if (lastHitTimes.TryGetValue(targetStats, out float lastTime))
+                        {
+                            if (repeatInterval <= 0f || (Time.time - lastTime) < repeatInterval)
+                            {
+                                return false;
+                            }
+                        }
+                        lastHitTimes[targetStats] = Time.time;
+                        targetStats.Heal(damage);
+                        isHitSuccess = true;
+                    }
+                }
+            }
+            else
+            {
+                isHitSuccess = SkillDamageResolver.ApplyDamage(col, damage, hitPoint, hitDir, caster, lastHitTimes, repeatInterval);
+            }
+
+            if (isHitSuccess)
             {
                 // Hiệu ứng nổ / va chạm khi trúng đích (CollResID)
                 SpawnHitEffect(hitPoint);
@@ -278,10 +325,31 @@ namespace TopDownGame.Skills
                 // Âm thanh khi chạm trúng đích (CollSoundID)
                 PlayHitSound(hitPoint);
 
+                // Kích hoạt chiêu phụ khi đánh trúng mục tiêu (HitSkillID)
+                if (skillData != null && skillData.HasHitSkill)
+                {
+                    SkillData hitSkill = SkillDatabase.GetSkill(skillData.hitSkillId);
+                    if (hitSkill != null && hitSkill.id != skillData.id)
+                    {
+                        SkillDamageResolver.CastDamage(caster, casterStats, hitSkill, targetLayer, col.transform, hitPoint);
+                    }
+                }
+
                 return true;
             }
 
             return false;
+        }
+
+        private void TriggerFlySkill()
+        {
+            if (skillData == null || skillData.flySkillId <= 0) return;
+            SkillData flySkill = SkillDatabase.GetSkill(skillData.flySkillId);
+            if (flySkill == null || flySkill.id == skillData.id) return;
+
+            Transform target = homingTarget != null ? homingTarget : null;
+            Vector3 targetPt = target != null ? target.position : transform.position;
+            SkillDamageResolver.CastDamage(caster, casterStats, flySkill, targetLayer, target, targetPt);
         }
 
         private void SpawnHitEffect(Vector3 hitPoint)
@@ -307,6 +375,16 @@ namespace TopDownGame.Skills
             if (!isInitialized || isDestroying) return;
             isDestroying = true;
             isInitialized = false;
+
+            // Kích hoạt chiêu phụ khi đạn tan biến / hết hạn (VanishedSkillId)
+            if (skillData != null && skillData.HasVanishedSkill)
+            {
+                SkillData vanishSkill = SkillDatabase.GetSkill(skillData.vanishedSkillId);
+                if (vanishSkill != null && vanishSkill.id != skillData.id)
+                {
+                    SkillDamageResolver.CastDamage(caster, casterStats, vanishSkill, targetLayer, homingTarget, explosionPos);
+                }
+            }
 
             // Nếu đạn tan biến khi hết tầm bay mà không chạm ai, sinh hiệu ứng VanishResID nếu có
             if (!hasHitTarget && missileData != null && !string.IsNullOrEmpty(missileData.VanishEffectPath))
@@ -358,6 +436,7 @@ namespace TopDownGame.Skills
             skillData = null;
             missileData = null;
             homingTarget = null;
+            flyTimer = 0f;
             lastHitTimes.Clear();
 
             ProjectilePool.Instance.Release(this);

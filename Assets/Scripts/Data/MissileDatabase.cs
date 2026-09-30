@@ -22,6 +22,7 @@ namespace TopDownGame.Data
         public float delayDeleteFrame;
         public bool isDmgVanish;
         public bool canRepeatDmg;
+        public bool isIgnoreBarrier;
         public int missileResID;
         public int collResID;
         public int vanishResID;
@@ -34,6 +35,7 @@ namespace TopDownGame.Data
         public float SpeedInUnitsPerSec => speed > 0f ? (speed / 10.0f) : 10.0f;
         public float AccelerationInUnitsPerSec2 => acceSpeed > 0f ? (acceSpeed / 10.0f) : 0f;
         public float LifeTimeInSeconds => lifeTime > 0f ? (lifeTime / 15.0f) : 2.5f;
+        public float DmgIntervalInSeconds => dmgInterval > 0f ? (dmgInterval / 15.0f) : 0f;
         public float CollisionRadius => dmgRange > 0f ? (dmgRange / 10.0f) : 0.6f;
         public float SpawnOffsetDistance => posOffsetLength > 0f ? (posOffsetLength / 100.0f) : 1.2f;
 
@@ -128,6 +130,7 @@ namespace TopDownGame.Data
                         int flySoundID = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 21), -1);
                         bool isFollowTarget = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 23), 0) == 1;
                         float acceSpeed = CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 24), 0f);
+                        bool isIgnoreBarrier = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 27), 0) == 1;
                         int vanishResID = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 29), 0);
 
                         MissileData data = new MissileData
@@ -145,6 +148,7 @@ namespace TopDownGame.Data
                             delayDeleteFrame = delayDeleteFrame,
                             isDmgVanish = isDmgVanish,
                             canRepeatDmg = canRepeatDmg,
+                            isIgnoreBarrier = isIgnoreBarrier,
                             missileResID = missileResID,
                             collResID = collResID,
                             vanishResID = vanishResID,

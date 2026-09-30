@@ -83,6 +83,28 @@ namespace TopDownGame.Editor
                 Debug.Log($"   [Hiệu ứng Missile đạn cầu băng - JN_02_DD]: Path='{missilePath}' => {(!string.IsNullOrEmpty(missilePath) ? "✅ ĐÃ CÓ" : "❌ THIẾU")}");
             }
 
+            // 3. KIỂM TRA SKILL 312 (Thiên Vũ Bảo Luân - Area DoT & StartSkill 313)
+            SkillData s312 = SkillDatabase.GetSkill(312);
+            if (s312 != null)
+            {
+                Debug.Log($"✅ Skill 312: Name='{s312.name}', MSGenerate={s312.msGenerate} (AreaDoT), ChildCount={s312.childCount}, MSGenerateParam='{s312.msGenerateParam}', StartSkillID={s312.startSkillId}");
+            }
+
+            // 4. KIỂM TRA SKILL 313 (Thiên Vũ Bảo Luân _ Hồi Sinh Lực - Static Repeat Heal)
+            SkillData s313 = SkillDatabase.GetSkill(313);
+            if (s313 != null)
+            {
+                var m313 = MissileDatabase.GetMissile(s313.childId);
+                Debug.Log($"✅ Skill 313: Name='{s313.name}', IsHeal={s313.IsHeal}, Missile 313: MoveKind={m313?.moveKind}, CanRepeatDmg={m313?.canRepeatDmg}, DmgInterval={m313?.dmgInterval}, LifeTime={m313?.lifeTime}");
+            }
+
+            // 5. KIỂM TRA SKILL 631 (Vạn Kiếm Phong Thiên Quyết - FlySkill 632)
+            SkillData s631 = SkillDatabase.GetSkill(631);
+            if (s631 != null)
+            {
+                Debug.Log($"✅ Skill 631: Name='{s631.name}', FlySkillId={s631.flySkillId}, FlyEventInterval={s631.flyEventInterval}");
+            }
+
             Debug.Log("===================================================================");
         }
     }

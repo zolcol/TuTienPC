@@ -98,10 +98,12 @@ namespace TopDownGame.Skills
                         string skillStyle = GetColRaw(tokens, colMap, "skillstyle", 24).Trim();
                         bool targetSelf = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "targetself", 65), 0) == 1;
 
-                        int flySkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "flyskillid", 30), 0);
                         int startSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "startskillid", 29), 0);
+                        int flySkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "flyskillid", 30), 0);
+                        int flyEventInterval = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "flyeventinterval", 31), 0);
                         int hitSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "hitskillid", 34), 0);
-                        int subSkillId = flySkillId > 0 ? flySkillId : (startSkillId > 0 ? startSkillId : hitSkillId);
+                        int vanishedSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "vanishedskillid", 36), 0);
+                        int subSkillId = startSkillId > 0 ? startSkillId : (flySkillId > 0 ? flySkillId : hitSkillId);
 
                         int rawStartPosType = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "startpostype", 5), 1);
                         VfxStartPosType startPosType = Enum.IsDefined(typeof(VfxStartPosType), rawStartPosType) ? (VfxStartPosType)rawStartPosType : VfxStartPosType.Caster;
@@ -256,6 +258,11 @@ namespace TopDownGame.Skills
                             skillStyle = skillStyle,
                             targetSelf = targetSelf,
                             subSkillId = subSkillId,
+                            startSkillId = startSkillId,
+                            flySkillId = flySkillId,
+                            flyEventInterval = flyEventInterval,
+                            hitSkillId = hitSkillId,
+                            vanishedSkillId = vanishedSkillId,
                             startPosType = startPosType,
                             selectorType = selectorType,
                             selectorRange = selectorRange,

@@ -9,22 +9,23 @@ Tài liệu này tổng hợp toàn bộ quy ước, định nghĩa biến, côn
 ## 📑 MỤC LỤC
 1. [Hệ Thống Đơn Vị Đo Lường & Công Thức Quy Đổi Unity](#1-hệ-thống-đơn-vị-đo-lường--công-thức-quy-đổi-unity)
 2. [Chi Tiết Bảng `Skill.csv` (Kỹ Năng & Logic Xuất Chiêu)](#2-chi-tiết-bảng-skillcsv)
-3. [Giải Mã Tham Số Đa Biến Trong `Skill.csv` (`Param1..Param6`, `AcceSpeedInfo`, `MSGenerate`)](#3-giải-mã-tham-số-đa-biến-trong-skillcsv)
+3. [Giải Mã Tham Số Đa Biến Trong `Skill.csv` (`Param1..Param6`, `AcceSpeedInfo`, `MSGenerate`, `DoT`)](#3-giải-mã-tham-số-đa-biến-trong-skillcsv)
 4. [Chi Tiết Bảng `Missile.csv` (Đạn Đạo, Hitbox & Tham Số Đặc Biệt)](#4-chi-tiết-bảng-missilecsv)
 5. [Chi Tiết Bảng `ActionEvent.csv` & `ActionEventDes.csv` (Timeline Từng Frame Sự Kiện)](#5-chi-tiết-bảng-actioneventcsv--actioneventdescsv)
 6. [Nguyên Lý Scale Animation & Công Thức Tốc Đánh (Attack Speed) Chuẩn](#6-nguyên-lý-scale-animation--công-thức-tốc-đánh-attack-speed-chuẩn)
 7. [Hệ Thống Định Hướng, Chỉ Định Mục Tiêu & Cấu Hình Selector](#7-hệ-thống-định-hướng-chỉ-định-mục-tiêu--cấu-hình-selector)
 8. [Công Thức Tính Toán Chiến Đấu & Khắc Chế Ngũ Hành (`SkillSetting.ini` & `SkillConstant.csv`)](#8-công-thức-tính-toán-chiến-đấu--khắc-chế-ngũ-hành-skillsettingini--skillconstantcsv)
-9. [Chi Tiết Bảng `AutoSkill.csv` (Cơ Chế Tự Động Kích Hoạt Chiêu Thức)](#9-chi-tiết-bảng-autoskillcsv)
-10. [Chi Tiết Bảng `SkillLevelUp.csv` & `SkillSlot.csv`](#10-chi-tiết-bảng-skilllevelupcsv--skillslotcsv)
-11. [Chi Tiết Bảng `NpcRes.csv` (Kích Thước 3D, Collider & Frame Hoạt Ảnh)](#11-chi-tiết-bảng-npcrescsv)
-12. [Chi Tiết Bảng `ActionName.csv` (Từ Điển Tên Hoạt Ảnh Chuẩn)](#12-chi-tiết-bảng-actionnamecsv)
-13. [Chi Tiết Bảng `NpcTemplate.csv` & `Field_HeaderBoss.csv` (Dữ Liệu Quái, Boss & Nhân Vật)](#13-chi-tiết-bảng-npctemplatecsv--field_headerbosscsv)
-14. [Chi Tiết Bảng `NpcAttribute.csv` & `MagicDesc.csv` (Chỉ Số Thuộc Tính)](#14-chi-tiết-bảng-npcattributecsv--magicdesccsv)
-15. [Chi Tiết Bảng `EffectRes.csv` (Tài Nguyên Prefab VFX & Vũ Khí Thần Binh)](#15-chi-tiết-bảng-effectrescsv)
-16. [Chi Tiết Bảng `StateEffect.csv`, `PartSlot.csv` & Quản Lý Khớp Gắn VFX](#16-chi-tiết-bảng-stateeffectcsv-partslotcsv--quản-lý-khớp-gắn-vfx)
-17. [Chi Tiết Bảng `FactionSkill.csv` & `Sound.csv`](#17-chi-tiết-bảng-factionskillcsv--soundcsv)
-18. [Tổng Hợp Toàn Bộ Bảng Mã Enum & Struct Chuẩn C# Cho Unity](#18-tổng-hợp-toàn-bộ-bảng-mã-enum--struct-chuẩn-c-cho-unity)
+9. [Hệ Thống Trạng Thái Bất Lợi, Khống Chế & Quy Ước Thương Tích (`SpecialState.csv` / `CommonScript/Skill/`)](#9-hệ-thống-trạng-thái-bất-lợi-khống-chế--quy-ước-thương-tích-specialstatecsv--commonscriptskill)
+10. [Chi Tiết Bảng `AutoSkill.csv` (Cơ Chế Tự Động Kích Hoạt Chiêu Thức)](#10-chi-tiết-bảng-autoskillcsv)
+11. [Chi Tiết Bảng `SkillLevelUp.csv` & `SkillSlot.csv`](#11-chi-tiết-bảng-skilllevelupcsv--skillslotcsv)
+12. [Chi Tiết Bảng `NpcRes.csv` (Kích Thước 3D, Collider & Frame Hoạt Ảnh)](#12-chi-tiết-bảng-npcrescsv)
+13. [Chi Tiết Bảng `ActionName.csv` (Từ Điển Tên Hoạt Ảnh Chuẩn)](#13-chi-tiết-bảng-actionnamecsv)
+14. [Chi Tiết Bảng `NpcTemplate.csv` & `Field_HeaderBoss.csv` (Dữ Liệu Quái, Boss & Nhân Vật)](#14-chi-tiết-bảng-npctemplatecsv--field_headerbosscsv)
+15. [Chi Tiết Bảng `NpcAttribute.csv` & `MagicDesc.csv` (Chỉ Số Thuộc Tính)](#15-chi-tiết-bảng-npcattributecsv--magicdesccsv)
+16. [Chi Tiết Bảng `EffectRes.csv` (Tài Nguyên Prefab VFX & Vũ Khí Thần Binh)](#16-chi-tiết-bảng-effectrescsv)
+17. [Chi Tiết Bảng `StateEffect.csv`, `PartSlot.csv` & Quản Lý Khớp Gắn VFX](#17-chi-tiết-bảng-stateeffectcsv-partslotcsv--quản-lý-khớp-gắn-vfx)
+18. [Chi Tiết Bảng `FactionSkill.csv` & `Sound.csv`](#18-chi-tiết-bảng-factionskillcsv--soundcsv)
+19. [Tổng Hợp Toàn Bộ Bảng Mã Enum & Struct Chuẩn C# Cho Unity](#19-tổng-hợp-toàn-bộ-bảng-mã-enum--struct-chuẩn-c-cho-unity)
 
 ---
 
@@ -107,16 +108,32 @@ Trong các chiêu thức lướt (Nhất Kích Sát Thần, Tiên Nhân Chỉ L�
 
 ---
 
-### ⏳ 3. Cơ Chế Nhịp Sinh Đạn & Bãi Đất DoT (`MSGenerate` & `MSGenerateParam`):
-Dùng cho các chiêu thức duy trì bãi đất, mưa kiếm, bẫy liên tục:
+### ⏳ 3. Cơ Chế Sát Thương Đa Đợt, Nhịp Sinh Đạn & Bãi Đất DoT (`MSGenerate`, `MSGenerateParam`, `ChildCount`, `FlySkillId`):
+Game hỗ trợ 3 cơ chế gây sát thương / hồi máu đa đợt khác nhau, phối hợp chặt chẽ giữa `Skill.csv` và `Missile.csv`:
+
+#### 🅰️ Cơ Chế 1: Chiêu thức sinh đạn liên hoàn theo chu kỳ (`MSGenerate` trong `Skill.csv`)
 * **`MSGenerate` (Kiểu sinh đạn):**
-  - `0`: Sinh tức thời 1 lần.
-  - `1`: Sinh đạn theo nhịp cố định dọc theo đường đi (Trail Spawning).
-  - `2`: **Duy trì bãi sát thương tại chỗ (Area DoT / Hazard Zone)**.
-  - `3`: Rơi liên hoàn từ trên trời xuống ngẫu nhiên (Meteor Rain / Vạn Kiếm Quyết).
-  - `4`: Sinh bẫy hẹn giờ phát nổ.
-  - `5`: Tụ lực tăng dần số lượng đạn (vd: Lục Mạch Thần Kiếm).
-* **`MSGenerateParam`:** Nhịp thời gian giữa các lần sinh đạn tính bằng **Frames** (vd: `15` frames = 1 giây nổ sát thương/sinh 1 lần).
+  - `0`: Sinh tức thời 1 lần duy nhất (`Instant Single Spawning`).
+  - `1`: Sinh đạn theo nhịp dọc theo đường di chuyển (`Trail Spawning`).
+  - `2`: **Duy trì bãi sát thương tại chỗ (Area DoT / Hazard Zone Spawning)**. Sinh ra `ChildCount` đợt đạn `ChildID`, mỗi đợt cách nhau `MSGenerateParam` frames (vd: Thiên Vũ Bảo Luân 312: `ChildCount = 12`, `MSGenerateParam = 7` $\rightarrow 12$ đợt sát thương, cách nhau $7/15\text{s} \approx 0.46\text{s}$, duy trì $5.6\text{s}$).
+  - `3`: **Mưa rơi liên hoàn ngẫu nhiên từ trên trời xuống (Meteor / Sky Drop Rain)** (vd: Vạn Kiếm Phong Thiên Quyết, Phấn Tinh Lạc Vũ).
+  - `4`: **Bẫy hẹn giờ phát nổ định kỳ (Timed Trap Multi-Explosion)**.
+  - `5`: **Tụ lực / Dồn tia tăng dần (Rapid Fire / Charge Spawning)**.
+* **`ChildCount`:** Tổng số đợt đạn/nhịp nổ sinh ra trong toàn bộ thời gian tồn tại của chiêu.
+* **`MSGenerateParam`:** Nhịp thời gian giữa 2 lần sinh đạn liên tiếp tính bằng **Frames** ($t = \text{MSGenerateParam} / 15.0\text{s}$).
+
+$$\text{Tổng thời gian duy trì bãi sát thương} = \frac{\text{ChildCount} \times \text{MSGenerateParam}}{15.0f} \text{ (giây)}$$
+
+#### 🅱️ Cơ Chế 2: Viên đạn/vùng nổ tự lặp lại tác dụng (`DmgInterval` trong `Missile.csv`)
+* **`DmgInterval`:** Giãn cách giữa 2 lần gây sát thương/hồi máu của cùng một viên đạn/vùng nổ (Frames).
+* **`CanRepeatDmg = 1`:** Bắt buộc phải bật để cho phép viên đạn tác động nhiều lần lên cùng một mục tiêu.
+* **`LifeTime`:** Thời gian tồn tại tối đa của viên đạn/vùng nổ (Frames).
+
+$$\text{Số nhịp tác động thực tế của 1 viên đạn} = \left\lfloor \frac{\text{LifeTime}}{\text{DmgInterval}} \right\rfloor$$
+*(Ví dụ: Vùng hoa sen hồi máu 313: `LifeTime = 90`, `DmgInterval = 15`, `CanRepeatDmg = 1` $\rightarrow 90/15 = 6$ nhịp hồi máu, mỗi giây hồi 1 lần trong 6 giây).*
+
+#### 🆎 Cơ Chế 3: Sub-skill kích hoạt theo nhịp đạn bay (`FlySkillId` & `FlyEventInterval`)
+* Khi viên đạn chính đang bay hoặc duy trì bãi đất, cứ mỗi `FlyEventInterval` frames ($t = \text{FlyEventInterval} / 15.0\text{s}$), hệ thống tự động gọi Sub-skill `FlySkillId` (vd: Từ Hàng Phổ Độ 306 gọi 307 mỗi 15 frames; Vạn Kiếm Quyết 631 gọi 632 mỗi 5 frames).
 
 ---
 
@@ -132,14 +149,16 @@ Dùng cho các chiêu thức duy trì bãi đất, mưa kiếm, bẫy liên tụ
 | **`DmgRangeType`** | `int` | `0`: Đơn mục tiêu (Single Target), `1`: Vùng tròn / Khối cầu (AOE Sphere). |
 | **`DmgRange`** | `int` | Bán kính Hitbox (`Radius = DmgRange / 10.0f` mét). |
 | **`LifeTime`** | `int` | Thời gian sống tối đa của đạn (`LifeTime / 15.0f` giây). |
-| **`DelayDeleteFrame`**| `int` | Thời gian trễ trước khi hủy GameObject đạn (Frames). |
-| **`IsDmgVanish`** | `int (0/1)` | `1` = Đạn chạm trúng mục tiêu là hủy ngay lập tức. |
-| **`CanRepeatDmg`** | `int (0/1)` | `1` = Được phép gây sát thương nhiều lần (Xuyên thấu / Đạn nảy). |
+| **`DmgInterval`** | `int` | **Nhịp giãn cách giữa các lần gây sát thương/hồi máu lặp lại** (`Interval = DmgInterval / 15.0f` giây). |
+| **`DelayDeleteFrame`**| `int` | Thời gian trễ trước khi hủy GameObject đạn (Frames, để VFX fade out). |
+| **`IsDmgVanish`** | `int (0/1)` | `1` = Đạn chạm trúng mục tiêu là hủy ngay lập tức (Single Hit Projectile). |
+| **`CanRepeatDmg`** | `int (0/1)` | `1` = Được phép gây sát thương/hồi máu nhiều lần (kết hợp với `DmgInterval`). |
 | **`MissileResID`** | `int` | ID Prefab 3D của đạn khi bay (Trỏ sang `EffectRes.csv`). |
 | **`CollResID`** | `int` | ID Prefab 3D nổ khi va chạm (Hit Impact VFX, trỏ `EffectRes.csv`). |
 | **`PosOffsetLenght`**| `int` | Độ lệch spawn về phía trước Caster (`Offset = PosOffsetLenght / 100.0f` m). |
 | **`CollBrigth`** | `int` | Cường độ chớp sáng màn hình (`Alpha = CollBrigth / 1000.0f`). |
 | **`CollBrigthFrame`**| `int` | Số frame duy trì chớp sáng màn hình. |
+| **`IsIgnoreBarrier`**| `int (0/1)`| `1` = Bỏ qua chướng ngại vật/vật cản địa hình. |
 
 ---
 
@@ -239,7 +258,83 @@ $$\text{Resist Rate} = \text{Attacker.SeriesResistParam0} \times \frac{\text{Def
 
 ---
 
-## 9. CHI TIẾT BẢNG `AutoSkill.csv`
+## 9. HỆ THỐNG TRẠNG THÁI BẤT LỢI, KHỐNG CHẾ & QUY ƯỚC THƯƠNG TÍCH (`SpecialState.csv` / `CommonScript/Skill/`)
+
+### 🧠 1. Nguyên Lý Ánh Xạ Hiệu Ứng Bị Thương Từ Lua Sang Database
+Trong hệ thống của Kingsoft/Seasun, `Skill.csv` không lưu cứng chuỗi hiệu ứng khống chế trong một cột đơn lẻ mà thông qua trường **`ClassName`** (hoặc Sub-skill qua `ChildID`, `HitSkillID`, `FlySkillId`).
+`ClassName` liên kết tới bảng ma pháp trong các file `CommonScript/Skill/faction/*.lua` (hoặc `npc/*.lua`, `partner/*.lua`), nơi các hiệu ứng thương tích được khai báo bằng tiền tố **`state_<StateName>_attack`**:
+
+```mermaid
+flowchart LR
+    A["Skill.csv (ClassName)"] --> B["CommonScript/Skill/faction/*.lua<br/>(tbMagics)"]
+    B --> C["state_*_attack<br/>(state_hurt_attack, state_float_attack...)"]
+    C --> D["SpecialState.csv<br/>(MaxFrame, Body/Head VFX)"]
+    C --> E["ActionName.csv<br/>(Player/NPC Hit Animation)"]
+```
+
+---
+
+### 📋 2. Bảng Ánh Xạ Toàn Bộ Thuộc Tính Gây Thương Tích (`state_*_attack`):
+
+| Thuộc tính trong Lua | Trạng thái tương ứng | Max Frame (15 FPS) | Icon Head/Body | Cơ chế tác động & Phản ứng bị thương |
+| :--- | :---: | :---: | :---: | :--- |
+| **`state_hurt_attack`** | `hurt` (0) | 75 frames (5.0s) | — | **Bị thương** (ngắt động tác, khựng giật mình tức thời). |
+| **`state_zhican_attack`** | `zhican` (1) | 900 frames (60.0s)| Body 60 | **Tàn phế** (không thể dùng chiêu / di chuyển). |
+| **`state_slowall_attack`** | `slowall` (2) | 90 frames (6.0s) | Body 58 | **Trì hoãn** (giảm 10% toàn bộ tốc đánh & tốc chạy). |
+| **`state_palsy_attack`** | `palsy` (3) | 75 frames (5.0s) | Body 61 | **Tê liệt** (đứng khựng ngắt quãng liên tục). |
+| **`state_stun_attack`** | `stun` (4) | 75 frames (5.0s) | Head 68 | **Choáng** (bất động hoàn toàn, cấm mọi thao tác). |
+| **`state_fixed_attack`** | `fixed` (5) | 75 frames (5.0s) | Body 59 | **Định thân** (khóa chân tại chỗ, vẫn dùng được chiêu tầm xa). |
+| **`state_weak_attack`** | `weak` (6) | 900 frames (60.0s)| Body 66 | **Suy yếu** (sát thương gây ra giảm còn 80%). |
+| **`state_burn_attack`** | `burn` (7) | 150 frames (10.0s)| Body 63 | **Thiêu đốt** (nhận thêm tối đa +50% sát thương Hỏa). |
+| **`state_slowrun_attack`** | `slowrun` (8) | 75 frames (5.0s) | — | **Làm chậm** tốc độ di chuyển. |
+| **`state_freeze_attack`** | `freeze` (9) | 900 frames (60.0s)| Body 9001 | **Đóng băng** (hóa băng, miễn sát thương và bất động). |
+| **`state_confuse_attack`** | `confuse` (10) | 75 frames (5.0s) | Head 65 | **Hỗn loạn** (mất kiểm soát, chạy loạn xạ). |
+| **`state_knock_attack`** | `knock` (11) | 75 frames (5.0s) | — | **Đẩy lùi** (bị đẩy trượt lùi ra xa vị trí Caster). |
+| **`state_drag_attack`** | `drag` (12) | 75 frames (5.0s) | Head 3507 | **Kéo lại** (bị hút mạnh về tâm chiêu thức). |
+| **`state_silence_attack`** | `silence` (13) | 900 frames (60.0s)| Head 64 | **Câm lặng** (cấm dùng kỹ năng, chỉ đánh thường/chạy). |
+| **`state_float_attack`** | `float` (14) | 900 frames (60.0s)| Body 62 | **Đánh bay / Hất tung** lên không 2.0m (`FloatHeight=200`). |
+| **`state_selffreeze_attack`**| `selffreeze` (15)| 900 frames (60.0s)| — | **Tự đóng băng** hộ mệnh/kim thiền. |
+| **`state_sleep_attack`** | `sleep` (16) | 900 frames (60.0s)| Head 67 | **Ngủ say** (bất động, nhận sát thương sẽ tỉnh lại ngay). |
+| **`state_nojump_attack`** | `nojump` (18) | 900 frames (60.0s)| Head 1457 | **Khóa khinh công** (cấm dùng kỹ năng nhảy/lướt né). |
+| **`state_forceatk_attack`**| `forceatk` (19)| 900 frames (60.0s)| Head 296 | **Khiêu khích** (bắt buộc mục tiêu phải tấn công mình). |
+| **`state_dragfloat_attack`**| `dragfloat` (20)| 75 frames (5.0s)| — | **Kéo xuống đánh bay** (kéo từ trên không xuống đất rồi hất tung). |
+| **`state_npchurt_attack`** | `npchurt` (25) | 30 frames (2.0s) | — | **Bị thương riêng cho NPC quái** (giật khựng). |
+| **`state_npcknock_attack`**| `npcknock` (26)| 75 frames (5.0s) | — | **Đẩy lùi riêng cho NPC quái**. |
+
+---
+
+### 📐 3. Cấu Trúc Tham Số Trong File Script Lua:
+
+#### 🔹 Cú pháp cơ bản (Tỉ lệ & Thời gian):
+$$\text{state\_<Name>\_attack} = \{\text{TỉLệ\%}, \text{ThờiGian\_Frames}\}$$
+* Có thể là giá trị cố định: `state_hurt_attack = { 80, 6 }` ($80\%$ tỉ lệ gây bị thương trong 6 frames = 0.4s).
+* Hoặc scale tăng dần theo cấp độ kỹ năng:
+  `state_slowall_attack = { {{1, 30}, {20, 50}}, {{1, 15*1.5}, {20, 15*2}} }`
+
+#### 🔹 Cú pháp khống chế vị trí & hoạt ảnh (`state_knock_attack` & `spe_knock_param`):
+```lua
+state_knock_attack = { 100, 5, 70 },        -- { Tỉ lệ %, Thời gian (frames), Tốc độ / Cự ly }
+spe_knock_param = { 11, 4, 26 },            -- { Thời gian dừng khựng, Player_ActId, Npc_ActId }
+spe_knock_param1 = { 1 },                   -- Cờ kích hoạt ép buộc đổi animation
+```
+* **`Player_ActId` & `Npc_ActId`** trỏ trực tiếp sang `ActId` trong [ActionName.csv](file:///C:/Users/zolcol/Desktop/Data/CSV/N/ActionName.csv):
+  * `4` = `jt` (Knockback - Bị đẩy lùi trượt chân).
+  * `9` = `bat` (Hit Flinch - Bị thương giật mình tại chỗ).
+  * `26` = `jf` (Knockup - Đánh bay tung lên không).
+
+#### 🔹 Cơ chế kích hoạt qua Bí kíp (`add_hitskill` & `skill_randskill`):
+Kỹ năng bị động của bí kíp gắn hook vào chiêu gốc để kích hoạt ngẫu nhiên các hiệu ứng khống chế:
+* `add_hitskill2 = { SkillGốc_ID, SubSkill_ID, {{1,1}, {10,10}} }`: Khi chiêu gốc đánh trúng, gọi SubSkill.
+* `skill_randskill1..5 = { {10, 50}, TargetSkill_ID, {10, 10} }`: Tung xúc xắc ngẫu nhiên 1 trong các chiêu khống chế con (Suy yếu, Hỗn loạn, Câm lặng, Trì hoãn, Đóng băng).
+
+---
+
+### ⏱️ 4. Công Thức Tính Thời Gian Khống Chế Thực Tế Khi Giao Tranh:
+$$\text{Effect Duration} = \min\left(\text{MaxFrame}, \text{BaseTime} \times \left(1 + \frac{\text{AtkAddTime}}{\text{AtkAddTime} + \text{DefStateBaseTime}} - \frac{\text{DefSubTime}}{\text{DefSubTime} + \text{DefStateBaseTime}}\right)\right)$$
+
+---
+
+## 10. CHI TIẾT BẢNG `AutoSkill.csv`
 
 Bảng quy định cơ chế tự động kích hoạt chiêu thức / kỹ năng bị động phản đòn:
 
@@ -254,7 +349,7 @@ Bảng quy định cơ chế tự động kích hoạt chiêu thức / kỹ năn
 
 ---
 
-## 10. CHI TIẾT BẢNG `SkillLevelUp.csv` & `SkillSlot.csv`
+## 11. CHI TIẾT BẢNG `SkillLevelUp.csv` & `SkillSlot.csv`
 
 * **`SkillLevelUp.csv`**: Bảng chi phí và điều kiện nâng cấp kỹ năng:
   - `GroupId`: Nhóm tiến cấp kỹ năng.
@@ -271,7 +366,7 @@ Bảng quy định cơ chế tự động kích hoạt chiêu thức / kỹ năn
 
 ---
 
-## 11. CHI TIẾT BẢNG `NpcRes.csv`
+## 12. CHI TIẾT BẢNG `NpcRes.csv`
 
 | Tên Cột | Kiểu | Ý nghĩa trong Unity 3D |
 | :--- | :---: | :--- |
@@ -284,7 +379,7 @@ Bảng quy định cơ chế tự động kích hoạt chiêu thức / kỹ năn
 
 ---
 
-## 12. CHI TIẾT BẢNG `ActionName.csv`
+## 13. CHI TIẾT BẢNG `ActionName.csv`
 
 Từ điển mã hóa tên viết tắt các Clip hoạt ảnh chuẩn trích từ [ActionName.tab](file:///C:/Users/zolcol/Desktop/Data/CSV/N/ActionName.csv) & [NpcDefine.lua](file:///C:/Users/zolcol/Desktop/Data/unpacked_data/CommonScript/Npc/NpcDefine.lua#L56-L74):
 
@@ -319,7 +414,7 @@ Từ điển mã hóa tên viết tắt các Clip hoạt ảnh chuẩn trích t�
 
 ---
 
-## 13. CHI TIẾT BẢNG `NpcTemplate.csv` & `Field_HeaderBoss.csv` (Dữ Liệu Quái, Boss & Nhân Vật)
+## 14. CHI TIẾT BẢNG `NpcTemplate.csv` & `Field_HeaderBoss.csv` (Dữ Liệu Quái, Boss & Nhân Vật)
 
 Bảng `NpcTemplate.csv` là bảng trung tâm chứa **toàn bộ** entity trong game: quái thường, Boss, NPC nhiệm vụ, nhân vật player, đồng hành, phân thân.
 
@@ -344,7 +439,7 @@ Bảng `NpcTemplate.csv` là bảng trung tâm chứa **toàn bộ** entity tron
 
 ---
 
-## 14. CHI TIẾT BẢNG `NpcAttribute.csv` & `MagicDesc.csv`
+## 15. CHI TIẾT BẢNG `NpcAttribute.csv` & `MagicDesc.csv`
 
 Toàn bộ tên thuộc tính ánh xạ chuẩn theo [MagicDesc.csv](file:///C:/Users/zolcol/Desktop/Data/CSV/N/MagicDesc.csv):
 
@@ -361,7 +456,7 @@ Toàn bộ tên thuộc tính ánh xạ chuẩn theo [MagicDesc.csv](file:///C:/
 
 ---
 
-## 15. CHI TIẾT BẢNG `EffectRes.csv`
+## 16. CHI TIẾT BẢNG `EffectRes.csv`
 
 | Tên Cột | Kiểu | Ý nghĩa & Cơ chế Override Thần Binh |
 | :--- | :---: | :--- |
@@ -373,7 +468,7 @@ Toàn bộ tên thuộc tính ánh xạ chuẩn theo [MagicDesc.csv](file:///C:/
 
 ---
 
-## 16. CHI TIẾT BẢNG `StateEffect.csv`, `PartSlot.csv` & QUẢN LÝ KHỚP GẮN VFX
+## 17. CHI TIẾT BẢNG `StateEffect.csv`, `PartSlot.csv` & QUẢN LÝ KHỚP GẮN VFX
 
 ### 🏛️ 1. Bảng Tra Cứu Khớp Xương Gốc ([PartSlot.csv](file:///C:/Users/zolcol/Desktop/Data/CSV/N/PartSlot.csv)):
 
@@ -400,7 +495,7 @@ Toàn bộ tên thuộc tính ánh xạ chuẩn theo [MagicDesc.csv](file:///C:/
 
 ---
 
-## 17. CHI TIẾT BẢNG `FactionSkill.csv` & `Sound.csv`
+## 18. CHI TIẾT BẢNG `FactionSkill.csv` & `Sound.csv`
 
 * **`FactionSkill.csv`**: Định vị vị trí nút bấm trên HUD UI (`Attack`, `Skill1`, `Skill2`, `Skill3`, `Skill4`, `Skill_Dodge`), cờ `IsAnger = 1` cho Tuyệt kỹ Nộ (Ulti).
 
@@ -424,7 +519,7 @@ Game phân chia hệ thống môn phái thành 2 ID riêng biệt: **Môn Phái 
 
 ---
 
-## 18. TỔNG HỢP TOÀN BỘ BẢNG MÃ ENUM & STRUCT CHUẨN C# CHO UNITY
+## 19. TỔNG HỢP TOÀN BỘ BẢNG MÃ ENUM & STRUCT CHUẨN C# CHO UNITY
 
 ```csharp
 using System;

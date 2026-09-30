@@ -54,7 +54,12 @@ namespace TopDownGame.Skills
         public SkillRelation relation = SkillRelation.Enemy;
         public string skillStyle = "damage";
         public bool targetSelf = false;
-        public int subSkillId = 0; // Chiêu phụ liên kết kích hoạt cùng (như 306 gọi 307)
+        public int subSkillId = 0; // Chiêu phụ liên kết kích hoạt cùng (legacy alias)
+        public int startSkillId = 0;    // Chiêu phụ kích hoạt tức thì khi bắt đầu ra chiêu (StartSkillID)
+        public int flySkillId = 0;      // Chiêu phụ kích hoạt theo chu kỳ khi đạn bay / bãi tồn tại (FlySkillId)
+        public int flyEventInterval = 0;// Chu kỳ kích hoạt FlySkill tính bằng Frames (FlyEventInterval)
+        public int hitSkillId = 0;      // Chiêu phụ kích hoạt khi đánh trúng mục tiêu (HitSkillID)
+        public int vanishedSkillId = 0; // Chiêu phụ kích hoạt khi đạn tan biến / hết hạn (VanishedSkillId)
         public VfxStartPosType startPosType = VfxStartPosType.Caster; // Vị trí xuất hiện hiệu ứng (1: Caster, 2: Target, 3: HitPoint)
         public int slotId = 0; // Khớp xương gắn hiệu ứng (theo PartSlot.csv: 1: B_RH, 2: B_LH, 7: Spine1, 15: Head, 19/20: Foot)
         public SkillSelectorType selectorType = SkillSelectorType.None;
@@ -69,6 +74,11 @@ namespace TopDownGame.Skills
         /// Có chiêu thức phụ đi kèm hay không
         /// </summary>
         public bool HasSubSkill => subSkillId > 0 && subSkillId != id;
+        public bool HasStartSkill => startSkillId > 0 && startSkillId != id;
+        public bool HasFlySkill => flySkillId > 0 && flySkillId != id;
+        public bool HasHitSkill => hitSkillId > 0 && hitSkillId != id;
+        public bool HasVanishedSkill => vanishedSkillId > 0 && vanishedSkillId != id;
+        public float FlyEventIntervalInSeconds => flyEventInterval > 0 ? (flyEventInterval / 15.0f) : 0f;
 
         /// <summary>
         /// Lấy tên Animation Clip thực tế tương ứng với CastActionID
