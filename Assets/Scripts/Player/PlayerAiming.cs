@@ -9,6 +9,7 @@ namespace TopDownGame.Player
     {
         [Header("=== TARGETING SETTINGS ===")]
         [SerializeField] private LayerMask targetLayer = ~0;
+        [SerializeField] private LayerMask groundLayer = 0;
 
         private UnityEngine.Camera mainCamera;
         private SkillData aimingSkill;
@@ -20,6 +21,8 @@ namespace TopDownGame.Player
         private static readonly Collider[] targetInFrontBuffer = new Collider[32];
 
         public LayerMask TargetLayer { get => targetLayer; set => targetLayer = value; }
+        public LayerMask GroundLayer { get => groundLayer; set => groundLayer = value; }
+        public int GetGroundMask() => groundLayer.value != 0 ? groundLayer.value : CombatFormula.GetDefaultGroundLayerMask();
         public SkillData AimingSkill => aimingSkill;
         public GameObject CurrentIndicator => currentIndicator;
         public Transform CurrentLockTarget => currentLockTarget;
@@ -38,7 +41,10 @@ namespace TopDownGame.Player
             int resId = (skill.selectorType == SkillSelectorType.DirectionalArrow) ? IndicatorVfxResID.DirectionArrow : (skill.IsHeal ? IndicatorVfxResID.SelectedAllyAOE : IndicatorVfxResID.SelectedEnemyAOE);
             string path = (resId > 0) ? TopDownGame.Data.EffectDatabase.GetEffectPath(resId) : null;
             if (!string.IsNullOrEmpty(path))
-                currentIndicator = EffectManager.Instance.SpawnEffect(path, transform.position, transform.rotation, null, 99f);
+            {
+                Vector3 spawnPos = CombatFormula.SnapToGround(transform.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, GetGroundMask());
+                currentIndicator = EffectManager.Instance.SpawnEffect(path, spawnPos, transform.rotation, null, 99f);
+            }
         }
 
         public void CancelAiming()
@@ -51,7 +57,8 @@ namespace TopDownGame.Player
         {
             if (aimingSkill == null || currentIndicator == null) return;
             float maxRange = aimingSkill.selectorRange > 0f ? aimingSkill.selectorRange : aimingSkill.range;
-            Vector3 targetGroundPos = transform.position + transform.forward * maxRange;
+            int groundMask = GetGroundMask();
+            Vector3 targetGroundPos = CombatFormula.SnapToGround(transform.position + transform.forward * maxRange, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             Vector3 aimDir = transform.forward;
 
             if (!isUsingGamepad)
@@ -62,26 +69,49 @@ namespace TopDownGame.Player
                     if (mainCamera != null)
                     {
                         Ray ray = mainCamera.ScreenPointToRay(UnityEngine.InputSystem.Mouse.current.position.ReadValue());
-                        if (new Plane(Vector3.up, transform.position).Raycast(ray, out float enter))
+                        Vector3 hitPoint;
+                        if (Physics.Raycast(ray, out RaycastHit groundHit, 200f, groundMask, QueryTriggerInteraction.Ignore))
                         {
-                            Vector3 hitPoint = ray.GetPoint(enter);
-                            Vector3 offset = hitPoint - transform.position;
-                            targetGroundPos = (offset.magnitude > maxRange) ? (transform.position + offset.normalized * maxRange) : hitPoint;
-                            aimDir = (targetGroundPos - transform.position).normalized;
+                            hitPoint = groundHit.point;
                         }
+                        else if (new Plane(Vector3.up, transform.position).Raycast(ray, out float enter))
+                        {
+                            hitPoint = ray.GetPoint(enter);
+                        }
+                        else
+                        {
+                            hitPoint = transform.position + transform.forward * maxRange;
+                        }
+
+                        Vector3 offset = hitPoint - transform.position;
+                        offset.y = 0f;
+                        if (offset.magnitude > maxRange)
+                        {
+                            Vector3 clampedPos = transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * maxRange;
+                            targetGroundPos = CombatFormula.SnapToGround(clampedPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                        }
+                        else
+                        {
+                            targetGroundPos = CombatFormula.SnapToGround(hitPoint, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                        }
+                        aimDir = (targetGroundPos - transform.position);
+                        aimDir.y = 0f;
                     }
                 }
             }
             else if (inputVector.sqrMagnitude > 0.01f)
             {
                 aimDir = inputVector;
-                targetGroundPos = transform.position + aimDir * maxRange;
+                Vector3 rawPos = transform.position + aimDir * maxRange;
+                targetGroundPos = CombatFormula.SnapToGround(rawPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             }
 
             if (aimDir.sqrMagnitude < 0.01f) aimDir = transform.forward;
+            else aimDir.Normalize();
+
             if (aimingSkill.selectorType == SkillSelectorType.DirectionalArrow)
             {
-                currentIndicator.transform.position = transform.position;
+                currentIndicator.transform.position = CombatFormula.SnapToGround(transform.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
                 currentIndicator.transform.rotation = Quaternion.LookRotation(aimDir, Vector3.up);
             }
             else if (aimingSkill.selectorType == SkillSelectorType.SmartcastCircleAOE)
@@ -95,9 +125,10 @@ namespace TopDownGame.Player
         {
             if (skill == null) return false;
             currentLockTarget = null;
-            currentTargetPoint = transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f);
+            int groundMask = GetGroundMask();
+            currentTargetPoint = CombatFormula.SnapToGround(transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f), CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             currentTargetDirection = transform.forward;
-            if (skill.targetSelf || skill.relation == SkillRelation.Self) { currentTargetPoint = transform.position; return true; }
+            if (skill.targetSelf || skill.relation == SkillRelation.Self) { currentTargetPoint = CombatFormula.SnapToGround(transform.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask); return true; }
 
             bool isTargetLockSkill = skill.IsHeal || (skill.childId > 0 && TopDownGame.Data.MissileDatabase.GetMissile(skill.childId)?.moveKind == MissileMoveKind.HomingTracking) || skill.skillAttackType == SkillAttackType.Target;
             if (!isUsingGamepad)
@@ -111,23 +142,44 @@ namespace TopDownGame.Player
                     Transform fallback = FindTargetInFront(skill.range, skill.IsHeal);
                     return fallback != null && SetTarget(fallback);
                 }
-                if (new Plane(Vector3.up, transform.position).Raycast(ray, out float enter))
+
+                Vector3 hitPoint;
+                if (Physics.Raycast(ray, out RaycastHit groundHit, 200f, groundMask, QueryTriggerInteraction.Ignore))
                 {
-                    Vector3 hitPoint = ray.GetPoint(enter);
-                    float maxRange = skill.selectorRange > 0f ? skill.selectorRange : skill.range;
-                    Vector3 offset = hitPoint - transform.position;
-                    offset.y = 0f;
-                    currentTargetPoint = (maxRange > 0f && skill.selectorType == SkillSelectorType.SmartcastCircleAOE && offset.magnitude > maxRange) ? (transform.position + offset.normalized * maxRange) : hitPoint;
-                    Vector3 aimDir = currentTargetPoint - transform.position;
-                    aimDir.y = 0f;
-                    currentTargetDirection = aimDir.sqrMagnitude > 0.001f ? aimDir.normalized : transform.forward;
+                    hitPoint = groundHit.point;
                 }
+                else if (new Plane(Vector3.up, transform.position).Raycast(ray, out float enter))
+                {
+                    hitPoint = ray.GetPoint(enter);
+                }
+                else
+                {
+                    hitPoint = transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f);
+                }
+
+                float maxRange = skill.selectorRange > 0f ? skill.selectorRange : skill.range;
+                Vector3 offset = hitPoint - transform.position;
+                offset.y = 0f;
+                if (maxRange > 0f && skill.selectorType == SkillSelectorType.SmartcastCircleAOE && offset.magnitude > maxRange)
+                {
+                    Vector3 clampedPos = transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * maxRange;
+                    currentTargetPoint = CombatFormula.SnapToGround(clampedPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                }
+                else
+                {
+                    currentTargetPoint = CombatFormula.SnapToGround(hitPoint, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                }
+
+                Vector3 aimDir = currentTargetPoint - transform.position;
+                aimDir.y = 0f;
+                currentTargetDirection = aimDir.sqrMagnitude > 0.001f ? aimDir.normalized : transform.forward;
             }
             else
             {
                 if (isTargetLockSkill) return SetTarget(FindTargetInFront(skill.range, skill.IsHeal));
                 currentTargetDirection = inputVector.sqrMagnitude > 0.01f ? inputVector.normalized : transform.forward;
-                currentTargetPoint = transform.position + currentTargetDirection * (skill.range > 0 ? skill.range : 5f);
+                Vector3 rawPos = transform.position + currentTargetDirection * (skill.range > 0 ? skill.range : 5f);
+                currentTargetPoint = CombatFormula.SnapToGround(rawPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             }
             return true;
         }

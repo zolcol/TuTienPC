@@ -233,7 +233,8 @@ namespace TopDownGame.Skills
             {
                 if (missile != null && missile.moveKind == MissileMoveKind.StaticTrap && explicitTargetPoint != default)
                 {
-                    EffectManager.Instance.SpawnEffect(groundEffectPath, explicitTargetPoint, Quaternion.identity, null, groundDuration);
+                    Vector3 snappedTarget = CombatFormula.SnapToGround(explicitTargetPoint, CombatFormula.GROUND_VFX_Y_OFFSET);
+                    EffectManager.Instance.SpawnEffect(groundEffectPath, snappedTarget, Quaternion.identity, null, groundDuration);
                 }
                 else if (groundTarget != null)
                 {

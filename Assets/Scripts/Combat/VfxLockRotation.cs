@@ -57,10 +57,10 @@ namespace TopDownGame.Combat
             }
             else if (mode == VfxRotationMode.FlatGround)
             {
-                // 2. Flat Ground: Tọa độ mặt đất phẳng dưới chân nhân vật (theo characterRoot.position), không kế thừa góc nghiêng hay vị trí của xương
+                // 2. Flat Ground: Tọa độ mặt đất phẳng dưới chân nhân vật (theo characterRoot.position raycast xuống sàn + 0.02m offset)
                 transform.SetParent(null);
-                Vector3 groundPos = (this.characterRoot != null) ? this.characterRoot.position : (targetBone != null ? targetBone.position : transform.position);
-                transform.position = groundPos;
+                Vector3 rootPos = (this.characterRoot != null) ? this.characterRoot.position : (targetBone != null ? targetBone.position : transform.position);
+                transform.position = CombatFormula.SnapToGround(rootPos, CombatFormula.GROUND_VFX_Y_OFFSET);
                 transform.rotation = Quaternion.Euler(0f, this.characterRoot != null ? this.characterRoot.eulerAngles.y : 0f, 0f);
             }
             else if (mode == VfxRotationMode.FixedWorld)
@@ -105,8 +105,8 @@ namespace TopDownGame.Combat
                     break;
 
                 case VfxRotationMode.FlatGround:
-                    // Vị trí bám theo mặt đất phẳng dưới chân nhân vật (root.position theo chuẩn DATA_CONVENTIONS.md Mục 13)
-                    transform.position = root.position;
+                    // Vị trí bám theo mặt đất phẳng dưới chân nhân vật (raycast xuống sàn + 0.02m offset theo chuẩn)
+                    transform.position = CombatFormula.SnapToGround(root.position, CombatFormula.GROUND_VFX_Y_OFFSET);
                     transform.rotation = Quaternion.Euler(0f, root.eulerAngles.y, 0f);
                     break;
 

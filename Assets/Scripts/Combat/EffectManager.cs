@@ -151,7 +151,8 @@ namespace TopDownGame.Combat
             }
             else if (skill.startPosType == VfxStartPosType.HitPoint && hitPoint.HasValue)
             {
-                return SpawnEffect(skill.effectPath, hitPoint.Value, attacker.rotation, null, defaultDuration);
+                Vector3 snappedHitPoint = CombatFormula.SnapToGround(hitPoint.Value, CombatFormula.GROUND_VFX_Y_OFFSET);
+                return SpawnEffect(skill.effectPath, snappedHitPoint, attacker.rotation, null, defaultDuration);
             }
 
             if (skill.slotId > 0)
@@ -181,7 +182,7 @@ namespace TopDownGame.Combat
             }
             if (boneSlot == null) boneSlot = characterRoot;
 
-            Vector3 spawnPos = (mode == VfxRotationMode.FlatGround) ? characterRoot.position : boneSlot.position;
+            Vector3 spawnPos = (mode == VfxRotationMode.FlatGround) ? CombatFormula.SnapToGround(characterRoot.position, CombatFormula.GROUND_VFX_Y_OFFSET) : boneSlot.position;
             Quaternion spawnRot = (mode == VfxRotationMode.FlatGround) ? Quaternion.Euler(0f, characterRoot.eulerAngles.y, 0f) : boneSlot.rotation;
 
             GameObject effectInstance = SpawnEffect(resourcePath, spawnPos, spawnRot, null, autoDestroyTime);
@@ -198,7 +199,7 @@ namespace TopDownGame.Combat
         }
 
         /// <summary>
-        /// Sinh ra hiệu ứng bám theo chân mục tiêu (Mặt đất phẳng FlatGround theo characterRoot.position)
+        /// Sinh ra hiệu ứng bám theo chân mục tiêu (Mặt đất phẳng FlatGround theo characterRoot.position raycast xuống sàn + 0.02m)
         /// Dùng cho Missile đài sen hồi máu (Chiêu 306), vòng sáng trận pháp đất, hoặc đạn/hiệu ứng bám mục tiêu không có Slot xương.
         /// Chuẩn hóa theo DATA_CONVENTIONS.md Mục 12 & 13.
         /// </summary>
@@ -206,7 +207,7 @@ namespace TopDownGame.Combat
         {
             if (string.IsNullOrEmpty(resourcePath) || characterRoot == null) return null;
 
-            Vector3 spawnPos = characterRoot.position;
+            Vector3 spawnPos = CombatFormula.SnapToGround(characterRoot.position, CombatFormula.GROUND_VFX_Y_OFFSET);
             Quaternion spawnRot = Quaternion.Euler(0f, characterRoot.eulerAngles.y, 0f);
 
             GameObject effectInstance = SpawnEffect(resourcePath, spawnPos, spawnRot, null, autoDestroyTime);

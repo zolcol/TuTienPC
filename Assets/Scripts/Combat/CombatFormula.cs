@@ -18,6 +18,60 @@ namespace TopDownGame.Combat
         public const float DEFAULT_WALK_SPEED = 2.5f;
 
         /// <summary>
+        /// Độ lệch Y chuẩn (0.02m) nâng VFX mặt đất lên khỏi sàn để khử triệt để hiện tượng Z-Fighting.
+        /// </summary>
+        public const float GROUND_VFX_Y_OFFSET = 0.02f;
+
+        /// <summary>
+        /// Lấy LayerMask mặc định của mặt đất / địa hình (tự động loại trừ layer Player, Enemy, Ignore Raycast).
+        /// </summary>
+        public static int GetDefaultGroundLayerMask()
+        {
+            int playerLayer = LayerMask.NameToLayer(CombatLayersAndTags.LayerPlayer);
+            int enemyLayer = LayerMask.NameToLayer(CombatLayersAndTags.LayerEnemy);
+            int ignoreRaycast = LayerMask.NameToLayer("Ignore Raycast");
+
+            int maskToExclude = 0;
+            if (playerLayer >= 0) maskToExclude |= (1 << playerLayer);
+            if (enemyLayer >= 0) maskToExclude |= (1 << enemyLayer);
+            if (ignoreRaycast >= 0) maskToExclude |= (1 << ignoreRaycast);
+
+            return ~maskToExclude;
+        }
+
+        /// <summary>
+        /// Bắn tia Raycast thẳng đứng xuống dưới để căn chỉnh độ cao Y bám sát địa hình/mặt sàn và cộng thêm yOffset khử Z-fighting.
+        /// </summary>
+        public static Vector3 SnapToGround(Vector3 worldPos, float yOffset = GROUND_VFX_Y_OFFSET, float raycastDistance = 6.0f, int groundLayerMask = 0)
+        {
+            if (groundLayerMask == 0) groundLayerMask = GetDefaultGroundLayerMask();
+
+            Vector3 rayStart = worldPos + Vector3.up * 2.0f;
+            if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, raycastDistance, groundLayerMask, QueryTriggerInteraction.Ignore))
+            {
+                return new Vector3(worldPos.x, hit.point.y + yOffset, worldPos.z);
+            }
+            return new Vector3(worldPos.x, worldPos.y + yOffset, worldPos.z);
+        }
+
+        /// <summary>
+        /// Thử tìm tọa độ tiếp xúc mặt đất chính xác qua Raycast.
+        /// </summary>
+        public static bool TryGetGroundPoint(Vector3 worldPos, out Vector3 groundPoint, float yOffset = GROUND_VFX_Y_OFFSET, float raycastDistance = 6.0f, int groundLayerMask = 0)
+        {
+            if (groundLayerMask == 0) groundLayerMask = GetDefaultGroundLayerMask();
+
+            Vector3 rayStart = worldPos + Vector3.up * 2.0f;
+            if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, raycastDistance, groundLayerMask, QueryTriggerInteraction.Ignore))
+            {
+                groundPoint = new Vector3(worldPos.x, hit.point.y + yOffset, worldPos.z);
+                return true;
+            }
+            groundPoint = new Vector3(worldPos.x, worldPos.y + yOffset, worldPos.z);
+            return false;
+        }
+
+        /// <summary>
         /// Chuyển đổi số frame sang giây theo chuẩn FPS (mặc định 15 FPS).
         /// </summary>
         public static float FrameToSeconds(int frame, float fps = ACTION_EVENT_FPS)
