@@ -37,8 +37,8 @@ namespace TopDownGame.Editor
                 var res = template.GetRes();
 
                 string statsInfo = attrib != null 
-                    ? $"Máu: {attrib.maxLife:F0} | Công: {attrib.AverageAttack:F0} | Tốc độ: {template.runSpeed:F1}m/s" 
-                    : "Mặc định (100 HP / 20 ATK)";
+                    ? $"Máu: {attrib.maxLife:F0} | Công: {attrib.AverageAttack:F0} | Tốc độ: {template.runSpeed:F1}m/s | Tầm nhìn: {template.visionRadius:F1}m | Leash: {template.activeRadius:F1}m" 
+                    : $"Mặc định (100 HP / 20 ATK) | Tầm nhìn: {template.visionRadius:F1}m | Leash: {template.activeRadius:F1}m";
                 string sizeInfo = res != null 
                     ? $"Cao: {res.height:F1}m | Rộng: {res.width:F1}m" 
                     : "1.8m x 0.5m";

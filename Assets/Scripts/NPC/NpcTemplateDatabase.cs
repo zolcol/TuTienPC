@@ -140,10 +140,10 @@ namespace TopDownGame.NPC
                         int skill3 = GetColInt(tokens, colMap, "normalskill3", 17);
 
                         // Tầm nhìn / Tốc độ (cm -> m) theo chuẩn DATA_CONVENTIONS.md
-                        float rawVision = GetColFloat(tokens, colMap, "visionradius", 19, 1000f);
-                        float rawActive = GetColFloat(tokens, colMap, "activeradius", 20, 1500f);
-                        float visionMeters = rawVision > 0f ? (rawVision / 100f) : 10f;
-                        float activeMeters = rawActive > 0f ? (rawActive / 100f) : 15f;
+                        float rawVision = GetColFloat(tokens, colMap, "visionradius", 19, 0f);
+                        float rawActive = GetColFloat(tokens, colMap, "activeradius", 20, 0f);
+                        float visionMeters = rawVision / 100f;
+                        float activeMeters = rawActive / 100f;
 
                         float rawSpeed = GetColFloat(tokens, colMap, "runspeed", 25, 0f);
                         // DATA_CONVENTIONS_V2.md Mục 1 & 13: Đơn vị là cm/frame ở 15 FPS -> moveSpeed = speed * 15 / 100 (m/s)

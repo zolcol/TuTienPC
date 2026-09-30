@@ -17,13 +17,16 @@ namespace TopDownGame.Enemy
         [Header("=== AI PERCEPTION (Tầm nhìn & Tầm đánh) ===")]
         [Tooltip("Mục tiêu quái vật rượt đuổi (để trống sẽ tự động tìm Player theo Tag)")]
         [SerializeField] private Transform target;
-        [Tooltip("Bán kính phát hiện người chơi (quái bắt đầu rượt đuổi)")]
+        [Tooltip("Bán kính phát hiện người chơi / VisionRadius (quái bắt đầu rượt đuổi)")]
         [SerializeField] private float detectionRange = 10f;
-        [Tooltip("Khoảng cách tiếp cận để tung đòn đánh")]
+        [Tooltip("Tầm truy đuổi tối đa / ActiveRadius / Leash Range trước khi từ bỏ")]
+        [SerializeField] private float activeRadius = 15f;
+        [Tooltip("Khoảng cách tiếp cận để tung đòn đánh / AttackRadius")]
         [SerializeField] private float attackRange = 3f;
 
         [Header("=== MOVEMENT SETTINGS ===")]
         [SerializeField] private float moveSpeed = 5.0f;
+        [SerializeField] private float walkSpeed = 2.5f;
         [SerializeField] private float rotationSmoothTime = 0.1f;
         [SerializeField] private float gravity = -9.81f;
 
@@ -58,8 +61,12 @@ namespace TopDownGame.Enemy
         // Getters
         public Transform Target => target;
         public float DetectionRange => detectionRange;
+        public float ActiveRadius => activeRadius;
         public float AttackRange => attackRange;
         public float MoveSpeed => moveSpeed;
+        public float WalkSpeed => walkSpeed;
+        public Vector3 SpawnPosition { get; private set; }
+        public float DistanceFromSpawn => Vector3.Distance(transform.position, SpawnPosition);
         public CharacterController CharacterController => characterController;
         public LegacyAnimationController AnimationController => animationController;
         public EnemyStats Stats => stats;
@@ -100,6 +107,7 @@ namespace TopDownGame.Enemy
 
         private void Awake()
         {
+            SpawnPosition = transform.position;
             characterController = GetComponent<CharacterController>();
             stats = GetComponent<EnemyStats>() ?? gameObject.AddComponent<EnemyStats>();
 
@@ -178,11 +186,13 @@ namespace TopDownGame.Enemy
                 characterController.center = new Vector3(0f, characterController.height * 0.5f, 0f);
             }
 
-            // 3. Tầm nhìn & Tốc độ di chuyển
+            // 3. Tầm nhìn (VisionRadius), Tầm hoạt động (ActiveRadius / Leash) & Tốc độ di chuyển đọc trực tiếp từ Database
             moveSpeed = template.runSpeed > 0f ? template.runSpeed : 5.0f;
-            detectionRange = template.visionRadius > 0f ? template.visionRadius : 10f;
+            walkSpeed = template.walkSpeed > 0f ? template.walkSpeed : (moveSpeed * 0.5f);
+            detectionRange = template.visionRadius;
+            activeRadius = template.activeRadius;
 
-            // 4. Nạp danh sách kỹ năng từ bảng
+            // 4. Nạp danh sách kỹ năng từ bảng và cập nhật AttackRadius
             var skillsFromTable = template.GetSkillList();
             if (skillsFromTable.Count > 0)
             {
@@ -380,7 +390,7 @@ namespace TopDownGame.Enemy
             return skillId > 0 && cooldownTimers.TryGetValue(skillId, out float timeRemaining) && timeRemaining > 0f;
         }
 
-        public SkillData GetReadyAttack()
+        public SkillData GetReadyAttack(float distanceToTarget = -1f)
         {
             if (attackSkillIds == null || attackSkillIds.Count == 0) return null;
 
@@ -391,7 +401,12 @@ namespace TopDownGame.Enemy
                 SkillData skill = SkillDatabase.GetSkill(id);
                 if (skill != null && !IsOnCooldown(skill.id))
                 {
-                    readyAttacksBuffer.Add(skill);
+                    // Buffer nhỏ 0.35m để dung hòa bán kính Collider va chạm giữa Enemy và Player
+                    float effectiveSkillRange = (skill.range > 0f ? skill.range : 2.0f) + 0.35f;
+                    if (distanceToTarget < 0f || distanceToTarget <= effectiveSkillRange)
+                    {
+                        readyAttacksBuffer.Add(skill);
+                    }
                 }
             }
 
@@ -399,6 +414,23 @@ namespace TopDownGame.Enemy
 
             int randomIndex = Random.Range(0, readyAttacksBuffer.Count);
             return readyAttacksBuffer[randomIndex];
+        }
+
+        public float GetMinAttackRange()
+        {
+            float minR = float.MaxValue;
+            if (attackSkillIds != null && attackSkillIds.Count > 0)
+            {
+                for (int i = 0; i < attackSkillIds.Count; i++)
+                {
+                    var sk = SkillDatabase.GetSkill(attackSkillIds[i]);
+                    if (sk != null && sk.range > 0f && sk.range < minR)
+                    {
+                        minR = sk.range;
+                    }
+                }
+            }
+            return minR < float.MaxValue ? (minR + 0.35f) : (attackRange + 0.35f);
         }
 
         public void TryFindTarget()
@@ -412,10 +444,52 @@ namespace TopDownGame.Enemy
             }
         }
 
+        /// <summary>
+        /// Khoảng cách phẳng trên mặt phẳng OXZ đến mục tiêu (tránh sai lệch trục Y do chiều cao model)
+        /// </summary>
         public float GetDistanceToTarget()
         {
             if (target == null) return float.MaxValue;
-            return Vector3.Distance(transform.position, target.position);
+            Vector3 diff = target.position - transform.position;
+            diff.y = 0f;
+            return diff.magnitude;
+        }
+
+        /// <summary>
+        /// Khoảng cách phẳng trên mặt phẳng OXZ đến điểm xuất phát
+        /// </summary>
+        public float GetDistanceToSpawn()
+        {
+            Vector3 diff = SpawnPosition - transform.position;
+            diff.y = 0f;
+            return diff.magnitude;
+        }
+
+        public void MoveTowardsSpawn()
+        {
+            if (characterController == null || !characterController.enabled) return;
+
+            Vector3 direction = (SpawnPosition - transform.position);
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude > 0.01f)
+            {
+                float speedRatio = moveSpeed > 0f ? (walkSpeed / moveSpeed) : 0.5f;
+                moveDirection = direction.normalized * speedRatio;
+            }
+        }
+
+        public void RotateTowardsSpawn()
+        {
+            Vector3 direction = (SpawnPosition - transform.position);
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude > 0.001f)
+            {
+                float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+                float smoothAngle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, rotationSmoothTime);
+                transform.rotation = Quaternion.Euler(0f, smoothAngle, 0f);
+            }
         }
 
         public void RotateTowardsTarget()
@@ -461,9 +535,16 @@ namespace TopDownGame.Enemy
         {
             if (!showRangeGizmos) return;
 
+            // VisionRadius (Tầm nhìn phát hiện người chơi)
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(transform.position, detectionRange);
 
+            // ActiveRadius (Leash Range - Tầm hoạt động tối đa từ điểm spawn)
+            Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.75f);
+            Vector3 spawnCenter = Application.isPlaying ? SpawnPosition : transform.position;
+            Gizmos.DrawWireSphere(spawnCenter, activeRadius);
+
+            // AttackRadius (Tầm tấn công của chiêu thức)
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(transform.position, attackRange);
         }

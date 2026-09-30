@@ -31,37 +31,38 @@ namespace TopDownGame.Enemy
             }
 
             float distanceToTarget = enemy.GetDistanceToTarget();
+            float distanceFromSpawn = enemy.GetDistanceToSpawn();
 
-            // 1. Mất dấu mục tiêu (mục tiêu chạy quá xa vùng quan sát)
-            if (distanceToTarget > enemy.DetectionRange * 1.3f)
+            // 1. Vượt quá tầm truy đuổi / Leash Range (ActiveRadius) tính từ điểm xuất phát hoặc khoảng cách mục tiêu
+            if (distanceToTarget > enemy.ActiveRadius || distanceFromSpawn > enemy.ActiveRadius)
             {
                 stateMachine.ChangeState(enemy.IdleState);
                 return;
             }
 
-            // 2. Đã tiếp cận trong tầm đánh
-            if (distanceToTarget <= enemy.AttackRange)
+            // 2. Đã tiếp cận trong tầm đánh của chiêu thức sẵn sàng
+            var readyAttack = enemy.GetReadyAttack(distanceToTarget);
+            if (readyAttack != null)
             {
-                var readyAttack = enemy.GetReadyAttack();
-                if (readyAttack != null)
-                {
-                    enemy.AttackState.SetSkill(readyAttack);
-                    stateMachine.ChangeState(enemy.AttackState);
-                    return;
-                }
-                else
-                {
-                    // Chiêu đang hồi -> Dừng bước, xoay mặt nhìn mục tiêu, đứng thủ thế chiến đấu chờ hồi chiêu (sta)
-                    enemy.RotateTowardsTarget();
-                    if (enemy.AnimationController != null)
-                    {
-                        enemy.AnimationController.PlayBattleIdle();
-                    }
-                    return;
-                }
+                enemy.AttackState.SetSkill(readyAttack);
+                stateMachine.ChangeState(enemy.AttackState);
+                return;
             }
 
-            // 3. Đang ngoài tầm đánh -> Chạy thẳng tới mục tiêu
+            // 3. Nếu chiêu đang hồi Cooldown:
+            // Chỉ dừng bước thủ thế nếu đã áp sát cận chiến (GetMinAttackRange)
+            float minCombatRange = enemy.GetMinAttackRange();
+            if (distanceToTarget <= minCombatRange)
+            {
+                enemy.RotateTowardsTarget();
+                if (enemy.AnimationController != null)
+                {
+                    enemy.AnimationController.PlayBattleIdle();
+                }
+                return;
+            }
+
+            // 4. Chưa vào cự ly ra đòn -> Tiếp tục chạy thẳng tới mục tiêu
             if (enemy.AnimationController != null)
             {
                 enemy.AnimationController.PlayRun();
