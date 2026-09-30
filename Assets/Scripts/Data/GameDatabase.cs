@@ -69,5 +69,11 @@ namespace TopDownGame.Data
 
             EnsureLoaded();
         }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void OnEnterPlayMode()
+        {
+            ReloadAll();
+        }
     }
 }

@@ -7349,6 +7349,9 @@ MonoBehaviour:
   targetLayer:
     serializedVersion: 2
     m_Bits: 4294967295
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!114 &2137775180
 MonoBehaviour:
   m_ObjectHideFlags: 0

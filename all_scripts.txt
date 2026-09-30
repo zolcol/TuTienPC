@@ -987,17 +987,22 @@ namespace TopDownGame.Audio
         public void PlaySkillSound(SkillData skill, Transform emitter = null)
         {
             if (skill == null || skill.playsound <= 0) return;
+            if (logSoundPlayback)
+            {
+                Debug.Log($"<color=#38bdf8>[SoundManager] 🎯 Kỹ năng:</color> <b>[{skill.id}] {skill.name}</b> ➔ Phát Sound ID: <b>#{skill.playsound}</b> (Frame: {skill.playsoundFrame})");
+            }
             PlaySound(skill.playsound, emitter);
         }
 
         private void PlaySoundData(SoundData soundData, Vector3? position)
         {
+            AudioClip clip = GetAudioClip(soundData);
             if (logSoundPlayback)
             {
-                Debug.Log($"<color=#38bdf8>[SoundManager] 🔊 Phát âm thanh:</color> <b>#{soundData.soundId}</b> ({soundData.description}) | Event: <i>{soundData.wwiseEvent}</i>");
+                string clipInfo = clip != null ? clip.name : "<color=#f87171>Clip Not Found</color>";
+                Debug.Log($"<color=#38bdf8>[SoundManager] 🔊 Phát âm thanh:</color> <b>ID #{soundData.soundId}</b> ({soundData.description}) | Event: <i>{soundData.wwiseEvent}</i> | Bank: <i>{soundData.bankBnk}</i> | Clip: <b>{clipInfo}</b>");
             }
 
-            AudioClip clip = GetAudioClip(soundData);
             if (clip != null)
             {
                 PlayClipInternal(clip, position, 1.0f);
@@ -1621,6 +1626,60 @@ namespace TopDownGame.Combat
         public const float DEFAULT_WALK_SPEED = 2.5f;
 
         /// <summary>
+        /// Độ lệch Y chuẩn (0.02m) nâng VFX mặt đất lên khỏi sàn để khử triệt để hiện tượng Z-Fighting.
+        /// </summary>
+        public const float GROUND_VFX_Y_OFFSET = 0.02f;
+
+        /// <summary>
+        /// Lấy LayerMask mặc định của mặt đất / địa hình (tự động loại trừ layer Player, Enemy, Ignore Raycast).
+        /// </summary>
+        public static int GetDefaultGroundLayerMask()
+        {
+            int playerLayer = LayerMask.NameToLayer(CombatLayersAndTags.LayerPlayer);
+            int enemyLayer = LayerMask.NameToLayer(CombatLayersAndTags.LayerEnemy);
+            int ignoreRaycast = LayerMask.NameToLayer("Ignore Raycast");
+
+            int maskToExclude = 0;
+            if (playerLayer >= 0) maskToExclude |= (1 << playerLayer);
+            if (enemyLayer >= 0) maskToExclude |= (1 << enemyLayer);
+            if (ignoreRaycast >= 0) maskToExclude |= (1 << ignoreRaycast);
+
+            return ~maskToExclude;
+        }
+
+        /// <summary>
+        /// Bắn tia Raycast thẳng đứng xuống dưới để căn chỉnh độ cao Y bám sát địa hình/mặt sàn và cộng thêm yOffset khử Z-fighting.
+        /// </summary>
+        public static Vector3 SnapToGround(Vector3 worldPos, float yOffset = GROUND_VFX_Y_OFFSET, float raycastDistance = 6.0f, int groundLayerMask = 0)
+        {
+            if (groundLayerMask == 0) groundLayerMask = GetDefaultGroundLayerMask();
+
+            Vector3 rayStart = worldPos + Vector3.up * 2.0f;
+            if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, raycastDistance, groundLayerMask, QueryTriggerInteraction.Ignore))
+            {
+                return new Vector3(worldPos.x, hit.point.y + yOffset, worldPos.z);
+            }
+            return new Vector3(worldPos.x, worldPos.y + yOffset, worldPos.z);
+        }
+
+        /// <summary>
+        /// Thử tìm tọa độ tiếp xúc mặt đất chính xác qua Raycast.
+        /// </summary>
+        public static bool TryGetGroundPoint(Vector3 worldPos, out Vector3 groundPoint, float yOffset = GROUND_VFX_Y_OFFSET, float raycastDistance = 6.0f, int groundLayerMask = 0)
+        {
+            if (groundLayerMask == 0) groundLayerMask = GetDefaultGroundLayerMask();
+
+            Vector3 rayStart = worldPos + Vector3.up * 2.0f;
+            if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, raycastDistance, groundLayerMask, QueryTriggerInteraction.Ignore))
+            {
+                groundPoint = new Vector3(worldPos.x, hit.point.y + yOffset, worldPos.z);
+                return true;
+            }
+            groundPoint = new Vector3(worldPos.x, worldPos.y + yOffset, worldPos.z);
+            return false;
+        }
+
+        /// <summary>
         /// Chuyển đổi số frame sang giây theo chuẩn FPS (mặc định 15 FPS).
         /// </summary>
         public static float FrameToSeconds(int frame, float fps = ACTION_EVENT_FPS)
@@ -1647,7 +1706,7 @@ namespace TopDownGame.Combat
             if (originalFrame <= 0) return (originalFrame, 1.0f);
             float speedReduction = Mathf.Floor(attackSpeedPercent / 10f) / 20f;
             float calculatedFrame = originalFrame * (1.0f - speedReduction);
-            int finalFrame = Mathf.Clamp(Mathf.RoundToInt(calculatedFrame), 9, 100);
+            int finalFrame = Mathf.Clamp(Mathf.RoundToInt(calculatedFrame), 1, 100);
             float factor = (float)originalFrame / finalFrame;
             return (finalFrame, factor);
         }
@@ -1711,6 +1770,19 @@ namespace TopDownGame.Combat
         {
             float baseHeal = 100f * (magicScale > 0f ? magicScale : 1f);
             return baseHeal + (magicDamage * 2.2f);
+        }
+
+        /// <summary>
+        /// Tìm điểm gần nhất trên Collider an toàn cho mọi loại Collider (kể cả non-convex MeshCollider, CharacterController, TerrainCollider...).
+        /// </summary>
+        public static Vector3 GetSafeClosestPoint(Collider col, Vector3 point)
+        {
+            if (col == null) return point;
+            if (col is BoxCollider || col is SphereCollider || col is CapsuleCollider || (col is MeshCollider mc && mc.convex))
+            {
+                return col.ClosestPoint(point);
+            }
+            return col.bounds.ClosestPoint(point);
         }
     }
 }
@@ -1999,7 +2071,8 @@ namespace TopDownGame.Combat
             }
             else if (skill.startPosType == VfxStartPosType.HitPoint && hitPoint.HasValue)
             {
-                return SpawnEffect(skill.effectPath, hitPoint.Value, attacker.rotation, null, defaultDuration);
+                Vector3 snappedHitPoint = CombatFormula.SnapToGround(hitPoint.Value, CombatFormula.GROUND_VFX_Y_OFFSET);
+                return SpawnEffect(skill.effectPath, snappedHitPoint, attacker.rotation, null, defaultDuration);
             }
 
             if (skill.slotId > 0)
@@ -2029,7 +2102,7 @@ namespace TopDownGame.Combat
             }
             if (boneSlot == null) boneSlot = characterRoot;
 
-            Vector3 spawnPos = (mode == VfxRotationMode.FlatGround) ? characterRoot.position : boneSlot.position;
+            Vector3 spawnPos = (mode == VfxRotationMode.FlatGround) ? CombatFormula.SnapToGround(characterRoot.position, CombatFormula.GROUND_VFX_Y_OFFSET) : boneSlot.position;
             Quaternion spawnRot = (mode == VfxRotationMode.FlatGround) ? Quaternion.Euler(0f, characterRoot.eulerAngles.y, 0f) : boneSlot.rotation;
 
             GameObject effectInstance = SpawnEffect(resourcePath, spawnPos, spawnRot, null, autoDestroyTime);
@@ -2046,7 +2119,7 @@ namespace TopDownGame.Combat
         }
 
         /// <summary>
-        /// Sinh ra hiệu ứng bám theo chân mục tiêu (Mặt đất phẳng FlatGround theo characterRoot.position)
+        /// Sinh ra hiệu ứng bám theo chân mục tiêu (Mặt đất phẳng FlatGround theo characterRoot.position raycast xuống sàn + 0.02m)
         /// Dùng cho Missile đài sen hồi máu (Chiêu 306), vòng sáng trận pháp đất, hoặc đạn/hiệu ứng bám mục tiêu không có Slot xương.
         /// Chuẩn hóa theo DATA_CONVENTIONS.md Mục 12 & 13.
         /// </summary>
@@ -2054,7 +2127,7 @@ namespace TopDownGame.Combat
         {
             if (string.IsNullOrEmpty(resourcePath) || characterRoot == null) return null;
 
-            Vector3 spawnPos = characterRoot.position;
+            Vector3 spawnPos = CombatFormula.SnapToGround(characterRoot.position, CombatFormula.GROUND_VFX_Y_OFFSET);
             Quaternion spawnRot = Quaternion.Euler(0f, characterRoot.eulerAngles.y, 0f);
 
             GameObject effectInstance = SpawnEffect(resourcePath, spawnPos, spawnRot, null, autoDestroyTime);
@@ -2341,10 +2414,10 @@ namespace TopDownGame.Combat
             }
             else if (mode == VfxRotationMode.FlatGround)
             {
-                // 2. Flat Ground: Tọa độ mặt đất phẳng dưới chân nhân vật (theo characterRoot.position), không kế thừa góc nghiêng hay vị trí của xương
+                // 2. Flat Ground: Tọa độ mặt đất phẳng dưới chân nhân vật (theo characterRoot.position raycast xuống sàn + 0.02m offset)
                 transform.SetParent(null);
-                Vector3 groundPos = (this.characterRoot != null) ? this.characterRoot.position : (targetBone != null ? targetBone.position : transform.position);
-                transform.position = groundPos;
+                Vector3 rootPos = (this.characterRoot != null) ? this.characterRoot.position : (targetBone != null ? targetBone.position : transform.position);
+                transform.position = CombatFormula.SnapToGround(rootPos, CombatFormula.GROUND_VFX_Y_OFFSET);
                 transform.rotation = Quaternion.Euler(0f, this.characterRoot != null ? this.characterRoot.eulerAngles.y : 0f, 0f);
             }
             else if (mode == VfxRotationMode.FixedWorld)
@@ -2389,8 +2462,8 @@ namespace TopDownGame.Combat
                     break;
 
                 case VfxRotationMode.FlatGround:
-                    // Vị trí bám theo mặt đất phẳng dưới chân nhân vật (root.position theo chuẩn DATA_CONVENTIONS.md Mục 13)
-                    transform.position = root.position;
+                    // Vị trí bám theo mặt đất phẳng dưới chân nhân vật (raycast xuống sàn + 0.02m offset theo chuẩn)
+                    transform.position = CombatFormula.SnapToGround(root.position, CombatFormula.GROUND_VFX_Y_OFFSET);
                     transform.rotation = Quaternion.Euler(0f, root.eulerAngles.y, 0f);
                     break;
 
@@ -2982,6 +3055,7 @@ namespace TopDownGame.Data
         public float delayDeleteFrame;
         public bool isDmgVanish;
         public bool canRepeatDmg;
+        public bool isIgnoreBarrier;
         public int missileResID;
         public int collResID;
         public int vanishResID;
@@ -2994,6 +3068,7 @@ namespace TopDownGame.Data
         public float SpeedInUnitsPerSec => speed > 0f ? (speed / 10.0f) : 10.0f;
         public float AccelerationInUnitsPerSec2 => acceSpeed > 0f ? (acceSpeed / 10.0f) : 0f;
         public float LifeTimeInSeconds => lifeTime > 0f ? (lifeTime / 15.0f) : 2.5f;
+        public float DmgIntervalInSeconds => dmgInterval > 0f ? (dmgInterval / 15.0f) : 0f;
         public float CollisionRadius => dmgRange > 0f ? (dmgRange / 10.0f) : 0.6f;
         public float SpawnOffsetDistance => posOffsetLength > 0f ? (posOffsetLength / 100.0f) : 1.2f;
 
@@ -3088,6 +3163,7 @@ namespace TopDownGame.Data
                         int flySoundID = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 21), -1);
                         bool isFollowTarget = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 23), 0) == 1;
                         float acceSpeed = CsvParserHelper.ParseFloat(CsvParserHelper.GetToken(tokens, 24), 0f);
+                        bool isIgnoreBarrier = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 27), 0) == 1;
                         int vanishResID = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 29), 0);
 
                         MissileData data = new MissileData
@@ -3105,6 +3181,7 @@ namespace TopDownGame.Data
                             delayDeleteFrame = delayDeleteFrame,
                             isDmgVanish = isDmgVanish,
                             canRepeatDmg = canRepeatDmg,
+                            isIgnoreBarrier = isIgnoreBarrier,
                             missileResID = missileResID,
                             collResID = collResID,
                             vanishResID = vanishResID,
@@ -5036,6 +5113,28 @@ namespace TopDownGame.Editor
                 Debug.Log($"   [Hiệu ứng Missile đạn cầu băng - JN_02_DD]: Path='{missilePath}' => {(!string.IsNullOrEmpty(missilePath) ? "✅ ĐÃ CÓ" : "❌ THIẾU")}");
             }
 
+            // 3. KIỂM TRA SKILL 312 (Thiên Vũ Bảo Luân - Area DoT & StartSkill 313)
+            SkillData s312 = SkillDatabase.GetSkill(312);
+            if (s312 != null)
+            {
+                Debug.Log($"✅ Skill 312: Name='{s312.name}', MSGenerate={s312.msGenerate} (AreaDoT), ChildCount={s312.childCount}, MSGenerateParam='{s312.msGenerateParam}', StartSkillID={s312.startSkillId}");
+            }
+
+            // 4. KIỂM TRA SKILL 313 (Thiên Vũ Bảo Luân _ Hồi Sinh Lực - Static Repeat Heal)
+            SkillData s313 = SkillDatabase.GetSkill(313);
+            if (s313 != null)
+            {
+                var m313 = MissileDatabase.GetMissile(s313.childId);
+                Debug.Log($"✅ Skill 313: Name='{s313.name}', IsHeal={s313.IsHeal}, Missile 313: MoveKind={m313?.moveKind}, CanRepeatDmg={m313?.canRepeatDmg}, DmgInterval={m313?.dmgInterval}, LifeTime={m313?.lifeTime}");
+            }
+
+            // 5. KIỂM TRA SKILL 631 (Vạn Kiếm Phong Thiên Quyết - FlySkill 632)
+            SkillData s631 = SkillDatabase.GetSkill(631);
+            if (s631 != null)
+            {
+                Debug.Log($"✅ Skill 631: Name='{s631.name}', FlySkillId={s631.flySkillId}, FlyEventInterval={s631.flyEventInterval}");
+            }
+
             Debug.Log("===================================================================");
         }
     }
@@ -6098,6 +6197,7 @@ namespace TopDownGame.Enemy
 
 using UnityEngine;
 using TopDownGame.Skills;
+using TopDownGame.Combat;
 
 namespace TopDownGame.Enemy
 {
@@ -6108,6 +6208,7 @@ namespace TopDownGame.Enemy
         private float totalDuration;
         private bool hasTriggeredHit;
         private bool hasTriggeredSound;
+        private readonly System.Collections.Generic.HashSet<SkillCastEvent> triggeredCastEvents = new System.Collections.Generic.HashSet<SkillCastEvent>();
 
         public EnemyAttackState(EnemyController enemy, TopDownGame.StateMachine.StateMachine stateMachine) 
             : base(enemy, stateMachine) { }
@@ -6130,6 +6231,7 @@ namespace TopDownGame.Enemy
             timer = 0f;
             hasTriggeredHit = false;
             hasTriggeredSound = false;
+            triggeredCastEvents.Clear();
 
             // Xoay dứt khoát về phía người chơi khi bắt đầu ra đòn
             enemy.RotateTowardsTarget();
@@ -6178,8 +6280,38 @@ namespace TopDownGame.Enemy
                 TopDownGame.Audio.SoundManager.Instance.PlaySkillSound(currentSkill, enemy.transform);
             }
 
-            // 3. Gây sát thương tại mốc castSkill (frame/15s)
-            if (!hasTriggeredHit && timer >= currentSkill.CastSkillTime)
+            // 3. Gây sát thương theo danh sách castEvents (hoặc fallback castSkill)
+            if (currentSkill.castEvents != null && currentSkill.castEvents.Count > 0)
+            {
+                foreach (var castEv in currentSkill.castEvents)
+                {
+                    if (!triggeredCastEvents.Contains(castEv))
+                    {
+                        float castTime = CombatFormula.FrameToSeconds(castEv.frame);
+                        if (timer >= castTime)
+                        {
+                            triggeredCastEvents.Add(castEv);
+                            hasTriggeredHit = true;
+
+                            SkillData targetSkill = currentSkill;
+                            if (castEv.skillId > 0 && castEv.skillId != currentSkill.id)
+                            {
+                                SkillData subSkill = SkillDatabase.GetSkill(castEv.skillId);
+                                if (subSkill != null)
+                                {
+                                    targetSkill = subSkill;
+                                    if (subSkill.HasSound)
+                                    {
+                                        TopDownGame.Audio.SoundManager.Instance.PlaySkillSound(subSkill, enemy.transform);
+                                    }
+                                }
+                            }
+                            enemy.ExecuteSkillDamage(targetSkill);
+                        }
+                    }
+                }
+            }
+            else if (!hasTriggeredHit && timer >= currentSkill.CastSkillTime)
             {
                 hasTriggeredHit = true;
                 enemy.ExecuteSkillDamage(currentSkill);
@@ -7117,6 +7249,7 @@ namespace TopDownGame.Player
 using UnityEngine;
 using TopDownGame.Skills;
 using TopDownGame.Combat;
+using TopDownGame.Stats;
 
 namespace TopDownGame.Player
 {
@@ -7124,6 +7257,7 @@ namespace TopDownGame.Player
     {
         [Header("=== TARGETING SETTINGS ===")]
         [SerializeField] private LayerMask targetLayer = ~0;
+        [SerializeField] private LayerMask groundLayer = 0;
 
         private UnityEngine.Camera mainCamera;
         private SkillData aimingSkill;
@@ -7135,6 +7269,8 @@ namespace TopDownGame.Player
         private static readonly Collider[] targetInFrontBuffer = new Collider[32];
 
         public LayerMask TargetLayer { get => targetLayer; set => targetLayer = value; }
+        public LayerMask GroundLayer { get => groundLayer; set => groundLayer = value; }
+        public int GetGroundMask() => groundLayer.value != 0 ? groundLayer.value : CombatFormula.GetDefaultGroundLayerMask();
         public SkillData AimingSkill => aimingSkill;
         public GameObject CurrentIndicator => currentIndicator;
         public Transform CurrentLockTarget => currentLockTarget;
@@ -7153,7 +7289,10 @@ namespace TopDownGame.Player
             int resId = (skill.selectorType == SkillSelectorType.DirectionalArrow) ? IndicatorVfxResID.DirectionArrow : (skill.IsHeal ? IndicatorVfxResID.SelectedAllyAOE : IndicatorVfxResID.SelectedEnemyAOE);
             string path = (resId > 0) ? TopDownGame.Data.EffectDatabase.GetEffectPath(resId) : null;
             if (!string.IsNullOrEmpty(path))
-                currentIndicator = EffectManager.Instance.SpawnEffect(path, transform.position, transform.rotation, null, 99f);
+            {
+                Vector3 spawnPos = CombatFormula.SnapToGround(transform.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, GetGroundMask());
+                currentIndicator = EffectManager.Instance.SpawnEffect(path, spawnPos, transform.rotation, null, 99f);
+            }
         }
 
         public void CancelAiming()
@@ -7166,7 +7305,8 @@ namespace TopDownGame.Player
         {
             if (aimingSkill == null || currentIndicator == null) return;
             float maxRange = aimingSkill.selectorRange > 0f ? aimingSkill.selectorRange : aimingSkill.range;
-            Vector3 targetGroundPos = transform.position + transform.forward * maxRange;
+            int groundMask = GetGroundMask();
+            Vector3 targetGroundPos = CombatFormula.SnapToGround(transform.position + transform.forward * maxRange, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             Vector3 aimDir = transform.forward;
 
             if (!isUsingGamepad)
@@ -7177,26 +7317,49 @@ namespace TopDownGame.Player
                     if (mainCamera != null)
                     {
                         Ray ray = mainCamera.ScreenPointToRay(UnityEngine.InputSystem.Mouse.current.position.ReadValue());
-                        if (new Plane(Vector3.up, transform.position).Raycast(ray, out float enter))
+                        Vector3 hitPoint;
+                        if (Physics.Raycast(ray, out RaycastHit groundHit, 200f, groundMask, QueryTriggerInteraction.Ignore))
                         {
-                            Vector3 hitPoint = ray.GetPoint(enter);
-                            Vector3 offset = hitPoint - transform.position;
-                            targetGroundPos = (offset.magnitude > maxRange) ? (transform.position + offset.normalized * maxRange) : hitPoint;
-                            aimDir = (targetGroundPos - transform.position).normalized;
+                            hitPoint = groundHit.point;
                         }
+                        else if (new Plane(Vector3.up, transform.position).Raycast(ray, out float enter))
+                        {
+                            hitPoint = ray.GetPoint(enter);
+                        }
+                        else
+                        {
+                            hitPoint = transform.position + transform.forward * maxRange;
+                        }
+
+                        Vector3 offset = hitPoint - transform.position;
+                        offset.y = 0f;
+                        if (offset.magnitude > maxRange)
+                        {
+                            Vector3 clampedPos = transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * maxRange;
+                            targetGroundPos = CombatFormula.SnapToGround(clampedPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                        }
+                        else
+                        {
+                            targetGroundPos = CombatFormula.SnapToGround(hitPoint, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                        }
+                        aimDir = (targetGroundPos - transform.position);
+                        aimDir.y = 0f;
                     }
                 }
             }
             else if (inputVector.sqrMagnitude > 0.01f)
             {
                 aimDir = inputVector;
-                targetGroundPos = transform.position + aimDir * maxRange;
+                Vector3 rawPos = transform.position + aimDir * maxRange;
+                targetGroundPos = CombatFormula.SnapToGround(rawPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             }
 
             if (aimDir.sqrMagnitude < 0.01f) aimDir = transform.forward;
+            else aimDir.Normalize();
+
             if (aimingSkill.selectorType == SkillSelectorType.DirectionalArrow)
             {
-                currentIndicator.transform.position = transform.position;
+                currentIndicator.transform.position = CombatFormula.SnapToGround(transform.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
                 currentIndicator.transform.rotation = Quaternion.LookRotation(aimDir, Vector3.up);
             }
             else if (aimingSkill.selectorType == SkillSelectorType.SmartcastCircleAOE)
@@ -7210,44 +7373,103 @@ namespace TopDownGame.Player
         {
             if (skill == null) return false;
             currentLockTarget = null;
-            currentTargetPoint = transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f);
+            int groundMask = GetGroundMask();
+            currentTargetPoint = CombatFormula.SnapToGround(transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f), CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             currentTargetDirection = transform.forward;
-            if (skill.targetSelf || skill.relation == SkillRelation.Self) { currentTargetPoint = transform.position; return true; }
+            if (skill.targetSelf || skill.relation == SkillRelation.Self) { currentTargetPoint = CombatFormula.SnapToGround(transform.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask); return true; }
 
-            bool isTargetLockSkill = skill.IsHeal || (skill.childId > 0 && TopDownGame.Data.MissileDatabase.GetMissile(skill.childId)?.moveKind == MissileMoveKind.HomingTracking);
+            bool isTargetLockSkill = skill.IsHeal || (skill.childId > 0 && TopDownGame.Data.MissileDatabase.GetMissile(skill.childId)?.moveKind == MissileMoveKind.HomingTracking) || skill.skillAttackType == SkillAttackType.Target;
             if (!isUsingGamepad)
             {
                 if (UnityEngine.InputSystem.Mouse.current == null || (mainCamera == null && (mainCamera = UnityEngine.Camera.main) == null)) return true;
                 Ray ray = mainCamera.ScreenPointToRay(UnityEngine.InputSystem.Mouse.current.position.ReadValue());
                 if (isTargetLockSkill)
                 {
-                    Transform found = RaycastTarget(ray);
+                    Transform found = RaycastTarget(ray, skill.IsHeal);
                     if (found != null && Vector3.Distance(transform.position, found.position) <= skill.range) return SetTarget(found);
-                    Transform fallback = FindTargetInFront(skill.range);
+                    Transform fallback = FindTargetInFront(skill.range, skill.IsHeal);
                     return fallback != null && SetTarget(fallback);
                 }
-                if (new Plane(Vector3.up, transform.position).Raycast(ray, out float enter))
+
+                Vector3 hitPoint;
+                if (Physics.Raycast(ray, out RaycastHit groundHit, 200f, groundMask, QueryTriggerInteraction.Ignore))
                 {
-                    Vector3 hitPoint = ray.GetPoint(enter);
-                    float maxRange = skill.selectorRange > 0f ? skill.selectorRange : skill.range;
-                    Vector3 offset = hitPoint - transform.position;
-                    offset.y = 0f;
-                    currentTargetPoint = (maxRange > 0f && skill.selectorType == SkillSelectorType.SmartcastCircleAOE && offset.magnitude > maxRange) ? (transform.position + offset.normalized * maxRange) : hitPoint;
-                    Vector3 aimDir = currentTargetPoint - transform.position;
-                    aimDir.y = 0f;
-                    currentTargetDirection = aimDir.sqrMagnitude > 0.001f ? aimDir.normalized : transform.forward;
+                    hitPoint = groundHit.point;
                 }
+                else if (new Plane(Vector3.up, transform.position).Raycast(ray, out float enter))
+                {
+                    hitPoint = ray.GetPoint(enter);
+                }
+                else
+                {
+                    hitPoint = transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f);
+                }
+
+                float maxRange = skill.selectorRange > 0f ? skill.selectorRange : skill.range;
+                Vector3 offset = hitPoint - transform.position;
+                offset.y = 0f;
+                Vector3 targetPos = (maxRange > 0f && offset.magnitude > maxRange)
+                    ? transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * maxRange
+                    : hitPoint;
+                currentTargetPoint = CombatFormula.SnapToGround(targetPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+
+                Vector3 aimDir = currentTargetPoint - transform.position;
+                aimDir.y = 0f;
+                currentTargetDirection = aimDir.sqrMagnitude > 0.001f ? aimDir.normalized : transform.forward;
             }
             else
             {
-                if (isTargetLockSkill) return SetTarget(FindTargetInFront(skill.range));
+                if (isTargetLockSkill) return SetTarget(FindTargetInFront(skill.range, skill.IsHeal));
                 currentTargetDirection = inputVector.sqrMagnitude > 0.01f ? inputVector.normalized : transform.forward;
-                currentTargetPoint = transform.position + currentTargetDirection * (skill.range > 0 ? skill.range : 5f);
+                float maxRange = skill.selectorRange > 0f ? skill.selectorRange : (skill.range > 0f ? skill.range : 5f);
+                Vector3 rawPos = transform.position + currentTargetDirection * maxRange;
+                currentTargetPoint = CombatFormula.SnapToGround(rawPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             }
             return true;
         }
 
-        private Transform RaycastTarget(Ray ray)
+        private bool IsValidTarget(Collider col, bool isHeal, out Transform targetRoot)
+        {
+            targetRoot = null;
+            if (col == null || col.gameObject == gameObject || col.transform.IsChildOf(transform)) return false;
+
+            var stats = col.GetComponent<EntityStats>() ?? col.GetComponentInParent<EntityStats>();
+            if (stats != null)
+            {
+                if (stats.IsDead) return false;
+                bool isPlayer = stats.CompareTag(CombatLayersAndTags.TagPlayer) || stats.GetComponent<PlayerController>() != null;
+                if (isHeal)
+                {
+                    if (isPlayer) { targetRoot = stats.transform; return true; }
+                    return false;
+                }
+                else
+                {
+                    if (!isPlayer) { targetRoot = stats.transform; return true; }
+                    return false;
+                }
+            }
+
+            if (isHeal) return false;
+
+            var dummy = col.GetComponent<DummyTarget>() ?? col.GetComponentInParent<DummyTarget>();
+            if (dummy != null)
+            {
+                targetRoot = dummy.transform;
+                return true;
+            }
+
+            var damageable = col.GetComponent<IDamageable>() ?? col.GetComponentInParent<IDamageable>();
+            if (damageable is Component comp)
+            {
+                bool isPlayer = comp.CompareTag(CombatLayersAndTags.TagPlayer) || comp.GetComponent<PlayerController>() != null;
+                if (!isPlayer) { targetRoot = comp.transform; return true; }
+            }
+
+            return false;
+        }
+
+        private Transform RaycastTarget(Ray ray, bool isHeal)
         {
             int hitCount = Physics.SphereCastNonAlloc(ray, 1.5f, aimSphereCastBuffer, 100f, targetLayer);
             Transform found = null;
@@ -7256,8 +7478,10 @@ namespace TopDownGame.Player
             {
                 var hit = aimSphereCastBuffer[i];
                 if (hit.collider == null) continue;
-                float dist = Vector3.Cross(ray.direction, hit.collider.transform.position - ray.origin).magnitude;
-                if (dist < minDist) { minDist = dist; found = hit.collider.transform; }
+                if (!IsValidTarget(hit.collider, isHeal, out Transform validRoot)) continue;
+
+                float dist = Vector3.Cross(ray.direction, validRoot.position - ray.origin).magnitude;
+                if (dist < minDist) { minDist = dist; found = validRoot; }
             }
             return found;
         }
@@ -7273,7 +7497,7 @@ namespace TopDownGame.Player
             return true;
         }
 
-        public Transform FindTargetInFront(float range)
+        public Transform FindTargetInFront(float range, bool isHeal = false)
         {
             int hitCount = Physics.OverlapSphereNonAlloc(transform.position, range, targetInFrontBuffer, targetLayer);
             Transform best = null;
@@ -7281,12 +7505,14 @@ namespace TopDownGame.Player
             for (int i = 0; i < hitCount; i++)
             {
                 Collider h = targetInFrontBuffer[i];
-                if (h == null || h.gameObject == gameObject) continue;
-                Vector3 dir = h.transform.position - transform.position;
+                if (h == null) continue;
+                if (!IsValidTarget(h, isHeal, out Transform validRoot)) continue;
+
+                Vector3 dir = validRoot.position - transform.position;
                 dir.y = 0;
                 float dst = dir.magnitude;
-                if (dst > 0.01f && Vector3.Dot(transform.forward, dir / dst) > 0.3f && dst < minDst) { minDst = dst; best = h.transform; }
-                else if (dst <= 0.01f) return h.transform;
+                if (dst > 0.01f && Vector3.Dot(transform.forward, dir / dst) > 0.3f && dst < minDst) { minDst = dst; best = validRoot; }
+                else if (dst <= 0.01f && best == null) best = validRoot;
             }
             return best;
         }
@@ -7630,6 +7856,7 @@ namespace TopDownGame.Player
         private bool hasTriggeredSound;
         private bool hasBufferedComboInput;
         private readonly HashSet<SkillEffectEvent> triggeredEvents = new HashSet<SkillEffectEvent>();
+        private readonly HashSet<SkillCastEvent> triggeredCastEvents = new HashSet<SkillCastEvent>();
 
         public PlayerAttackState(PlayerController player, TopDownGame.StateMachine.StateMachine stateMachine) 
             : base(player, stateMachine) { }
@@ -7666,12 +7893,13 @@ namespace TopDownGame.Player
                 totalDuration = 0.5f;
             }
 
-            if (totalDuration <= 0.1f)
+            if (totalDuration <= 0.01f)
             {
-                totalDuration = 0.6f;
+                totalDuration = 0.05f;
             }
 
             triggeredEvents.Clear();
+            triggeredCastEvents.Clear();
 
             // Cập nhật hướng xoay ban đầu khi vung đòn theo InstantDir (DATA_CONVENTIONS.md Mục 1 & 4)
             player.ResetTurnVelocity();
@@ -7760,8 +7988,40 @@ namespace TopDownGame.Player
                 }
             }
 
-            // 4. Kích hoạt gây sát thương tại mốc castSkill (frame/15s)
-            if (!hasTriggeredHit && timer >= (currentSkill.CastSkillTime / speedFactor))
+            // 4. Kích hoạt toàn bộ các đợt gây sát thương theo timeline (CastSkill events)
+            if (currentSkill.castEvents != null && currentSkill.castEvents.Count > 0)
+            {
+                foreach (var castEv in currentSkill.castEvents)
+                {
+                    if (!triggeredCastEvents.Contains(castEv))
+                    {
+                        float castTime = CombatFormula.FrameToSeconds(castEv.frame) / speedFactor;
+                        if (timer >= castTime)
+                        {
+                            triggeredCastEvents.Add(castEv);
+                            hasTriggeredHit = true;
+
+                            SkillData targetSkillToCast = currentSkill;
+                            if (castEv.skillId > 0 && castEv.skillId != currentSkill.id)
+                            {
+                                SkillData subSkill = SkillDatabase.GetSkill(castEv.skillId);
+                                if (subSkill != null)
+                                {
+                                    targetSkillToCast = subSkill;
+                                    if (subSkill.HasSound)
+                                    {
+                                        TopDownGame.Audio.SoundManager.Instance.PlaySkillSound(subSkill, player.transform);
+                                    }
+                                }
+                            }
+
+                            player.ExecuteSkillDamage(targetSkillToCast);
+                            player.OnHitTriggered(targetSkillToCast);
+                        }
+                    }
+                }
+            }
+            else if (!hasTriggeredHit && timer >= (currentSkill.CastSkillTime / speedFactor))
             {
                 hasTriggeredHit = true;
                 player.ExecuteSkillDamage(currentSkill);
@@ -8020,6 +8280,7 @@ namespace TopDownGame.Skills
         public float crossFade = 0.1f;
         public int candoskill = -1;
         public int castSkill = 2;
+        public List<SkillCastEvent> castEvents = new List<SkillCastEvent>();
         public int canDoRun = -1;
         public int castLinkSkill = -1;
         public int param1 = -1;
@@ -8096,6 +8357,13 @@ namespace TopDownGame.Skills
                                 summary.playsound = CsvParserHelper.ParseInt(p1, -1);
                                 summary.playsoundFrame = 0;
                             }
+                            else if (eventName.Equals("CastSkill", StringComparison.OrdinalIgnoreCase))
+                            {
+                                int targetSkillId = CsvParserHelper.ParseInt(p1, 0);
+                                int skillLv = CsvParserHelper.ParseInt(p2, 1);
+                                summary.castEvents.Add(new SkillCastEvent { frame = frame, skillId = targetSkillId, skillLevel = skillLv });
+                                if (summary.castEvents.Count == 1) summary.castSkill = frame;
+                            }
                             else if (eventName.Equals("PlayEffect", StringComparison.OrdinalIgnoreCase) ||
                                      eventName.Equals("PlayEffectNoClear", StringComparison.OrdinalIgnoreCase))
                             {
@@ -8106,7 +8374,13 @@ namespace TopDownGame.Skills
                         else if (eventType == 2)
                         {
                             if (eventName.Equals("CanDoSkill", StringComparison.OrdinalIgnoreCase)) summary.candoskill = frame;
-                            else if (eventName.Equals("CastSkill", StringComparison.OrdinalIgnoreCase)) summary.castSkill = frame;
+                            else if (eventName.Equals("CastSkill", StringComparison.OrdinalIgnoreCase))
+                            {
+                                int targetSkillId = CsvParserHelper.ParseInt(p1, 0);
+                                int skillLv = CsvParserHelper.ParseInt(p2, 1);
+                                summary.castEvents.Add(new SkillCastEvent { frame = frame, skillId = targetSkillId, skillLevel = skillLv });
+                                if (summary.castEvents.Count == 1) summary.castSkill = frame;
+                            }
                             else if (eventName.Equals("CastLinkSkill", StringComparison.OrdinalIgnoreCase)) summary.castLinkSkill = frame;
                             else if (eventName.Equals("CanDoRun", StringComparison.OrdinalIgnoreCase)) summary.canDoRun = frame;
                             else if (eventName.Equals("instantdir", StringComparison.OrdinalIgnoreCase))
@@ -8500,6 +8774,7 @@ namespace TopDownGame.Skills
         private float distanceTraveled;
         private float maxDistance;
         private float lifeTimer;
+        private float flyTimer;
         private bool isInitialized = false;
         private GameObject flyingEffectInstance;
         private readonly Dictionary<IDamageable, float> lastHitTimes = new Dictionary<IDamageable, float>();
@@ -8526,7 +8801,7 @@ namespace TopDownGame.Skills
 
             this.skillId = skill != null ? skill.id : 0;
             this.missileId = missile != null ? missile.missileId : 0;
-            this.damage = skill != null ? skill.CalculateDamage(casterStats) : 20f;
+            this.damage = (skill != null && skill.IsHeal) ? skill.CalculateHeal(casterStats) : (skill != null ? skill.CalculateDamage(casterStats) : 20f);
 
             this.moveDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : caster.forward;
             this.speed = missile != null ? missile.SpeedInUnitsPerSec : 10f;
@@ -8534,6 +8809,7 @@ namespace TopDownGame.Skills
             this.maxDistance = skill != null && skill.range > 0f ? skill.range : (missile != null && missile.dmgRange > 0f ? (missile.dmgRange / 10f) : 15f);
             this.lifeTimer = missile != null ? missile.LifeTimeInSeconds : 2.5f;
             this.distanceTraveled = 0f;
+            this.flyTimer = 0f;
 
             // Thiết lập nảy bật liên hoàn (MissileForm = 4 theo DATA_CONVENTIONS.md Mục 2)
             this.bouncesRemaining = (skill != null && skill.missileForm == 4 && skill.skillParam1 > 0) ? (int)skill.skillParam1 : 0;
@@ -8570,6 +8846,18 @@ namespace TopDownGame.Skills
                 return;
             }
 
+            // 0. Chu kỳ kích hoạt Sub-Skill theo nhịp đạn bay (FlySkillId & FlyEventInterval)
+            if (skillData != null && skillData.HasFlySkill && skillData.flyEventInterval > 0)
+            {
+                flyTimer += dt;
+                float intervalSec = skillData.FlyEventIntervalInSeconds;
+                if (intervalSec > 0f && flyTimer >= intervalSec)
+                {
+                    flyTimer -= intervalSec;
+                    TriggerFlySkill();
+                }
+            }
+
             // 1. Tự động bẻ lái uốn lượn bám theo mục tiêu (Homing / Target tracking theo DATA_CONVENTIONS.md: MoveKind = 2)
             bool isHoming = missileData != null && (missileData.moveKind == MissileMoveKind.HomingTracking || (int)missileData.moveKind == 2 || missileData.isFollowTarget);
             if (isHoming && homingTarget != null)
@@ -8589,24 +8877,27 @@ namespace TopDownGame.Skills
                 speed += missileData.AccelerationInUnitsPerSec2 * dt;
             }
 
-            // 2. Tính toán bước di chuyển
+            // 2. Tính toán bước di chuyển & va chạm
             float stepDistance = speed * dt;
             Vector3 currentPos = transform.position;
             Vector3 nextPos = currentPos + moveDirection * stepDistance;
 
-            // 3. Quét va chạm liên tục (Continuous Collision Detection) tránh xuyên vật cản khi bay tốc độ cao
+            // 3. Quét va chạm liên tục (Continuous Collision Detection)
             if (CheckCollision(currentPos, nextPos, stepDistance))
             {
                 return;
             }
 
             // 4. Cập nhật vị trí
-            transform.position = nextPos;
-            distanceTraveled += stepDistance;
-
-            if (distanceTraveled >= maxDistance)
+            if (speed > 0f)
             {
-                ExplodeAndDestroy(nextPos, false);
+                transform.position = nextPos;
+                distanceTraveled += stepDistance;
+
+                if (distanceTraveled >= maxDistance)
+                {
+                    ExplodeAndDestroy(nextPos, false);
+                }
             }
         }
 
@@ -8615,42 +8906,45 @@ namespace TopDownGame.Skills
             Vector3 castOrigin = fromPos + Vector3.up * HitHeightOffset;
             Vector3 targetCenter = toPos + Vector3.up * HitHeightOffset;
 
-            // A. Quét hình cầu dọc đường đạn (SphereCast)
-            int hitCount = Physics.SphereCastNonAlloc(castOrigin, collisionRadius, moveDirection, raycastBuffer, stepDistance, targetLayer);
-            for (int i = 0; i < hitCount; i++)
+            // A. Quét hình cầu dọc đường đạn (SphereCast) khi đạn di chuyển
+            if (stepDistance > 0.001f)
             {
-                RaycastHit hit = raycastBuffer[i];
-                if (hit.collider == null) continue;
-
-                Vector3 hitPoint = hit.point != Vector3.zero ? hit.point : hit.collider.ClosestPoint(castOrigin);
-                if (hitPoint == Vector3.zero) hitPoint = targetCenter;
-
-                if (ProcessHit(hit.collider, hitPoint, moveDirection))
+                int hitCount = Physics.SphereCastNonAlloc(castOrigin, collisionRadius, moveDirection, raycastBuffer, stepDistance, targetLayer);
+                for (int i = 0; i < hitCount; i++)
                 {
-                    // Cơ chế nảy đạn liên hoàn (ChainBouncing)
-                    if (bouncesRemaining > 0)
-                    {
-                        Transform nextTarget = FindNextBounceTarget(hitPoint, hit.collider);
-                        if (nextTarget != null)
-                        {
-                            bouncesRemaining--;
-                            homingTarget = nextTarget;
-                            Vector3 toNext = (nextTarget.position - transform.position);
-                            toNext.y = 0f;
-                            moveDirection = toNext.sqrMagnitude > 0.001f ? toNext.normalized : moveDirection;
-                            transform.position = new Vector3(hitPoint.x, fromPos.y, hitPoint.z);
-                            transform.rotation = Quaternion.LookRotation(moveDirection);
-                            distanceTraveled = 0f;
-                            return false; // Tiếp tục bay sang mục tiêu kế tiếp
-                        }
-                    }
+                    RaycastHit hit = raycastBuffer[i];
+                    if (hit.collider == null) continue;
 
-                    // Kiểm tra xem đạn có tự hủy khi trúng đích hay tiếp tục xuyên thấu
-                    bool shouldVanish = missileData != null && missileData.ShouldVanishOnHit;
-                    if (shouldVanish)
+                    Vector3 hitPoint = hit.point != Vector3.zero ? hit.point : CombatFormula.GetSafeClosestPoint(hit.collider, castOrigin);
+                    if (hitPoint == Vector3.zero) hitPoint = targetCenter;
+
+                    if (ProcessHit(hit.collider, hitPoint, moveDirection))
                     {
-                        ExplodeAndDestroy(hitPoint, true);
-                        return true;
+                        // Cơ chế nảy đạn liên hoàn (ChainBouncing)
+                        if (bouncesRemaining > 0)
+                        {
+                            Transform nextTarget = FindNextBounceTarget(hitPoint, hit.collider);
+                            if (nextTarget != null)
+                            {
+                                bouncesRemaining--;
+                                homingTarget = nextTarget;
+                                Vector3 toNext = (nextTarget.position - transform.position);
+                                toNext.y = 0f;
+                                moveDirection = toNext.sqrMagnitude > 0.001f ? toNext.normalized : moveDirection;
+                                transform.position = new Vector3(hitPoint.x, fromPos.y, hitPoint.z);
+                                transform.rotation = Quaternion.LookRotation(moveDirection);
+                                distanceTraveled = 0f;
+                                return false; // Tiếp tục bay sang mục tiêu kế tiếp
+                            }
+                        }
+
+                        // Kiểm tra xem đạn có tự hủy khi trúng đích hay tiếp tục xuyên thấu
+                        bool shouldVanish = missileData != null && missileData.ShouldVanishOnHit;
+                        if (shouldVanish)
+                        {
+                            ExplodeAndDestroy(hitPoint, true);
+                            return true;
+                        }
                     }
                 }
             }
@@ -8662,7 +8956,7 @@ namespace TopDownGame.Skills
                 Collider col = overlapBuffer[i];
                 if (col == null) continue;
 
-                Vector3 hitPoint = col.ClosestPoint(targetCenter);
+                Vector3 hitPoint = CombatFormula.GetSafeClosestPoint(col, targetCenter);
                 if (hitPoint == Vector3.zero) hitPoint = targetCenter;
 
                 if (ProcessHit(col, hitPoint, moveDirection))
@@ -8712,11 +9006,19 @@ namespace TopDownGame.Skills
 
                 if (col.TryGetComponent<IDamageable>(out var dmg) || (dmg = col.GetComponentInParent<IDamageable>()) != null)
                 {
-                    float dist = Vector3.Distance(origin, col.transform.position);
-                    if (dist < closestDist)
+                    if (dmg is EntityStats stats && stats.IsDead) continue;
+                    if (dmg is Component comp)
                     {
-                        closestDist = dist;
-                        best = col.transform;
+                        bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
+                        bool isTargetPlayer = comp.CompareTag(CombatLayersAndTags.TagPlayer) || comp.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
+                        if (isCasterPlayer == isTargetPlayer) continue;
+
+                        float dist = Vector3.Distance(origin, comp.transform.position);
+                        if (dist < closestDist)
+                        {
+                            closestDist = dist;
+                            best = comp.transform;
+                        }
                     }
                 }
             }
@@ -8733,7 +9035,37 @@ namespace TopDownGame.Skills
                 ? (missileData.dmgInterval / 15.0f)
                 : 0f;
 
-            if (SkillDamageResolver.ApplyDamage(col, damage, hitPoint, hitDir, caster, lastHitTimes, repeatInterval))
+            bool isHitSuccess = false;
+
+            if (skillData != null && skillData.IsHeal)
+            {
+                bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
+                bool isTargetPlayer = col.CompareTag(CombatLayersAndTags.TagPlayer) || col.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
+
+                if (isCasterPlayer == isTargetPlayer)
+                {
+                    var targetStats = col.GetComponent<EntityStats>() ?? col.GetComponentInParent<EntityStats>();
+                    if (targetStats != null && !targetStats.IsDead)
+                    {
+                        if (lastHitTimes.TryGetValue(targetStats, out float lastTime))
+                        {
+                            if (repeatInterval <= 0f || (Time.time - lastTime) < repeatInterval)
+                            {
+                                return false;
+                            }
+                        }
+                        lastHitTimes[targetStats] = Time.time;
+                        targetStats.Heal(damage);
+                        isHitSuccess = true;
+                    }
+                }
+            }
+            else
+            {
+                isHitSuccess = SkillDamageResolver.ApplyDamage(col, damage, hitPoint, hitDir, caster, lastHitTimes, repeatInterval);
+            }
+
+            if (isHitSuccess)
             {
                 // Hiệu ứng nổ / va chạm khi trúng đích (CollResID)
                 SpawnHitEffect(hitPoint);
@@ -8741,10 +9073,39 @@ namespace TopDownGame.Skills
                 // Âm thanh khi chạm trúng đích (CollSoundID)
                 PlayHitSound(hitPoint);
 
+                // Kích hoạt chiêu phụ khi đánh trúng mục tiêu (HitSkillID)
+                if (skillData != null && skillData.HasHitSkill)
+                {
+                    SkillData hitSkill = SkillDatabase.GetSkill(skillData.hitSkillId);
+                    if (hitSkill != null && hitSkill.id != skillData.id)
+                    {
+                        if (hitSkill.HasSound && SoundManager.Instance != null)
+                        {
+                            SoundManager.Instance.PlaySkillSound(hitSkill, col.transform);
+                        }
+                        SkillDamageResolver.CastDamage(caster, casterStats, hitSkill, targetLayer, col.transform, hitPoint);
+                    }
+                }
+
                 return true;
             }
 
             return false;
+        }
+
+        private void TriggerFlySkill()
+        {
+            if (skillData == null || skillData.flySkillId <= 0) return;
+            SkillData flySkill = SkillDatabase.GetSkill(skillData.flySkillId);
+            if (flySkill == null || flySkill.id == skillData.id) return;
+
+            Transform target = homingTarget != null ? homingTarget : null;
+            if (flySkill.HasSound && SoundManager.Instance != null)
+            {
+                SoundManager.Instance.PlaySkillSound(flySkill, target != null ? target : transform);
+            }
+            Vector3 targetPt = target != null ? target.position : transform.position;
+            SkillDamageResolver.CastDamage(caster, casterStats, flySkill, targetLayer, target, targetPt);
         }
 
         private void SpawnHitEffect(Vector3 hitPoint)
@@ -8770,6 +9131,20 @@ namespace TopDownGame.Skills
             if (!isInitialized || isDestroying) return;
             isDestroying = true;
             isInitialized = false;
+
+            // Kích hoạt chiêu phụ khi đạn tan biến / hết hạn (VanishedSkillId)
+            if (skillData != null && skillData.HasVanishedSkill)
+            {
+                SkillData vanishSkill = SkillDatabase.GetSkill(skillData.vanishedSkillId);
+                if (vanishSkill != null && vanishSkill.id != skillData.id)
+                {
+                    if (vanishSkill.HasSound && SoundManager.Instance != null)
+                    {
+                        SoundManager.Instance.PlaySoundAtPosition(vanishSkill.playsound, explosionPos);
+                    }
+                    SkillDamageResolver.CastDamage(caster, casterStats, vanishSkill, targetLayer, homingTarget, explosionPos);
+                }
+            }
 
             // Nếu đạn tan biến khi hết tầm bay mà không chạm ai, sinh hiệu ứng VanishResID nếu có
             if (!hasHitTarget && missileData != null && !string.IsNullOrEmpty(missileData.VanishEffectPath))
@@ -8821,6 +9196,7 @@ namespace TopDownGame.Skills
             skillData = null;
             missileData = null;
             homingTarget = null;
+            flyTimer = 0f;
             lastHitTimes.Clear();
 
             ProjectilePool.Instance.Release(this);
@@ -9064,10 +9440,12 @@ namespace TopDownGame.Skills
                         string skillStyle = GetColRaw(tokens, colMap, "skillstyle", 24).Trim();
                         bool targetSelf = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "targetself", 65), 0) == 1;
 
-                        int flySkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "flyskillid", 30), 0);
                         int startSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "startskillid", 29), 0);
+                        int flySkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "flyskillid", 30), 0);
+                        int flyEventInterval = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "flyeventinterval", 31), 0);
                         int hitSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "hitskillid", 34), 0);
-                        int subSkillId = flySkillId > 0 ? flySkillId : (startSkillId > 0 ? startSkillId : hitSkillId);
+                        int vanishedSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "vanishedskillid", 36), 0);
+                        int subSkillId = startSkillId > 0 ? startSkillId : 0;
 
                         int rawStartPosType = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "startpostype", 5), 1);
                         VfxStartPosType startPosType = Enum.IsDefined(typeof(VfxStartPosType), rawStartPosType) ? (VfxStartPosType)rawStartPosType : VfxStartPosType.Caster;
@@ -9181,6 +9559,10 @@ namespace TopDownGame.Skills
                             {
                                 evSummary.effectEvents = new List<SkillEffectEvent>(matchedSummary.effectEvents);
                             }
+                            if (matchedSummary.castEvents != null && matchedSummary.castEvents.Count > 0)
+                            {
+                                evSummary.castEvents = new List<SkillCastEvent>(matchedSummary.castEvents);
+                            }
                         }
 
                         if (evSummary.effectEvents.Count == 0 && !string.IsNullOrEmpty(evSummary.effectPath))
@@ -9222,6 +9604,11 @@ namespace TopDownGame.Skills
                             skillStyle = skillStyle,
                             targetSelf = targetSelf,
                             subSkillId = subSkillId,
+                            startSkillId = startSkillId,
+                            flySkillId = flySkillId,
+                            flyEventInterval = flyEventInterval,
+                            hitSkillId = hitSkillId,
+                            vanishedSkillId = vanishedSkillId,
                             startPosType = startPosType,
                             selectorType = selectorType,
                             selectorRange = selectorRange,
@@ -9251,6 +9638,7 @@ namespace TopDownGame.Skills
                             param2 = evSummary.param2,
                             candoskill = evSummary.candoskill,
                             castSkill = evSummary.castSkill,
+                            castEvents = new List<SkillCastEvent>(evSummary.castEvents),
                             canDoRun = evSummary.canDoRun,
                             castLinkSkill = evSummary.castLinkSkill,
                             instantDir = evSummary.instantDir,
@@ -9271,6 +9659,15 @@ namespace TopDownGame.Skills
                             acceSpeedInfo2 = acceSpeedInfo2,
                             acceSpeedInfo3 = acceSpeedInfo3
                         };
+
+                        if (data.castEvents.Count == 0)
+                        {
+                            data.castEvents.Add(new SkillCastEvent { frame = data.castSkill >= 0 ? data.castSkill : 2, skillId = skillId, skillLevel = 1 });
+                        }
+                        else if (data.castSkill < 0)
+                        {
+                            data.castSkill = data.castEvents[0].frame;
+                        }
 
                         skills[skillId] = data;
                     }
@@ -9300,6 +9697,7 @@ using UnityEngine;
 using TopDownGame.Combat;
 using TopDownGame.Stats;
 using TopDownGame.Data;
+using TopDownGame.Audio;
 
 namespace TopDownGame.Skills
 {
@@ -9322,6 +9720,17 @@ namespace TopDownGame.Skills
         public const float CloseTargetThreshold = 0.8f;
         public const float DefaultFanSpreadAngle = 15f;
 
+        public static LayerMask GetTargetLayerForSkill(Transform caster, SkillData skill, LayerMask defaultTargetLayer)
+        {
+            if (skill == null || caster == null) return defaultTargetLayer;
+            if (skill.IsHeal)
+            {
+                bool isCasterPlayer = caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null;
+                return LayerMask.GetMask(isCasterPlayer ? CombatLayersAndTags.LayerPlayer : CombatLayersAndTags.LayerEnemy);
+            }
+            return defaultTargetLayer;
+        }
+
         /// <summary>
         /// Kích hoạt quét tác dụng chiêu thức (Gây sát thương kẻ địch hoặc Hồi máu/Buff đồng đội)
         /// </summary>
@@ -9330,18 +9739,37 @@ namespace TopDownGame.Skills
             if (caster == null || skill == null) return;
 
             hitEntitiesThisCast.Clear();
+            LayerMask skillTargetLayer = GetTargetLayerForSkill(caster, skill, targetLayer);
+
+            // 0. Kích hoạt chiêu phụ bắt đầu (StartSkillID) nếu có
+            if (skill.HasStartSkill)
+            {
+                SkillData startSkill = SkillDatabase.GetSkill(skill.startSkillId);
+                if (startSkill != null && startSkill.id != skill.id)
+                {
+                    if (startSkill.HasSound && SoundManager.Instance != null)
+                    {
+                        SoundManager.Instance.PlaySkillSound(startSkill, caster);
+                    }
+                    CastDamage(caster, casterStats, startSkill, targetLayer, explicitTarget, explicitTargetPoint);
+                }
+            }
 
             // 1. Kỹ năng Hồi phục / Hỗ trợ (Relation == Recover hoặc SkillStyle có "heal")
             if (skill.IsHeal)
             {
-                CastHeal(caster, casterStats, skill, explicitTarget);
+                CastHeal(caster, casterStats, skill, explicitTarget, explicitTargetPoint);
 
-                // Kích hoạt chiêu phụ kèm theo (nếu có cấu hình trong CSV)
-                if (skill.HasSubSkill)
+                // Kích hoạt chiêu phụ legacy kèm theo (nếu khác start/fly/hit skill)
+                if (skill.HasSubSkill && skill.subSkillId != skill.startSkillId && skill.subSkillId != skill.flySkillId && skill.subSkillId != skill.hitSkillId)
                 {
                     SkillData subSkill = SkillDatabase.GetSkill(skill.subSkillId);
                     if (subSkill != null && subSkill.id != skill.id)
                     {
+                        if (subSkill.HasSound && SoundManager.Instance != null)
+                        {
+                            SoundManager.Instance.PlaySkillSound(subSkill, caster);
+                        }
                         CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint);
                     }
                 }
@@ -9353,39 +9781,59 @@ namespace TopDownGame.Skills
             float actualWidth = skill.boxWidth > 0f ? skill.boxWidth : DefaultBoxWidth;
             float actualRange = skill.range > 0f ? skill.range : DefaultRange;
 
-            if (skill.HasProjectile || skill.skillType == SkillType.Projectile)
+            // Xử lý Area DoT cho kỹ năng không phải đạn bay (vd: Skill 312 Thiên Vũ Bảo Luân: MSGenerate=2, ChildCount=12, MSGenerateParam=7)
+            if (skill.msGenerate == 2 && skill.childCount > 1 && !skill.HasProjectile && skill.skillType != SkillType.Projectile)
             {
-                CastProjectile(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint);
+                float delayFrames = CsvParserHelper.ParseFloat(skill.msGenerateParam, 7f);
+                if (delayFrames <= 0f) delayFrames = 7f;
+                float delaySec = delayFrames / SkillData.LOGIC_GAME_FPS;
+
+                if (EffectManager.Instance != null)
+                {
+                    EffectManager.Instance.StartCoroutine(SpawnAreaDoTHitboxCoroutine(caster, casterStats, skill, skillTargetLayer, explicitTarget, explicitTargetPoint, skill.childCount, delaySec));
+                }
+                else
+                {
+                    CastCircle(caster, calculatedDamage, actualRange, skillTargetLayer);
+                }
+            }
+            else if (skill.HasProjectile || skill.skillType == SkillType.Projectile)
+            {
+                CastProjectile(caster, casterStats, skill, skillTargetLayer, explicitTarget, explicitTargetPoint);
             }
             else
             {
                 switch (skill.skillType)
                 {
                     case SkillType.StraightRay:
-                        CastStraightBox(caster, calculatedDamage, actualRange, actualWidth, targetLayer);
+                        CastStraightBox(caster, calculatedDamage, actualRange, actualWidth, skillTargetLayer);
                         break;
 
                     case SkillType.Sector:
                         float angle = skill.fanAngle > 0f ? skill.fanAngle : 90f;
-                        CastSector(caster, calculatedDamage, actualRange, angle, targetLayer);
+                        CastSector(caster, calculatedDamage, actualRange, angle, skillTargetLayer);
                         break;
 
                     case SkillType.Circle:
-                        CastCircle(caster, calculatedDamage, actualRange, targetLayer);
+                        CastCircle(caster, calculatedDamage, actualRange, skillTargetLayer);
                         break;
 
                     case SkillType.TargetLock:
-                        CastTargetLock(caster, calculatedDamage, actualRange, actualWidth, targetLayer, explicitTarget);
+                        CastTargetLock(caster, calculatedDamage, actualRange, actualWidth, skillTargetLayer, explicitTarget);
                         break;
                 }
             }
 
-            // 3. Kích hoạt chiêu phụ (SubSkill) nếu có theo cấu hình CSV (FlySkillId / StartSkillID / HitSkillID)
-            if (skill.HasSubSkill)
+            // 3. Kích hoạt chiêu phụ legacy nếu có
+            if (skill.HasSubSkill && skill.subSkillId != skill.startSkillId && skill.subSkillId != skill.flySkillId && skill.subSkillId != skill.hitSkillId)
             {
                 SkillData subSkill = SkillDatabase.GetSkill(skill.subSkillId);
                 if (subSkill != null && subSkill.id != skill.id)
                 {
+                    if (subSkill.HasSound && SoundManager.Instance != null)
+                    {
+                        SoundManager.Instance.PlaySkillSound(subSkill, caster);
+                    }
                     CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint);
                 }
             }
@@ -9394,8 +9842,10 @@ namespace TopDownGame.Skills
         /// <summary>
         /// Kích hoạt hồi phục sinh lực cho Bản thân và Đồng đội (Relation == Recover)
         /// </summary>
-        public static void CastHeal(Transform caster, EntityStats casterStats, SkillData skill, Transform explicitTarget = null)
+        public static void CastHeal(Transform caster, EntityStats casterStats, SkillData skill, Transform explicitTarget = null, Vector3 explicitTargetPoint = default, bool isSubSkillTick = false)
         {
+            if (caster == null || skill == null) return;
+
             float healAmount = skill.CalculateHeal(casterStats);
             float range = skill.range > 0f ? skill.range : 8.0f;
 
@@ -9424,7 +9874,8 @@ namespace TopDownGame.Skills
             }
 
             // Quét các đồng minh xung quanh trong phạm vi range
-            Vector3 sphereCenter = caster.position + Vector3.up * 1.0f;
+            Vector3 healOrigin = explicitTargetPoint != default ? explicitTargetPoint : (explicitTarget != null ? explicitTarget.position : caster.position);
+            Vector3 sphereCenter = healOrigin + Vector3.up * 1.0f;
             int count = Physics.OverlapSphereNonAlloc(sphereCenter, range, hitBuffer);
             for (int i = 0; i < count; i++)
             {
@@ -9446,14 +9897,15 @@ namespace TopDownGame.Skills
                 }
             }
 
-            // 1. Sinh hiệu ứng đài sen nở / hiệu ứng kết thúc chiêu trên mặt đất từ childId / missile (MissileResID = 306)
+            // 1. Sinh hiệu ứng đài sen nở / hiệu ứng kết thúc chiêu trên mặt đất từ childId / missile (MissileResID = 306, 313)
             // Chuẩn DATA_CONVENTIONS.md: Missile / Đài sen nở bám theo chân mục tiêu (FlatGround), không có cột slotid xương.
             Transform groundTarget = explicitTarget != null ? explicitTarget : caster;
             string groundEffectPath = "";
             float groundDuration = 5.0f;
+            TopDownGame.Data.MissileData missile = null;
             if (skill.childId > 0)
             {
-                var missile = MissileDatabase.GetMissile(skill.childId);
+                missile = MissileDatabase.GetMissile(skill.childId);
                 if (missile != null)
                 {
                     if (missile.missileResID > 0)
@@ -9471,24 +9923,36 @@ namespace TopDownGame.Skills
                 }
             }
 
-            if (!string.IsNullOrEmpty(groundEffectPath) && groundTarget != null)
+            if (!isSubSkillTick && !string.IsNullOrEmpty(groundEffectPath))
             {
-                EffectManager.Instance.SpawnEffectFollowTargetGround(groundEffectPath, groundTarget, groundDuration);
+                if (missile != null && missile.moveKind == MissileMoveKind.StaticTrap && explicitTargetPoint != default)
+                {
+                    Vector3 snappedTarget = CombatFormula.SnapToGround(explicitTargetPoint, CombatFormula.GROUND_VFX_Y_OFFSET);
+                    EffectManager.Instance.SpawnEffect(groundEffectPath, snappedTarget, Quaternion.identity, null, groundDuration);
+                }
+                else if (groundTarget != null)
+                {
+                    EffectManager.Instance.SpawnEffectFollowTargetGround(groundEffectPath, groundTarget, groundDuration);
+                }
             }
 
+            bool isAreaHeal = (missile != null && missile.canRepeatDmg && missile.dmgInterval > 0f);
+            bool isHoT = (skill.HasFlySkill && skill.flyEventInterval > 0);
+
             // 2. Thực hiện hồi máu và hiển thị hiệu ứng Buff trên người từng mục tiêu theo StateEffect.csv
+            // (Nếu là chiêu hồi máu định kỳ DoT/HoT, coroutine bên dưới sẽ điều phối chính xác từng nhịp hồi máu)
             for (int i = 0; i < targetsToHealBuffer.Count; i++)
             {
                 var target = targetsToHealBuffer[i];
                 if (target != null && !target.IsDead)
                 {
-                    float hpBefore = target.Health.CurrentValue;
-                    target.Heal(healAmount);
-                    float actualHealed = target.Health.CurrentValue - hpBefore;
-                    // Debug.Log($"💚 <color=green>[HỒI MÁU]</color> <b>{skill.name}</b> đã hồi cho <b>{target.gameObject.name}</b> +{actualHealed:F0} HP (Máu: {target.Health.CurrentValue:F0}/{target.Health.MaxValue:F0})");
+                    if (isSubSkillTick || (!isAreaHeal && !isHoT))
+                    {
+                        target.Heal(healAmount);
+                    }
 
                     // Kích hoạt hiệu ứng hình ảnh (VFX hồi máu / Buff) trên mục tiêu theo stateEffectId cấu hình trong Skill.csv
-                    if (skill.stateEffectId > 0)
+                    if (!isSubSkillTick && skill.stateEffectId > 0)
                     {
                         var stateEffect = TopDownGame.Data.StateEffectDatabase.GetStateEffect(skill.stateEffectId);
                         if (stateEffect != null)
@@ -9496,22 +9960,37 @@ namespace TopDownGame.Skills
                             if (!string.IsNullOrEmpty(stateEffect.effectPath1))
                             {
                                 int slot1 = stateEffect.slotId1 > 0 ? stateEffect.slotId1 : (int)BoneSlotID.ChestCenter;
-                                EffectManager.Instance.SpawnEffectAtSlot(stateEffect.effectPath1, target.transform, slot1, 5.0f, true);
+                                EffectManager.Instance.SpawnEffectAtSlot(stateEffect.effectPath1, target.transform, slot1, groundDuration, true);
                             }
                             if (!string.IsNullOrEmpty(stateEffect.effectPath2))
                             {
                                 int slot2 = stateEffect.slotId2 > 0 ? stateEffect.slotId2 : (int)BoneSlotID.ChestCenter;
-                                EffectManager.Instance.SpawnEffectAtSlot(stateEffect.effectPath2, target.transform, slot2, 5.0f, true);
+                                EffectManager.Instance.SpawnEffectAtSlot(stateEffect.effectPath2, target.transform, slot2, groundDuration, true);
                             }
                             if (!string.IsNullOrEmpty(stateEffect.headResPath))
                             {
-                                EffectManager.Instance.SpawnEffectAtSlot(stateEffect.headResPath, target.transform, (int)BoneSlotID.Head, 5.0f, true);
+                                EffectManager.Instance.SpawnEffectAtSlot(stateEffect.headResPath, target.transform, (int)BoneSlotID.Head, groundDuration, true);
                             }
                         }
                     }
                 }
             }
             targetsToHealBuffer.Clear();
+
+            // 3. Cơ chế hồi máu liên tục theo đợt (Heal Over Time qua FlySkill - vd: Skill 306 gọi 307 mỗi 15 frames)
+            if (!isSubSkillTick && isHoT && EffectManager.Instance != null)
+            {
+                EffectManager.Instance.StartCoroutine(HealOverTimeCoroutine(caster, casterStats, skill, explicitTarget, skill.FlyEventIntervalInSeconds, groundDuration));
+            }
+
+            // 4. Cơ chế bãi hồi máu định kỳ cố định (Area Heal DoT qua CanRepeatDmg & DmgInterval - vd: Skill 313)
+            if (!isSubSkillTick && isAreaHeal && EffectManager.Instance != null)
+            {
+                float intervalSec = missile.DmgIntervalInSeconds;
+                float durationSec = missile.LifeTimeInSeconds;
+                float healRadius = missile.CollisionRadius > 0f ? missile.CollisionRadius : range;
+                EffectManager.Instance.StartCoroutine(AreaHealDoTCoroutine(caster, casterStats, skill, healOrigin, healRadius, intervalSec, durationSec, (missile.moveKind != MissileMoveKind.StaticTrap ? groundTarget : null)));
+            }
         }
 
         /// <summary>
@@ -9536,7 +10015,7 @@ namespace TopDownGame.Skills
                 Collider col = hitBuffer[i];
                 if (col == null || col.gameObject == caster.gameObject) continue;
 
-                ApplyDamage(col, damage, col.ClosestPoint(boxCenter), caster.forward, caster);
+                ApplyDamage(col, damage, CombatFormula.GetSafeClosestPoint(col, boxCenter), caster.forward, caster);
             }
         }
 
@@ -9567,7 +10046,7 @@ namespace TopDownGame.Skills
                     // Mục tiêu áp sát trong phạm vi CloseTargetThreshold luôn trúng, xa hơn thì kiểm tra góc quạt
                     if (dirToTarget.sqrMagnitude <= CloseTargetThreshold * CloseTargetThreshold || angle <= halfAngle)
                     {
-                        ApplyDamage(col, damage, col.ClosestPoint(sphereCenter), dirToTarget.normalized, caster);
+                        ApplyDamage(col, damage, CombatFormula.GetSafeClosestPoint(col, sphereCenter), dirToTarget.normalized, caster);
                     }
                 }
             }
@@ -9590,7 +10069,7 @@ namespace TopDownGame.Skills
                 if (relativeY < RelativeYMin || relativeY > BoxHeight + RelativeYMaxOffset) continue;
 
                 Vector3 hitDirection = (col.transform.position - caster.position).normalized;
-                ApplyDamage(col, damage, col.ClosestPoint(sphereCenter), hitDirection, caster);
+                ApplyDamage(col, damage, CombatFormula.GetSafeClosestPoint(col, sphereCenter), hitDirection, caster);
             }
         }
 
@@ -9620,22 +10099,49 @@ namespace TopDownGame.Skills
 
         /// <summary>
         /// 5. Bắn ra đạn đạo / kiếm khí / phi tiêu bay trong không gian 3D (Missile / Projectile)
-        /// Hỗ trợ đa tia đạn (ChildCount, MSGenerate, MSGenerateParam) theo DATA_CONVENTIONS.md
+        /// Hỗ trợ đa tia đạn (ChildCount, MSGenerate, MSGenerateParam) theo DATA_CONVENTIONS_V2.md Mục 3 & 4
         /// </summary>
         public static void CastProjectile(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget = null, Vector3 explicitTargetPoint = default)
         {
             if (caster == null || skill == null) return;
 
             int childCount = Mathf.Max(1, skill.childCount);
-            int msGenerate = skill.msGenerate > 0 ? skill.msGenerate : 1;
+            int msGenerate = skill.msGenerate;
 
-            // Bắn tuần tự cách quãng (MSGenerate = 2)
-            if (childCount > 1 && msGenerate == 2)
+            float delayFrames = CsvParserHelper.ParseFloat(skill.msGenerateParam, 0f);
+            float delaySec = delayFrames > 0f ? (delayFrames / SkillData.LOGIC_GAME_FPS) : 0f;
+
+            // 1. Duy trì bãi sát thương tại chỗ (Area DoT / Hazard Zone - MSGenerate = 2)
+            if (msGenerate == 2 && childCount > 1 && delaySec > 0f)
             {
-                float delayFrames = CsvParserHelper.ParseFloat(skill.msGenerateParam, 2f);
-                if (delayFrames <= 0f) delayFrames = 2f;
-                float delaySec = delayFrames / SkillData.LOGIC_GAME_FPS;
+                if (EffectManager.Instance != null)
+                {
+                    EffectManager.Instance.StartCoroutine(SpawnAreaDoTCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, delaySec));
+                }
+                else
+                {
+                    SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount);
+                }
+                return;
+            }
 
+            // 2. Mưa rơi liên hoàn ngẫu nhiên từ trên trời xuống (Meteor / Sky Drop Rain - MSGenerate = 3 hoặc MissileForm = 5)
+            if ((msGenerate == 3 || skill.missileForm == 5) && childCount > 1 && delaySec > 0f)
+            {
+                if (EffectManager.Instance != null)
+                {
+                    EffectManager.Instance.StartCoroutine(SpawnMeteorRainCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, delaySec));
+                }
+                else
+                {
+                    SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount);
+                }
+                return;
+            }
+
+            // 3. Bắn tuần tự cách quãng (MSGenerate = 4: TimedTrap, 5: RapidFire, hoặc Trail)
+            if (childCount > 1 && delaySec > 0f && (msGenerate == 4 || msGenerate == 5 || (msGenerate == 1 && delayFrames > 0f)))
+            {
                 if (EffectManager.Instance != null)
                 {
                     EffectManager.Instance.StartCoroutine(SpawnSequentialProjectilesCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, delaySec));
@@ -9647,7 +10153,7 @@ namespace TopDownGame.Skills
                 return;
             }
 
-            // Bắn đồng loạt (MSGenerate = 1) hoặc Xoay tròn (MSGenerate = 3 / MissileForm = 3)
+            // 4. Bắn đồng loạt tức thời (MSGenerate = 0 hoặc 1) / Xoay tròn (MissileForm = 3)
             SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount);
         }
 
@@ -9727,7 +10233,22 @@ namespace TopDownGame.Skills
                     Vector3 ringSpawnPos = originPos + shotDir * spawnOffset;
                     SpawnSingleMissileObject(caster, casterStats, skill, missile, ringSpawnPos, shotDir, targetLayer, explicitTarget);
                 }
-                // Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng <b>{count}</b> đạn vòng tròn <b>{skill.name}</b> (Missile ID: {missileId})");
+                return;
+            }
+
+            // 1.5. Bắn chùm đa đạn đồng loạt song song dàn hàng ngang (MissileForm = 7 - MultiMissileWave / Sóng tỏa)
+            if (skill.missileForm == 7)
+            {
+                // DATA_CONVENTIONS_V2.md Mục 3: Param1 = Khoảng cách cự ly giữa các tia đạn (cm -> mét)
+                float spacingMeters = (skill.skillParam1 > 0f ? skill.skillParam1 : 50f) / 100.0f;
+                Vector3 rightDir = Vector3.Cross(Vector3.up, aimDirection).normalized;
+
+                for (int i = 0; i < count; i++)
+                {
+                    float lateralOffset = (i - (count - 1) * 0.5f) * spacingMeters;
+                    Vector3 waveSpawnPos = spawnPos + rightDir * lateralOffset;
+                    SpawnSingleMissileObject(caster, casterStats, skill, missile, waveSpawnPos, aimDirection, targetLayer, explicitTarget);
+                }
                 return;
             }
 
@@ -9735,7 +10256,6 @@ namespace TopDownGame.Skills
             if (count <= 1)
             {
                 SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, aimDirection, targetLayer, explicitTarget);
-                // Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng kiếm khí <b>{skill.name}</b> hướng thẳng tới đích con trỏ chuột (Missile ID: {missileId})");
                 return;
             }
 
@@ -9849,6 +10369,216 @@ namespace TopDownGame.Skills
             }
         }
 
+        private static System.Collections.IEnumerator SpawnAreaDoTCoroutine(
+            Transform caster,
+            EntityStats casterStats,
+            SkillData skill,
+            LayerMask targetLayer,
+            Transform explicitTarget,
+            Vector3 explicitTargetPoint,
+            int count,
+            float delaySec)
+        {
+            int missileId = skill.childId > 0 ? skill.childId : skill.id;
+            var missile = TopDownGame.Data.MissileDatabase.GetMissile(missileId);
+
+            Vector3 centerPos;
+            if (explicitTargetPoint != default) centerPos = explicitTargetPoint;
+            else if (explicitTarget != null) centerPos = explicitTarget.position;
+            else centerPos = caster.position;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (caster == null) yield break;
+
+                if (explicitTarget != null && skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target)
+                {
+                    centerPos = explicitTarget.position;
+                }
+
+                SpawnSingleMissileObject(caster, casterStats, skill, missile, centerPos, caster.forward, targetLayer, explicitTarget);
+
+                if (i < count - 1 && delaySec > 0f)
+                {
+                    yield return new WaitForSeconds(delaySec);
+                }
+            }
+        }
+
+        private static System.Collections.IEnumerator SpawnMeteorRainCoroutine(
+            Transform caster,
+            EntityStats casterStats,
+            SkillData skill,
+            LayerMask targetLayer,
+            Transform explicitTarget,
+            Vector3 explicitTargetPoint,
+            int count,
+            float delaySec)
+        {
+            int missileId = skill.childId > 0 ? skill.childId : skill.id;
+            var missile = TopDownGame.Data.MissileDatabase.GetMissile(missileId);
+            float radius = skill.range > 0f ? (skill.range * 0.5f) : 4.0f;
+
+            Vector3 centerPos;
+            if (explicitTargetPoint != default) centerPos = explicitTargetPoint;
+            else if (explicitTarget != null) centerPos = explicitTarget.position;
+            else centerPos = caster.position + caster.forward * (skill.range > 0f ? skill.range * 0.5f : 3.0f);
+
+            for (int i = 0; i < count; i++)
+            {
+                if (caster == null) yield break;
+
+                Vector2 randomCircle = UnityEngine.Random.insideUnitCircle * radius;
+                Vector3 dropPos = centerPos + new Vector3(randomCircle.x, 0f, randomCircle.y);
+
+                SpawnSingleMissileObject(caster, casterStats, skill, missile, dropPos, Vector3.down, targetLayer, explicitTarget);
+
+                if (i < count - 1 && delaySec > 0f)
+                {
+                    yield return new WaitForSeconds(delaySec);
+                }
+            }
+        }
+
+        private static System.Collections.IEnumerator SpawnAreaDoTHitboxCoroutine(
+            Transform caster,
+            EntityStats casterStats,
+            SkillData skill,
+            LayerMask targetLayer,
+            Transform explicitTarget,
+            Vector3 explicitTargetPoint,
+            int count,
+            float delaySec)
+        {
+            int missileId = skill.childId > 0 ? skill.childId : skill.id;
+            var missile = TopDownGame.Data.MissileDatabase.GetMissile(missileId);
+            float damage = skill.CalculateDamage(casterStats);
+            float range = skill.range > 0f ? skill.range : (missile != null && missile.dmgRange > 0f ? (missile.dmgRange / 10f) : 2.6f);
+
+            Vector3 centerPos;
+            if (explicitTargetPoint != default) centerPos = explicitTargetPoint;
+            else if (explicitTarget != null) centerPos = explicitTarget.position;
+            else centerPos = caster.position;
+
+            string collEffectPath = missile != null ? missile.HitEffectPath : "";
+            int collSoundId = missile != null ? missile.collSoundID : -1;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (caster == null) yield break;
+
+                if (explicitTarget != null && skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target)
+                {
+                    centerPos = explicitTarget.position;
+                }
+
+                Vector3 sphereCenter = centerPos + Vector3.up * (BoxHeight * 0.5f);
+                int hitCount = Physics.OverlapSphereNonAlloc(sphereCenter, range, hitBuffer, targetLayer);
+                HashSet<IDamageable> tickHitFilter = new HashSet<IDamageable>();
+                for (int j = 0; j < hitCount; j++)
+                {
+                    Collider col = hitBuffer[j];
+                    if (col == null || col.gameObject == caster.gameObject) continue;
+
+                    float relativeY = col.transform.position.y - centerPos.y;
+                    if (relativeY < RelativeYMin || relativeY > BoxHeight + RelativeYMaxOffset) continue;
+
+                    Vector3 hitDirection = (col.transform.position - centerPos).normalized;
+                    Vector3 hitPoint = CombatFormula.GetSafeClosestPoint(col, sphereCenter);
+                    if (ApplyDamage(col, damage, hitPoint, hitDirection, caster, tickHitFilter))
+                    {
+                        if (!string.IsNullOrEmpty(collEffectPath))
+                        {
+                            EffectManager.Instance.SpawnEffect(collEffectPath, hitPoint, Quaternion.identity, null, 2.0f);
+                        }
+                        if (collSoundId > 0)
+                        {
+                            SoundManager.Instance.PlaySoundAtPosition(collSoundId, hitPoint);
+                        }
+                    }
+                }
+
+                if (i < count - 1 && delaySec > 0f)
+                {
+                    yield return new WaitForSeconds(delaySec);
+                }
+            }
+        }
+
+        private static System.Collections.IEnumerator AreaHealDoTCoroutine(
+            Transform caster,
+            EntityStats casterStats,
+            SkillData skill,
+            Vector3 centerPos,
+            float range,
+            float intervalSec,
+            float durationSec,
+            Transform targetTransform = null)
+        {
+            float healAmount = skill.CalculateHeal(casterStats);
+            int totalTicks = intervalSec > 0f ? Mathf.FloorToInt(durationSec / intervalSec) : 1;
+            if (totalTicks <= 0) totalTicks = 1;
+
+            bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
+
+            for (int tick = 0; tick < totalTicks; tick++)
+            {
+                if (caster == null) yield break;
+
+                Vector3 currentPos = targetTransform != null ? targetTransform.position : centerPos;
+                Vector3 sphereCenter = currentPos + Vector3.up * 1.0f;
+                int count = Physics.OverlapSphereNonAlloc(sphereCenter, range, hitBuffer);
+                for (int i = 0; i < count; i++)
+                {
+                    Collider col = hitBuffer[i];
+                    if (col == null) continue;
+
+                    EntityStats targetStats = col.GetComponent<EntityStats>() ?? col.GetComponentInParent<EntityStats>();
+                    if (targetStats == null || targetStats.IsDead) continue;
+
+                    bool isTargetPlayer = targetStats.CompareTag(CombatLayersAndTags.TagPlayer) || targetStats.GetComponent<TopDownGame.Player.PlayerController>() != null;
+
+                    if (isCasterPlayer == isTargetPlayer)
+                    {
+                        targetStats.Heal(healAmount);
+                    }
+                }
+
+                if (tick < totalTicks - 1 && intervalSec > 0f)
+                {
+                    yield return new WaitForSeconds(intervalSec);
+                }
+            }
+        }
+
+        private static System.Collections.IEnumerator HealOverTimeCoroutine(
+            Transform caster,
+            EntityStats casterStats,
+            SkillData skill,
+            Transform explicitTarget,
+            float intervalSec,
+            float durationSec)
+        {
+            int totalTicks = intervalSec > 0f ? Mathf.FloorToInt(durationSec / intervalSec) : 1;
+            if (totalTicks <= 0) totalTicks = 1;
+
+            for (int tick = 0; tick < totalTicks; tick++)
+            {
+                if (tick > 0 && intervalSec > 0f)
+                {
+                    yield return new WaitForSeconds(intervalSec);
+                }
+
+                if (caster == null) yield break;
+
+                SkillData flySkill = SkillDatabase.GetSkill(skill.flySkillId);
+                if (flySkill != null && flySkill.id != skill.id)
+                {
+                    CastHeal(caster, casterStats, flySkill, explicitTarget, default, true);
+                }
+            }
+        }
+
         public static bool ApplyDamage(Collider col, float damage, Vector3 hitPoint, Vector3 hitDirection, Transform caster, HashSet<IDamageable> hitFilter = null)
         {
             if (col == null || (caster != null && col.gameObject == caster.gameObject)) return false;
@@ -9901,32 +10631,40 @@ namespace TopDownGame.Skills
             return false;
         }
 
-        /// <summary>
-        /// Tìm mục tiêu gần nhất trước mặt trong góc quét
-        /// </summary>
         public static Transform FindBestTargetInFront(Transform caster, float maxRange, LayerMask targetLayer, float maxAngle = 100f)
         {
             Vector3 sphereCenter = caster.position + Vector3.up * (BoxHeight * 0.5f);
             int count = Physics.OverlapSphereNonAlloc(sphereCenter, maxRange, hitBuffer, targetLayer);
             Transform bestTarget = null;
             float closestDist = float.MaxValue;
+            bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
 
             for (int i = 0; i < count; i++)
             {
                 Collider col = hitBuffer[i];
                 if (col == null || col.gameObject == caster.gameObject) continue;
 
-                Vector3 dirToTarget = (col.transform.position - caster.position);
-                dirToTarget.y = 0f;
-                float dist = dirToTarget.magnitude;
+                var damageable = col.GetComponent<IDamageable>() ?? col.GetComponentInParent<IDamageable>();
+                if (damageable == null) continue;
+                if (damageable is EntityStats stats && stats.IsDead) continue;
 
-                if (dist <= maxRange)
+                if (damageable is Component comp)
                 {
-                    float angle = Vector3.Angle(caster.forward, dirToTarget);
-                    if (angle <= maxAngle * 0.5f && dist < closestDist)
+                    bool isTargetPlayer = comp.CompareTag(CombatLayersAndTags.TagPlayer) || comp.GetComponent<TopDownGame.Player.PlayerController>() != null;
+                    if (isCasterPlayer == isTargetPlayer) continue;
+
+                    Vector3 dirToTarget = (comp.transform.position - caster.position);
+                    dirToTarget.y = 0f;
+                    float dist = dirToTarget.magnitude;
+
+                    if (dist <= maxRange)
                     {
-                        closestDist = dist;
-                        bestTarget = col.transform;
+                        float angle = Vector3.Angle(caster.forward, dirToTarget);
+                        if (angle <= maxAngle * 0.5f && dist < closestDist)
+                        {
+                            closestDist = dist;
+                            bestTarget = comp.transform;
+                        }
                     }
                 }
             }
@@ -10019,6 +10757,14 @@ namespace TopDownGame.Skills
     }
 
     [Serializable]
+    public class SkillCastEvent
+    {
+        public int frame = 0;
+        public int skillId = 0;
+        public int skillLevel = 0;
+    }
+
+    [Serializable]
     public class SkillMoveEvent
     {
         public int frame = 0;
@@ -10058,7 +10804,12 @@ namespace TopDownGame.Skills
         public SkillRelation relation = SkillRelation.Enemy;
         public string skillStyle = "damage";
         public bool targetSelf = false;
-        public int subSkillId = 0; // Chiêu phụ liên kết kích hoạt cùng (như 306 gọi 307)
+        public int subSkillId = 0; // Chiêu phụ liên kết kích hoạt cùng (legacy alias)
+        public int startSkillId = 0;    // Chiêu phụ kích hoạt tức thì khi bắt đầu ra chiêu (StartSkillID)
+        public int flySkillId = 0;      // Chiêu phụ kích hoạt theo chu kỳ khi đạn bay / bãi tồn tại (FlySkillId)
+        public int flyEventInterval = 0;// Chu kỳ kích hoạt FlySkill tính bằng Frames (FlyEventInterval)
+        public int hitSkillId = 0;      // Chiêu phụ kích hoạt khi đánh trúng mục tiêu (HitSkillID)
+        public int vanishedSkillId = 0; // Chiêu phụ kích hoạt khi đạn tan biến / hết hạn (VanishedSkillId)
         public VfxStartPosType startPosType = VfxStartPosType.Caster; // Vị trí xuất hiện hiệu ứng (1: Caster, 2: Target, 3: HitPoint)
         public int slotId = 0; // Khớp xương gắn hiệu ứng (theo PartSlot.csv: 1: B_RH, 2: B_LH, 7: Spine1, 15: Head, 19/20: Foot)
         public SkillSelectorType selectorType = SkillSelectorType.None;
@@ -10073,6 +10824,11 @@ namespace TopDownGame.Skills
         /// Có chiêu thức phụ đi kèm hay không
         /// </summary>
         public bool HasSubSkill => subSkillId > 0 && subSkillId != id;
+        public bool HasStartSkill => startSkillId > 0 && startSkillId != id;
+        public bool HasFlySkill => flySkillId > 0 && flySkillId != id;
+        public bool HasHitSkill => hitSkillId > 0 && hitSkillId != id;
+        public bool HasVanishedSkill => vanishedSkillId > 0 && vanishedSkillId != id;
+        public float FlyEventIntervalInSeconds => flyEventInterval > 0 ? (flyEventInterval / 15.0f) : 0f;
 
         /// <summary>
         /// Lấy tên Animation Clip thực tế tương ứng với CastActionID
@@ -10141,16 +10897,18 @@ namespace TopDownGame.Skills
         public bool canCancel = true;
         public bool notChangeActFrame = false; // 1 = Khóa cứng frame hoạt ảnh, KHÔNG bị tăng tốc bởi AttackSpeed (DATA_CONVENTIONS.md Mục 2 & 5)
 
-        // --- FRAME TIMING & COMBO (Mốc tính bằng Frame ActionEvent chuẩn 30 FPS theo DATA_CONVENTIONS.md Mục 4) ---
+        // --- FRAME TIMING & COMBO (Mốc tính bằng Frame ActionEvent chuẩn 15 FPS theo DATA_CONVENTIONS.md Mục 4 & 5) ---
         public int linkskillinit = -1;
         public int param1 = -1;          // Thời gian cửa sổ combo mở từ khi candoskill đến khi kết thúc (số frame)
         public int param2 = -1;          // Skill ID của chiêu tiếp theo trong combo (-1 nếu không nối combo)
         public int candoskill = -1;      // Bắt đầu mở cửa sổ ấn phím (mốc frame, -1 nếu không ngắt)
-        public int castSkill = 0;        // Bắt đầu áp damage (mốc frame, mặc định 0)
+        public int castSkill = 0;        // Bắt đầu áp damage (mốc frame đầu tiên, mặc định 0)
+        public List<SkillCastEvent> castEvents = new List<SkillCastEvent>(); // Danh sách toàn bộ các mốc gây sát thương / thi triển chiêu trong timeline
         public int canDoRun = -1;        // Có thể hủy hoạt ảnh để di chuyển (mốc frame, -1 nếu phải đánh hết clip)
         public int castLinkSkill = -1;   // Mốc bắt đầu chuyển sang animation chiêu combo tiếp theo (mốc frame)
         public int instantDir = -1;      // Mốc khóa xoay hướng (mốc frame)
         public float instantDirSpeed = 1000f; // Tốc độ xoay mặt về hướng mục tiêu (°/s theo DATA_CONVENTIONS.md Mục 1 & 4)
+        public bool HasMultiCastEvents => castEvents != null && castEvents.Count > 1;
 
         // --- AUDIO & VFX ---
         public int playsound = -1;           // Sound ID tra cứu từ Sound.csv (-1 nếu không có âm thanh)
