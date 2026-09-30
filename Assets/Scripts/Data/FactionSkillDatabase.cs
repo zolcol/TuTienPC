@@ -19,71 +19,36 @@ namespace TopDownGame.Data
         public bool isAnger;
     }
 
-    public class FactionSkillDatabase : MonoBehaviour
+    public class FactionSkillDatabase : ICsvTable
     {
         private static FactionSkillDatabase instance;
-        public static FactionSkillDatabase Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = FindObjectOfType<FactionSkillDatabase>();
-                    if (instance == null)
-                    {
-                        GameObject go = new GameObject("[FactionSkillDatabase]");
-                        instance = go.AddComponent<FactionSkillDatabase>();
-                        if (Application.isPlaying)
-                        {
-                            DontDestroyOnLoad(go);
-                        }
-                        else
-                        {
-                            go.hideFlags = HideFlags.HideAndDontSave;
-                        }
-                    }
-                    instance.EnsureLoaded();
-                }
-                return instance;
-            }
-        }
+        public static FactionSkillDatabase Instance => instance ?? (instance = new FactionSkillDatabase());
 
         private readonly Dictionary<int, List<FactionSkillData>> factionSkills = new Dictionary<int, List<FactionSkillData>>();
         private readonly Dictionary<int, FactionSkillData> skillToFactionMap = new Dictionary<int, FactionSkillData>();
-        private bool isLoaded = false;
-
-        private void Awake()
-        {
-            if (instance == null)
-            {
-                instance = this;
-                if (Application.isPlaying)
-                {
-                    DontDestroyOnLoad(gameObject);
-                }
-            }
-            else if (instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            EnsureLoaded();
-        }
+        
+        public bool IsLoaded { get; private set; }
 
         public void EnsureLoaded()
         {
-            if (!isLoaded || factionSkills.Count == 0)
+            if (!IsLoaded || factionSkills.Count == 0)
             {
-                LoadDatabase();
+                Load();
             }
         }
 
-        [ContextMenu("Tải lại FactionSkill Database")]
-        public void LoadDatabase()
+        public void LoadDatabase() => Load();
+
+        public void Clear()
         {
             factionSkills.Clear();
             skillToFactionMap.Clear();
+            IsLoaded = false;
+        }
+
+        public void Load()
+        {
+            Clear();
 
             string filePath = Path.Combine(Application.dataPath, "Settings", "N", "FactionSkill.csv");
             if (!File.Exists(filePath))
@@ -141,8 +106,7 @@ namespace TopDownGame.Data
                     }
                 }
 
-                isLoaded = true;
-                // Debug.Log($"✅ <color=cyan>[FactionSkillDatabase]</color> Đã nạp thành công kỹ năng cho <b>{factionSkills.Count}</b> môn phái từ Settings/N/FactionSkill.csv!");
+                IsLoaded = true;
             }
             catch (Exception ex)
             {

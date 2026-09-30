@@ -1,0 +1,325 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
+using TopDownGame.Data;
+using TopDownGame.Combat;
+
+namespace TopDownGame.Skills
+{
+    public static class SkillCsvParser
+    {
+        public static void LoadStandard(string skillPath, string actionEventPath, Dictionary<int, SkillData> skills)
+        {
+            var eventMap = ActionEventParser.Parse(actionEventPath);
+
+            try
+            {
+                using (var fs = new FileStream(skillPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var reader = new StreamReader(fs, System.Text.Encoding.UTF8))
+                {
+                    string headerLine = reader.ReadLine();
+                    if (string.IsNullOrEmpty(headerLine)) return;
+
+                    string[] headers = CsvParserHelper.SplitCsvLine(headerLine);
+                    var colMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                    for (int i = 0; i < headers.Length; i++)
+                    {
+                        string norm = headers[i].Trim().ToLowerInvariant().Replace(" ", "").Replace("_", "");
+                        colMap[norm] = i;
+                    }
+
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+                        string[] tokens = CsvParserHelper.SplitCsvLine(line);
+                        if (tokens.Length < 10) continue;
+
+                        int skillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "skillid", 0));
+                        if (skillId <= 0) continue;
+
+                        string skillName = GetColRaw(tokens, colMap, "skillname", 1);
+                        int rawSkillType = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "skilltype", 3));
+                        int castActionId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "castactionid", 19), 16);
+                        int actionEventId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "actioneventid", 20), 0);
+
+                        float rawRadius = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "attackradius", 38), 500f);
+                        float rangeInMeters = rawRadius > 0f ? (rawRadius / 100f) : 5f;
+
+                        float timePerCast = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "timepercast", 16), 0f);
+                        float waitTime = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "waittime", 9), 0f);
+                        float cooldown = timePerCast > 0f ? (timePerCast / SkillData.COOLDOWN_FPS) : (waitTime > 0f ? (waitTime / SkillData.COOLDOWN_FPS) : 0f);
+                        float manaCost = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "costvalue", 55), 0f);
+
+                        SkillTypeDef skillTypeDef = Enum.IsDefined(typeof(SkillTypeDef), rawSkillType) ? (SkillTypeDef)rawSkillType : SkillTypeDef.None;
+                        int rawSeries = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "series", 18), 0);
+                        ElementalSeries series = Enum.IsDefined(typeof(ElementalSeries), rawSeries) ? (ElementalSeries)rawSeries : ElementalSeries.None;
+                        float skillParam1 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param1", 42), 0f);
+                        float skillParam2 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param2", 44), 0f);
+                        float skillParam3 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param3", 46), 0f);
+                        float skillParam4 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param4", 48), 0f);
+                        float skillParam5 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param5", 50), 0f);
+                        float skillParam6 = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "param6", 52), 0f);
+                        AcceSpeedInfo acceSpeedInfo1 = AcceSpeedInfo.Parse(GetColRaw(tokens, colMap, "accespeedinfo1", 69));
+                        AcceSpeedInfo acceSpeedInfo2 = AcceSpeedInfo.Parse(GetColRaw(tokens, colMap, "accespeedinfo2", 70));
+                        AcceSpeedInfo acceSpeedInfo3 = AcceSpeedInfo.Parse(GetColRaw(tokens, colMap, "accespeedinfo3", 71));
+
+                        string iconName = GetColRaw(tokens, colMap, "icon", 7);
+                        string iconAtlas = GetColRaw(tokens, colMap, "iconatlas", 8);
+
+                        var fSkill = FactionSkillDatabase.GetFactionSkill(skillId);
+                        if (fSkill != null)
+                        {
+                            if (!string.IsNullOrEmpty(fSkill.btnIcon)) iconName = fSkill.btnIcon;
+                            if (!string.IsNullOrEmpty(fSkill.iconAtlas)) iconAtlas = fSkill.iconAtlas;
+                        }
+
+                        string resolvedIconPath = "";
+                        if (!string.IsNullOrEmpty(iconAtlas) && !string.IsNullOrEmpty(iconName))
+                        {
+                            string atlasFolder = iconAtlas.Replace(".prefab", "").Trim().Replace("\\", "/");
+                            resolvedIconPath = $"{atlasFolder}/{iconName.Trim()}";
+                        }
+                        else if (!string.IsNullOrEmpty(iconName))
+                        {
+                            resolvedIconPath = iconName.Trim();
+                        }
+
+                        int childId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "childid", 10), skillId);
+                        var missile = MissileDatabase.GetMissile(childId);
+
+                        string rawRelation = GetColRaw(tokens, colMap, "relation", 15).Trim();
+                        SkillRelation relation = SkillRelation.Enemy;
+                        if (rawRelation.Equals("recover", StringComparison.OrdinalIgnoreCase)) relation = SkillRelation.Recover;
+                        else if (rawRelation.Equals("friend", StringComparison.OrdinalIgnoreCase)) relation = SkillRelation.Friend;
+                        else if (rawRelation.Equals("self", StringComparison.OrdinalIgnoreCase)) relation = SkillRelation.Self;
+
+                        string skillStyle = GetColRaw(tokens, colMap, "skillstyle", 24).Trim();
+                        bool targetSelf = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "targetself", 65), 0) == 1;
+
+                        int flySkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "flyskillid", 30), 0);
+                        int startSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "startskillid", 29), 0);
+                        int hitSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "hitskillid", 34), 0);
+                        int subSkillId = flySkillId > 0 ? flySkillId : (startSkillId > 0 ? startSkillId : hitSkillId);
+
+                        int rawStartPosType = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "startpostype", 5), 1);
+                        VfxStartPosType startPosType = Enum.IsDefined(typeof(VfxStartPosType), rawStartPosType) ? (VfxStartPosType)rawStartPosType : VfxStartPosType.Caster;
+                        int slotId = 0;
+
+                        SkillType skillType = SkillType.StraightRay;
+                        int missileForm = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "missileform", 12), 0);
+                        int childCount = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "childcount", 11), 1);
+                        if (childCount <= 0) childCount = 1;
+                        int msGenerate = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "msgenerate", 13), 1);
+                        string msGenerateParam = GetColRaw(tokens, colMap, "msgenerateparam", 14).Trim();
+                        float fanAngle = 0f;
+                        if (missileForm == 2 && skillParam2 > 0f)
+                        {
+                            float stepDeg = skillParam2 * (360f / 64f);
+                            fanAngle = (childCount > 1) ? ((childCount - 1) * stepDeg) : stepDeg;
+                        }
+                        float boxWidth = 1.6f;
+                        bool notChangeActFrame = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "notchangeactframe", 75), 0) == 1;
+
+                        int rawSelectorType = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "selectortype", 63), 0);
+                        float rawSelectorRange = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "selectorrange", 62), 0f);
+                        float selectorRange = rawSelectorRange > 0f ? (rawSelectorRange / 100f) : rangeInMeters;
+
+                        SkillSelectorType selectorType = SkillSelectorType.None;
+                        if (targetSelf || relation == SkillRelation.Self)
+                        {
+                            selectorType = SkillSelectorType.None;
+                        }
+                        else if (rawSelectorType == 2 || (missile != null && missile.moveKind == MissileMoveKind.Linear) || missileForm == 1 || missileForm == 2 || missileForm == 7)
+                        {
+                            selectorType = SkillSelectorType.DirectionalArrow;
+                        }
+                        else if (rawSelectorType == 1)
+                        {
+                            selectorType = SkillSelectorType.SmartcastCircleAOE;
+                        }
+                        else
+                        {
+                            selectorType = Enum.IsDefined(typeof(SkillSelectorType), rawSelectorType) ? (SkillSelectorType)rawSelectorType : SkillSelectorType.None;
+                        }
+
+                        if (missile != null)
+                        {
+                            if (missile.IsProjectile)
+                            {
+                                skillType = SkillType.Projectile;
+                            }
+                            else
+                            {
+                                switch (missile.hitboxShape)
+                                {
+                                    case HitboxShape.Circle: skillType = SkillType.Circle; break;
+                                    case HitboxShape.Fan: skillType = SkillType.Sector; if (fanAngle <= 0f) fanAngle = missile.dmgRangeY > 0f ? missile.dmgRangeY : 90f; break;
+                                    case HitboxShape.LineBox: skillType = SkillType.StraightRay; boxWidth = missile.dmgRangeY > 0f ? (missile.dmgRangeY / 100f) : 1.8f; break;
+                                    case HitboxShape.SingleTarget: skillType = SkillType.TargetLock; boxWidth = 1.6f; break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (skillTypeDef == SkillTypeDef.Missile || skillTypeDef == SkillTypeDef.InstMissile) skillType = SkillType.Projectile;
+                            else if (skillTypeDef == SkillTypeDef.InstSingle) skillType = SkillType.TargetLock;
+                            else if (rawSkillType == 2) skillType = SkillType.Circle;
+                            else if (rawSkillType == 3) { skillType = SkillType.Sector; if (fanAngle <= 0f) fanAngle = 90f; }
+                            else skillType = SkillType.StraightRay;
+                        }
+
+                        int rawCastSound = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "castsoundid", 68), -1);
+                        int rawCastEffect = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "casteffectrestid", 73), 0);
+
+                        ActionEventSummary evSummary = new ActionEventSummary
+                        {
+                            playsound = rawCastSound,
+                            playsoundFrame = rawCastSound > 0 ? 0 : -1,
+                            effectPath = EffectDatabase.GetEffectPath(rawCastEffect)
+                        };
+
+                        if (actionEventId > 0 && eventMap.TryGetValue(actionEventId, out ActionEventSummary matchedSummary))
+                        {
+                            if (matchedSummary.crossFade > 0f) evSummary.crossFade = matchedSummary.crossFade;
+                            if (matchedSummary.candoskill >= 0) evSummary.candoskill = matchedSummary.candoskill;
+                            if (matchedSummary.castSkill >= 0) evSummary.castSkill = matchedSummary.castSkill;
+                            if (matchedSummary.canDoRun >= 0) evSummary.canDoRun = matchedSummary.canDoRun;
+                            if (matchedSummary.castLinkSkill >= 0) evSummary.castLinkSkill = matchedSummary.castLinkSkill;
+                            if (matchedSummary.param1 >= 0) evSummary.param1 = matchedSummary.param1;
+                            if (matchedSummary.param2 >= 0) evSummary.param2 = matchedSummary.param2;
+                            if (matchedSummary.instantDir >= 0) evSummary.instantDir = matchedSummary.instantDir;
+                            if (matchedSummary.instantDirSpeed > 0f) evSummary.instantDirSpeed = matchedSummary.instantDirSpeed;
+                            if (matchedSummary.slotId > 0) evSummary.slotId = matchedSummary.slotId;
+                            if (matchedSummary.movePosFrame >= 0)
+                            {
+                                evSummary.movePosFrame = matchedSummary.movePosFrame;
+                                evSummary.movePosDistance = matchedSummary.movePosDistance;
+                                evSummary.movePosSpeed = matchedSummary.movePosSpeed;
+                                evSummary.movePosAccel = matchedSummary.movePosAccel;
+                            }
+
+                            if (matchedSummary.playsound > 0)
+                            {
+                                evSummary.playsound = matchedSummary.playsound;
+                                evSummary.playsoundFrame = matchedSummary.playsoundFrame >= 0 ? matchedSummary.playsoundFrame : 0;
+                            }
+                            else if (evSummary.playsound > 0 && evSummary.playsoundFrame < 0)
+                            {
+                                evSummary.playsoundFrame = 0;
+                            }
+
+                            if (!string.IsNullOrEmpty(matchedSummary.effectPath)) evSummary.effectPath = matchedSummary.effectPath;
+                            if (matchedSummary.effectEvents != null && matchedSummary.effectEvents.Count > 0)
+                            {
+                                evSummary.effectEvents = new List<SkillEffectEvent>(matchedSummary.effectEvents);
+                            }
+                        }
+
+                        if (evSummary.effectEvents.Count == 0 && !string.IsNullOrEmpty(evSummary.effectPath))
+                        {
+                            evSummary.effectEvents.Add(new SkillEffectEvent
+                            {
+                                frame = 0,
+                                effectPath = evSummary.effectPath,
+                                slotId = evSummary.slotId,
+                                duration = 2.5f
+                            });
+                        }
+
+                        if (relation == SkillRelation.Recover)
+                        {
+                            slotId = (int)BoneSlotID.RightFoot;
+                        }
+                        else if (evSummary.slotId > 0)
+                        {
+                            slotId = evSummary.slotId;
+                        }
+
+                        if (evSummary.playsound <= 0 && rawCastSound > 0)
+                        {
+                            evSummary.playsound = rawCastSound;
+                            evSummary.playsoundFrame = 0;
+                        }
+
+                        SkillData data = new SkillData
+                        {
+                            id = skillId,
+                            name = skillName,
+                            iconAtlas = iconAtlas,
+                            iconName = iconName,
+                            iconPath = resolvedIconPath,
+                            castActionId = castActionId,
+                            crossFade = evSummary.crossFade,
+                            relation = relation,
+                            skillStyle = skillStyle,
+                            targetSelf = targetSelf,
+                            subSkillId = subSkillId,
+                            startPosType = startPosType,
+                            selectorType = selectorType,
+                            selectorRange = selectorRange,
+                            slotId = slotId,
+                            childId = childId,
+                            childCount = childCount,
+                            missileForm = missileForm,
+                            msGenerate = msGenerate,
+                            msGenerateParam = msGenerateParam,
+                            isMelee = missile == null || !missile.IsProjectile,
+                            movePosDistance = evSummary.movePosDistance,
+                            movePosSpeed = evSummary.movePosSpeed,
+                            movePosAccel = evSummary.movePosAccel,
+                            movePosFrame = evSummary.movePosFrame,
+                            skillType = skillType,
+                            skillTypeDef = skillTypeDef,
+                            range = rangeInMeters,
+                            fanAngle = fanAngle,
+                            boxWidth = boxWidth,
+                            physScale = 1.0f,
+                            magicScale = 1.0f,
+                            manaCost = manaCost,
+                            cooldown = cooldown,
+                            canCancel = true,
+                            notChangeActFrame = notChangeActFrame,
+                            param1 = evSummary.param1,
+                            param2 = evSummary.param2,
+                            candoskill = evSummary.candoskill,
+                            castSkill = evSummary.castSkill,
+                            canDoRun = evSummary.canDoRun,
+                            castLinkSkill = evSummary.castLinkSkill,
+                            instantDir = evSummary.instantDir,
+                            instantDirSpeed = evSummary.instantDirSpeed,
+                            playsound = evSummary.playsound,
+                            playsoundFrame = evSummary.playsoundFrame,
+                            effectPath = evSummary.effectPath,
+                            stateEffectId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "stateeffectid", 23), 0),
+                            effectEvents = new List<SkillEffectEvent>(evSummary.effectEvents),
+                            series = series,
+                            skillParam1 = skillParam1,
+                            skillParam2 = skillParam2,
+                            skillParam3 = skillParam3,
+                            skillParam4 = skillParam4,
+                            skillParam5 = skillParam5,
+                            skillParam6 = skillParam6,
+                            acceSpeedInfo1 = acceSpeedInfo1,
+                            acceSpeedInfo2 = acceSpeedInfo2,
+                            acceSpeedInfo3 = acceSpeedInfo3
+                        };
+
+                        skills[skillId] = data;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SkillCsvParser] ❌ Lỗi đọc Skill.csv: {ex.Message}");
+            }
+        }
+
+        private static string GetColRaw(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex)
+        {
+            if (colMap.TryGetValue(key, out int idx) && idx < tokens.Length) return tokens[idx];
+            return fallbackIndex < tokens.Length ? tokens[fallbackIndex] : "";
+        }
+    }
+}

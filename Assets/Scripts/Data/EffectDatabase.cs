@@ -12,7 +12,7 @@ namespace TopDownGame.Data
         public string resFilePath;
         public string lowResFilePath;
         public string weaponEffectSkillPath;
-        public bool lockRotate; // 1 = Khóa góc xoay theo phương ngang khi gắn vào xương/model
+        public bool lockRotate;
         public string desc;
 
         private string cleanPath;
@@ -35,71 +35,36 @@ namespace TopDownGame.Data
         }
     }
 
-    public class EffectDatabase : MonoBehaviour
+    public class EffectDatabase : ICsvTable
     {
         private static EffectDatabase instance;
-        public static EffectDatabase Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = FindObjectOfType<EffectDatabase>();
-                    if (instance == null)
-                    {
-                        GameObject go = new GameObject("[EffectDatabase]");
-                        instance = go.AddComponent<EffectDatabase>();
-                        if (Application.isPlaying)
-                        {
-                            DontDestroyOnLoad(go);
-                        }
-                        else
-                        {
-                            go.hideFlags = HideFlags.HideAndDontSave;
-                        }
-                    }
-                    instance.EnsureLoaded();
-                }
-                return instance;
-            }
-        }
+        public static EffectDatabase Instance => instance ?? (instance = new EffectDatabase());
 
         private readonly Dictionary<int, EffectResData> effectsById = new Dictionary<int, EffectResData>();
         private readonly Dictionary<string, EffectResData> effectsByPath = new Dictionary<string, EffectResData>(StringComparer.OrdinalIgnoreCase);
-        private bool isLoaded = false;
-
-        private void Awake()
-        {
-            if (instance == null)
-            {
-                instance = this;
-                if (Application.isPlaying)
-                {
-                    DontDestroyOnLoad(gameObject);
-                }
-            }
-            else if (instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            EnsureLoaded();
-        }
+        
+        public bool IsLoaded { get; private set; }
 
         public void EnsureLoaded()
         {
-            if (!isLoaded || effectsById.Count == 0)
+            if (!IsLoaded || effectsById.Count == 0)
             {
-                LoadDatabase();
+                Load();
             }
         }
 
-        [ContextMenu("Tải lại Effect Database")]
-        public void LoadDatabase()
+        public void LoadDatabase() => Load();
+
+        public void Clear()
         {
             effectsById.Clear();
             effectsByPath.Clear();
+            IsLoaded = false;
+        }
+
+        public void Load()
+        {
+            Clear();
 
             string filePath = Path.Combine(Application.dataPath, "Settings", "N", "EffectRes.csv");
             if (!File.Exists(filePath))
@@ -153,8 +118,7 @@ namespace TopDownGame.Data
                     }
                 }
 
-                isLoaded = true;
-                // Debug.Log($"✅ <color=cyan>[EffectDatabase]</color> Đã nạp thành công <b>{effectsById.Count}</b> hiệu ứng kỹ năng từ Settings/N/EffectRes.csv!");
+                IsLoaded = true;
             }
             catch (Exception ex)
             {

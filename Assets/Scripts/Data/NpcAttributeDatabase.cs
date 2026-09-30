@@ -15,7 +15,6 @@ namespace TopDownGame.Data
         public float maxBaseAttack = 20f;
         public float attackSpeed = 15f;
 
-        // Ngũ hành công & thủ
         public float metalDamage;
         public float woodDamage;
         public float waterDamage;
@@ -33,69 +32,34 @@ namespace TopDownGame.Data
             : (minBaseAttack > 0f ? minBaseAttack : maxBaseAttack);
     }
 
-    public class NpcAttributeDatabase : MonoBehaviour
+    public class NpcAttributeDatabase : ICsvTable
     {
         private static NpcAttributeDatabase instance;
-        public static NpcAttributeDatabase Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = FindObjectOfType<NpcAttributeDatabase>();
-                    if (instance == null)
-                    {
-                        GameObject go = new GameObject("[NpcAttributeDatabase]");
-                        instance = go.AddComponent<NpcAttributeDatabase>();
-                        if (Application.isPlaying)
-                        {
-                            DontDestroyOnLoad(go);
-                        }
-                        else
-                        {
-                            go.hideFlags = HideFlags.HideAndDontSave;
-                        }
-                    }
-                    instance.EnsureLoaded();
-                }
-                return instance;
-            }
-        }
+        public static NpcAttributeDatabase Instance => instance ?? (instance = new NpcAttributeDatabase());
 
         private readonly Dictionary<int, NpcAttributeData> attributes = new Dictionary<int, NpcAttributeData>();
-        private bool isLoaded = false;
-
-        private void Awake()
-        {
-            if (instance == null)
-            {
-                instance = this;
-                if (Application.isPlaying)
-                {
-                    DontDestroyOnLoad(gameObject);
-                }
-            }
-            else if (instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            EnsureLoaded();
-        }
+        
+        public bool IsLoaded { get; private set; }
 
         public void EnsureLoaded()
         {
-            if (!isLoaded || attributes.Count == 0)
+            if (!IsLoaded || attributes.Count == 0)
             {
-                LoadDatabase();
+                Load();
             }
         }
 
-        [ContextMenu("Tải lại NpcAttribute Database")]
-        public void LoadDatabase()
+        public void LoadDatabase() => Load();
+
+        public void Clear()
         {
             attributes.Clear();
+            IsLoaded = false;
+        }
+
+        public void Load()
+        {
+            Clear();
 
             string filePath = Path.Combine(Application.dataPath, "Settings", "N", "NpcAttribute.csv");
             if (!File.Exists(filePath))
@@ -133,7 +97,6 @@ namespace TopDownGame.Data
                         string name = GetColString(tokens, colMap, "name", 1);
                         float attackSpeed = GetColFloat(tokens, colMap, "attackspeed", 3, 15f);
 
-                        // Bóc tách chỉ số tại Level 1 (theo yêu cầu mặc định level 1)
                         float maxLife = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "maxlife", 4), 1, 100f);
                         float minAttack = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "minbaseattack", 9), 1, 20f);
                         float maxAttack = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "maxbaseattack", 10), 1, minAttack);
@@ -162,8 +125,7 @@ namespace TopDownGame.Data
                     }
                 }
 
-                isLoaded = true;
-                // Debug.Log($"✅ <color=cyan>[NpcAttributeDatabase]</color> Đã nạp thành công <b>{attributes.Count}</b> bộ chỉ số từ Settings/N/NpcAttribute.csv (Level 1)! ");
+                IsLoaded = true;
             }
             catch (Exception ex)
             {
@@ -171,24 +133,24 @@ namespace TopDownGame.Data
             }
         }
 
-        private string GetColRaw(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex)
+        private static string GetColRaw(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex)
         {
             if (colMap.TryGetValue(key, out int idx) && idx < tokens.Length) return tokens[idx];
             return fallbackIndex < tokens.Length ? tokens[fallbackIndex] : "";
         }
 
-        private string GetColString(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex)
+        private static string GetColString(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex)
         {
             return GetColRaw(tokens, colMap, key, fallbackIndex).Trim();
         }
 
-        private int GetColInt(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex, int def = 0)
+        private static int GetColInt(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex, int def = 0)
         {
             string raw = GetColRaw(tokens, colMap, key, fallbackIndex);
             return CsvParserHelper.ParseInt(raw, def);
         }
 
-        private float GetColFloat(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex, float def = 0f)
+        private static float GetColFloat(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex, float def = 0f)
         {
             string raw = GetColRaw(tokens, colMap, key, fallbackIndex);
             return CsvParserHelper.ParseFloat(raw, def);
@@ -197,6 +159,7 @@ namespace TopDownGame.Data
         public static NpcAttributeData GetAttribute(int attribId)
         {
             if (attribId <= 0) return null;
+            Instance.EnsureLoaded();
             Instance.attributes.TryGetValue(attribId, out NpcAttributeData data);
             return data;
         }

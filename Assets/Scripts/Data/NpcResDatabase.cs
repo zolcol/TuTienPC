@@ -5,98 +5,34 @@ using UnityEngine;
 
 namespace TopDownGame.Data
 {
-    [Serializable]
-    public class NpcResData
-    {
-        public int resId;
-        public string resFile;
-        public string desc;
-        public int runSoundId;
-        public int deathSoundId;
-        public int hitSoundId;
-        public float height = 1.8f;
-        public float width = 0.5f;
-
-        public Dictionary<string, int> ActionFrames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        public Dictionary<string, float> ActionCrossFades = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
-
-        private GameObject cachedPrefab;
-        private bool attemptedLoad = false;
-
-        public GameObject LoadPrefab()
-        {
-            if (cachedPrefab != null) return cachedPrefab;
-            if (attemptedLoad) return null;
-
-            attemptedLoad = true;
-            cachedPrefab = NpcResDatabase.LoadPrefab(resFile);
-            return cachedPrefab;
-        }
-    }
-
-    public class NpcResDatabase : MonoBehaviour
+    public class NpcResDatabase : ICsvTable
     {
         private static NpcResDatabase instance;
-        public static NpcResDatabase Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = FindObjectOfType<NpcResDatabase>();
-                    if (instance == null)
-                    {
-                        GameObject go = new GameObject("[NpcResDatabase]");
-                        instance = go.AddComponent<NpcResDatabase>();
-                        if (Application.isPlaying)
-                        {
-                            DontDestroyOnLoad(go);
-                        }
-                        else
-                        {
-                            go.hideFlags = HideFlags.HideAndDontSave;
-                        }
-                    }
-                    instance.EnsureLoaded();
-                }
-                return instance;
-            }
-        }
+        public static NpcResDatabase Instance => instance ?? (instance = new NpcResDatabase());
 
         private readonly Dictionary<int, NpcResData> resDict = new Dictionary<int, NpcResData>();
-        private bool isLoaded = false;
-
-        private void Awake()
-        {
-            if (instance == null)
-            {
-                instance = this;
-                if (Application.isPlaying)
-                {
-                    DontDestroyOnLoad(gameObject);
-                }
-            }
-            else if (instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            EnsureLoaded();
-        }
+        
+        public bool IsLoaded { get; private set; }
 
         public void EnsureLoaded()
         {
-            if (!isLoaded || resDict.Count == 0)
+            if (!IsLoaded || resDict.Count == 0)
             {
-                LoadDatabase();
+                Load();
             }
         }
 
-        [ContextMenu("Tải lại NpcRes Database")]
-        public void LoadDatabase()
+        public void LoadDatabase() => Load();
+
+        public void Clear()
         {
             resDict.Clear();
+            IsLoaded = false;
+        }
+
+        public void Load()
+        {
+            Clear();
 
             string filePath = Path.Combine(Application.dataPath, "Settings", "N", "NpcRes.csv");
             if (!File.Exists(filePath))
@@ -175,8 +111,7 @@ namespace TopDownGame.Data
                     }
                 }
 
-                isLoaded = true;
-                // Debug.Log($"✅ <color=cyan>[NpcResDatabase]</color> Đã nạp thành công <b>{resDict.Count}</b> tài nguyên Model 3D từ Settings/N/NpcRes.csv!");
+                IsLoaded = true;
             }
             catch (Exception ex)
             {
@@ -184,19 +119,19 @@ namespace TopDownGame.Data
             }
         }
 
-        private string GetColString(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex)
+        private static string GetColString(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex)
         {
             if (colMap.TryGetValue(key, out int idx) && idx < tokens.Length) return tokens[idx].Trim();
             return fallbackIndex < tokens.Length ? tokens[fallbackIndex].Trim() : "";
         }
 
-        private int GetColInt(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex, int def = 0)
+        private static int GetColInt(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex, int def = 0)
         {
             string raw = GetColString(tokens, colMap, key, fallbackIndex);
             return CsvParserHelper.ParseInt(raw, def);
         }
 
-        private float GetColFloat(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex, float def = 0f)
+        private static float GetColFloat(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex, float def = 0f)
         {
             string raw = GetColString(tokens, colMap, key, fallbackIndex);
             return CsvParserHelper.ParseFloat(raw, def);
@@ -230,9 +165,6 @@ namespace TopDownGame.Data
             return resId > 0 && Instance.resDict.ContainsKey(resId);
         }
 
-        /// <summary>
-        /// Bộ nạp Prefab Model 3D thông minh đa đường dẫn (Resources & Assets Fallback)
-        /// </summary>
         public static GameObject LoadPrefab(string path)
         {
             if (string.IsNullOrEmpty(path)) return null;
@@ -243,11 +175,9 @@ namespace TopDownGame.Data
                 cleanPath = cleanPath.Substring(0, cleanPath.Length - 7);
             }
 
-            // 1. Thử Resources.Load trực tiếp
             GameObject prefab = Resources.Load<GameObject>(cleanPath);
             if (prefab != null) return prefab;
 
-            // 2. Thử biến thể đường dẫn "Players/" thay vì "Player/" (do cấu trúc thư mục)
             if (cleanPath.StartsWith("Player/", StringComparison.OrdinalIgnoreCase))
             {
                 string altPath = "Players/" + cleanPath.Substring(7);
@@ -255,29 +185,12 @@ namespace TopDownGame.Data
                 if (prefab != null) return prefab;
             }
 
-            // 3. Thử tìm theo tên file trong Resources
             string fileName = Path.GetFileNameWithoutExtension(path);
             prefab = Resources.Load<GameObject>($"Players/Npcs/Prefabs/{fileName}");
             if (prefab != null) return prefab;
 
             prefab = Resources.Load<GameObject>($"Player/Npcs/Prefabs/{fileName}");
-            if (prefab != null) return prefab;
-
-#if UNITY_EDITOR
-            // 4. Fallback trong Unity Editor dò tìm file chính xác bất kỳ thư mục nào
-            string[] guids = UnityEditor.AssetDatabase.FindAssets($"{fileName} t:Prefab");
-            foreach (var guid in guids)
-            {
-                string assetPath = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-                if (Path.GetFileNameWithoutExtension(assetPath).Equals(fileName, StringComparison.OrdinalIgnoreCase))
-                {
-                    var loaded = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-                    if (loaded != null) return loaded;
-                }
-            }
-#endif
-
-            return null;
+            return prefab;
         }
     }
 }

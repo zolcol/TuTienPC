@@ -19,28 +19,36 @@ namespace TopDownGame.Data
         public string effectPath2 => EffectDatabase.GetEffectPath(effectResId2);
     }
 
-    public class StateEffectDatabase
+    public class StateEffectDatabase : ICsvTable
     {
-        private static readonly Dictionary<int, StateEffectData> dataDict = new Dictionary<int, StateEffectData>();
-        private static bool isLoaded = false;
+        private static StateEffectDatabase instance;
+        public static StateEffectDatabase Instance => instance ?? (instance = new StateEffectDatabase());
 
-        public static void EnsureLoaded()
+        private readonly Dictionary<int, StateEffectData> dataDict = new Dictionary<int, StateEffectData>();
+        
+        public bool IsLoaded { get; private set; }
+
+        public void EnsureLoaded()
         {
-            if (isLoaded && dataDict.Count > 0) return;
-            LoadFromCsv();
-            isLoaded = true;
+            if (!IsLoaded || dataDict.Count == 0)
+            {
+                Load();
+            }
         }
 
-        public static void Reload()
+        public static void EnsureLoadedStatic() => Instance.EnsureLoaded();
+
+        public void LoadDatabase() => Load();
+
+        public void Clear()
         {
-            isLoaded = false;
             dataDict.Clear();
-            EnsureLoaded();
+            IsLoaded = false;
         }
 
-        private static void LoadFromCsv()
+        public void Load()
         {
-            dataDict.Clear();
+            Clear();
             EffectDatabase.Instance.EnsureLoaded();
 
             string filePath = Path.Combine(Application.dataPath, "Settings", "N", "StateEffect.csv");
@@ -79,7 +87,7 @@ namespace TopDownGame.Data
                         }
                     }
 
-                    // Debug.Log($"✅ <color=cyan>[StateEffectDatabase]</color> Đã nạp thành công <b>{dataDict.Count}</b> cấu hình Buff/Debuff từ Settings/N/StateEffect.csv!");
+                    IsLoaded = true;
                     return;
                 }
                 catch (Exception ex)
@@ -88,11 +96,10 @@ namespace TopDownGame.Data
                 }
             }
 
-            // Fallback: nếu không tìm thấy file trực tiếp trong Settings/N
             TextAsset csvFile = Resources.Load<TextAsset>("CSV/N/StateEffect");
             if (csvFile != null)
             {
-                string[] lines = csvFile.text.Split(new[] { '\n', '\r' }, System.StringSplitOptions.RemoveEmptyEntries);
+                string[] lines = csvFile.text.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
                 for (int i = 1; i < lines.Length; i++)
                 {
                     string[] tokens = CsvParserHelper.SplitCsvLine(lines[i]);
@@ -114,26 +121,27 @@ namespace TopDownGame.Data
 
                     dataDict[id] = data;
                 }
-                // Debug.Log($"✅ [StateEffectDatabase] Đã nạp {dataDict.Count} cấu hình từ Resources fallback.");
+                IsLoaded = true;
             }
-            else
-            {
-                Debug.LogWarning($"[StateEffectDatabase] ⚠️ Không tìm thấy StateEffect.csv tại: {filePath}");
-            }
+        }
+
+        public static void Reload()
+        {
+            Instance.Load();
         }
 
         public static StateEffectData GetStateEffect(int id)
         {
             if (id <= 0) return null;
-            EnsureLoaded();
-            return dataDict.TryGetValue(id, out var data) ? data : null;
+            Instance.EnsureLoaded();
+            return Instance.dataDict.TryGetValue(id, out var data) ? data : null;
         }
 
         public static bool HasStateEffect(int id)
         {
             if (id <= 0) return false;
-            EnsureLoaded();
-            return dataDict.ContainsKey(id);
+            Instance.EnsureLoaded();
+            return Instance.dataDict.ContainsKey(id);
         }
     }
 }

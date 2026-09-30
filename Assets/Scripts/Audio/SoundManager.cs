@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -53,7 +54,7 @@ namespace TopDownGame.Audio
 
         // Internal Pool & Cache
         private readonly List<AudioSource> audioSourcePool = new List<AudioSource>();
-        private readonly Dictionary<string, AudioClip> loadedClips = new Dictionary<string, AudioClip>();
+        private readonly Dictionary<string, AudioClip[]> loadedClipGroups = new Dictionary<string, AudioClip[]>();
         private readonly Dictionary<int, float> lastSoundPlayTime = new Dictionary<int, float>();
 
         // BGM Channels
@@ -203,14 +204,14 @@ namespace TopDownGame.Audio
                 Debug.Log($"<color=#38bdf8>[SoundManager] 🔊 Phát âm thanh:</color> <b>#{soundData.soundId}</b> ({soundData.description}) | Event: <i>{soundData.wwiseEvent}</i>");
             }
 
-            AudioClip clip = LoadAudioClip(soundData);
+            AudioClip clip = GetAudioClip(soundData);
             if (clip != null)
             {
                 PlayClipInternal(clip, position, 1.0f);
             }
             else
             {
-                Debug.LogWarning($"[SoundManager] ⚠️ Không tìm thấy AudioClip trong Assets/Audio/{soundData.bankBnk}/{soundData.CleanEventName} cho ID: {soundData.soundId}");
+                Debug.LogWarning($"[SoundManager] ⚠️ Không tìm thấy AudioClip trong Assets/resources/Audio/{soundData.bankBnk}/{soundData.CleanEventName} cho ID: {soundData.soundId}");
             }
         }
 
@@ -243,7 +244,7 @@ namespace TopDownGame.Audio
             // Biến tấu Pitch nhẹ cho tự nhiên
             if (enablePitchVariation)
             {
-                availableSource.pitch = 1f + Random.Range(-pitchVariationRange, pitchVariationRange);
+                availableSource.pitch = 1f + UnityEngine.Random.Range(-pitchVariationRange, pitchVariationRange);
             }
             else
             {
@@ -280,139 +281,143 @@ namespace TopDownGame.Audio
             return oldestSource;
         }
 
-        private AudioClip LoadAudioClip(SoundData data)
+        private AudioClip GetAudioClip(SoundData data)
         {
             if (data == null) return null;
 
             string key = !string.IsNullOrEmpty(data.wwiseEvent) ? data.wwiseEvent : data.soundId.ToString();
-            if (loadedClips.TryGetValue(key, out AudioClip cached)) return cached;
+            if (loadedClipGroups.TryGetValue(key, out AudioClip[] cachedClips))
+            {
+                if (cachedClips == null || cachedClips.Length == 0) return null;
+                return cachedClips.Length == 1 ? cachedClips[0] : cachedClips[UnityEngine.Random.Range(0, cachedClips.Length)];
+            }
 
-            AudioClip clip = null;
-            string cleanEvent = data.CleanEventName;
+            AudioClip[] clips = ResolveAudioClips(data);
+            loadedClipGroups[key] = clips;
+
+            if (clips == null || clips.Length == 0) return null;
+            return clips.Length == 1 ? clips[0] : clips[UnityEngine.Random.Range(0, clips.Length)];
+        }
+
+        /// <summary>
+        /// Ánh xạ chính xác theo AUDIO_MAPPING_RULES.md và hỗ trợ Wwise Random Container
+        /// </summary>
+        private AudioClip[] ResolveAudioClips(SoundData data)
+        {
+            if (data == null) return null;
+
+            string cleanEvent = data.CleanEventName; // Quy tắc 1: Cắt bỏ tiền tố Play_
             string rawEvent = data.wwiseEvent ?? "";
             string bank = data.bankBnk?.Trim() ?? "";
 
-            // 1. Thử nạp qua Resources API (nếu thư mục là Resources)
-            List<string> resPaths = new List<string>();
-            if (!string.IsNullOrEmpty(bank) && !string.IsNullOrEmpty(cleanEvent))
-                resPaths.Add($"Audio/{bank}/{cleanEvent}");
-            if (!string.IsNullOrEmpty(bank) && !string.IsNullOrEmpty(rawEvent))
-                resPaths.Add($"Audio/{bank}/{rawEvent}");
-            if (!string.IsNullOrEmpty(cleanEvent))
-                resPaths.Add($"Audio/{cleanEvent}");
-            if (!string.IsNullOrEmpty(rawEvent))
-                resPaths.Add($"Audio/{rawEvent}");
-            if (data.soundId > 0)
+            List<AudioClip> foundClips = new List<AudioClip>();
+            HashSet<string> testedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            void TryAddClip(string path)
             {
+                if (string.IsNullOrEmpty(path) || testedPaths.Contains(path)) return;
+                testedPaths.Add(path);
+
+                AudioClip clip = Resources.Load<AudioClip>(path);
+                if (clip != null && !foundClips.Contains(clip))
+                {
+                    foundClips.Add(clip);
+                }
+            }
+
+            void TryAddWithBank(string name)
+            {
+                if (string.IsNullOrEmpty(name)) return;
                 if (!string.IsNullOrEmpty(bank))
-                    resPaths.Add($"Audio/{bank}/{data.soundId}");
-                resPaths.Add($"Audio/{data.soundId}");
+                {
+                    TryAddClip($"Audio/{bank}/{name}");
+                }
+                TryAddClip($"Audio/{name}");
+                TryAddClip(name);
             }
 
-            foreach (var rPath in resPaths)
+            // 1. Quy tắc 4 & Mục 3.1: Âm thanh trúng đòn (Hit) - Hỗ trợ Random Container 3 dạng
+            if (cleanEvent.IndexOf("Hit", StringComparison.OrdinalIgnoreCase) >= 0 || rawEvent.IndexOf("Hit", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                clip = Resources.Load<AudioClip>(rPath);
-                if (clip != null) break;
-            }
-
-            // 2. Thử nạp linh hoạt qua AssetDatabase trong Editor (Assets/Audio/{Bank}/{Event}.wav, v.v.)
-            #if UNITY_EDITOR
-            if (clip == null)
-            {
-                List<string> possiblePaths = new List<string>();
-                string[] baseFolders = new string[]
+                var match = System.Text.RegularExpressions.Regex.Match(cleanEvent, @"^([A-Za-z]+)_(\d+)_(Hit.*)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (match.Success)
                 {
-                    "Assets/Audio",
-                    "Assets/Resources/Audio",
-                    "Assets/resources/Audio"
-                };
-                string[] extensions = new string[] { ".wav", ".mp3", ".ogg" };
+                    string phai = match.Groups[1].Value;
+                    string chieu = match.Groups[2].Value;
+                    string hitPart = match.Groups[3].Value;
 
-                foreach (var baseFolder in baseFolders)
-                {
-                    // Thư mục con theo SoundBank (ví dụ: Assets/Audio/Em/Em_01_01.wav)
-                    if (!string.IsNullOrEmpty(bank))
+                    // Dạng 1: {Phái}_{Chiêu}_Hit (vd: Th_03_Hit, Em_03_Hit)
+                    TryAddWithBank($"{phai}_{chieu}_{hitPart}");
+
+                    // Dạng 2: {Phái}_{Chiêu}_Hit0x / {Phái}_{Chiêu}_Hit_0x (vd: Em_04_Hit01..03, Em_05_Hit01..05, Sl_01_Hit01..02)
+                    for (int i = 1; i <= 9; i++)
                     {
-                        if (!string.IsNullOrEmpty(cleanEvent))
-                        {
-                            foreach (var ext in extensions)
-                                possiblePaths.Add($"{baseFolder}/{bank}/{cleanEvent}{ext}");
-                        }
-                        if (!string.IsNullOrEmpty(rawEvent))
-                        {
-                            foreach (var ext in extensions)
-                                possiblePaths.Add($"{baseFolder}/{bank}/{rawEvent}{ext}");
-                        }
-                        if (data.soundId > 0)
-                        {
-                            foreach (var ext in extensions)
-                                possiblePaths.Add($"{baseFolder}/{bank}/{data.soundId}{ext}");
-                        }
+                        TryAddWithBank($"{phai}_{chieu}_{hitPart}{i:D2}");
+                        TryAddWithBank($"{phai}_{chieu}_{hitPart}_{i:D2}");
+                        TryAddWithBank($"{phai}_{chieu}_{hitPart}{i}");
                     }
 
-                    // Không có thư mục con (ví dụ: Assets/Audio/Em_01_01.wav)
-                    if (!string.IsNullOrEmpty(cleanEvent))
+                    // Dạng 3: {Phái}_Hit_0x / {Phái}_Hit0x (vd: Em_Hit_01..03)
+                    for (int i = 1; i <= 9; i++)
                     {
-                        foreach (var ext in extensions)
-                            possiblePaths.Add($"{baseFolder}/{cleanEvent}{ext}");
+                        TryAddWithBank($"{phai}_{hitPart}_{i:D2}");
+                        TryAddWithBank($"{phai}_{hitPart}{i:D2}");
+                        TryAddWithBank($"{phai}_{hitPart}_{i}");
                     }
-                    if (!string.IsNullOrEmpty(rawEvent))
-                    {
-                        foreach (var ext in extensions)
-                            possiblePaths.Add($"{baseFolder}/{rawEvent}{ext}");
-                    }
-                    if (data.soundId > 0)
-                    {
-                        foreach (var ext in extensions)
-                            possiblePaths.Add($"{baseFolder}/{data.soundId}{ext}");
-                    }
+
+                    TryAddWithBank($"{phai}_{hitPart}");
                 }
-
-                foreach (var path in possiblePaths)
+                else
                 {
-                    clip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
-                    if (clip != null) break;
-                }
-
-                // Fallback nếu có suffix Hit hoặc số thứ tự (ví dụ: tìm Em_04_Hit mà file tên Em_04_Hit01.wav hoặc Em_Hit_01.wav)
-                if (clip == null && !string.IsNullOrEmpty(bank) && !string.IsNullOrEmpty(cleanEvent))
-                {
-                    foreach (var baseFolder in baseFolders)
+                    TryAddWithBank(cleanEvent);
+                    for (int i = 1; i <= 9; i++)
                     {
-                        string bankFolder = $"{baseFolder}/{bank}";
-                        if (System.IO.Directory.Exists(bankFolder))
-                        {
-                            string[] files = System.IO.Directory.GetFiles(bankFolder, $"{cleanEvent}*.wav");
-                            if (files.Length > 0)
-                            {
-                                string assetPath = files[0].Replace('\\', '/');
-                                clip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(assetPath);
-                                if (clip != null) break;
-                            }
-                            
-                            if (clip == null && cleanEvent.Contains("Hit"))
-                            {
-                                string[] hitFiles = System.IO.Directory.GetFiles(bankFolder, "*Hit*.wav");
-                                if (hitFiles.Length > 0)
-                                {
-                                    string assetPath = hitFiles[0].Replace('\\', '/');
-                                    clip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(assetPath);
-                                    if (clip != null) break;
-                                }
-                            }
-                        }
+                        TryAddWithBank($"{cleanEvent}{i:D2}");
+                        TryAddWithBank($"{cleanEvent}_{i:D2}");
+                        TryAddWithBank($"{cleanEvent}{i}");
                     }
                 }
             }
-            #endif
 
-            if (clip != null)
+            // 2. Quy tắc 6 & Mục 3.2: Voice nhân vật (Vo) - Hỗ trợ Random Container (vd: Sl_Vo_14a, Sl_Vo_14b)
+            if (cleanEvent.IndexOf("Vo", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                loadedClips[key] = clip;
-                return clip;
+                TryAddWithBank(cleanEvent);
+                char[] voiceSuffixes = new[] { 'a', 'b', 'c', 'd', 'e' };
+                for (int i = 0; i < voiceSuffixes.Length; i++)
+                {
+                    TryAddWithBank($"{cleanEvent}{voiceSuffixes[i]}");
+                }
+                for (int i = 1; i <= 9; i++)
+                {
+                    TryAddWithBank($"{cleanEvent}_{i:D2}");
+                    TryAddWithBank($"{cleanEvent}{i:D2}");
+                }
             }
 
-            return null;
+            // 3. Quy tắc 2 & 3: Chiêu thức (Skill), Đăng trường (Dc), Nộ khí (00)
+            if (foundClips.Count == 0)
+            {
+                TryAddWithBank(cleanEvent);
+                // Quy tắc 5: Bản cập nhật (Remake) - vd: Wd_01_01_new
+                TryAddWithBank($"{cleanEvent}_new");
+            }
+
+            // 4. Fallback Event gốc và ID
+            if (foundClips.Count == 0)
+            {
+                if (!string.IsNullOrEmpty(rawEvent) && !rawEvent.Equals(cleanEvent, StringComparison.OrdinalIgnoreCase))
+                {
+                    TryAddWithBank(rawEvent);
+                    TryAddWithBank($"{rawEvent}_new");
+                }
+                if (data.soundId > 0)
+                {
+                    TryAddWithBank(data.soundId.ToString());
+                }
+            }
+
+            return foundClips.Count > 0 ? foundClips.ToArray() : null;
         }
 
         // ==================== NHẠC NỀN BGM (SMOOTH CROSSFADE) ====================

@@ -405,36 +405,6 @@ namespace TopDownGame.Combat
             // 1. Thử tải qua Resources.Load chuẩn
             GameObject prefab = Resources.Load<GameObject>(cleanPath);
 
-#if UNITY_EDITOR
-            // 2. Fallback linh hoạt trong Unity Editor tìm file trong Assets/resources/ hoặc toàn project
-            if (prefab == null)
-            {
-                string directPath = $"Assets/resources/{cleanPath}.prefab";
-                prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(directPath);
-
-                if (prefab == null)
-                {
-                    string altDirect = $"Assets/{cleanPath}.prefab";
-                    prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(altDirect);
-                }
-
-                if (prefab == null)
-                {
-                    string fileName = System.IO.Path.GetFileNameWithoutExtension(cleanPath);
-                    string[] guids = UnityEditor.AssetDatabase.FindAssets($"{fileName} t:Prefab");
-                    foreach (var guid in guids)
-                    {
-                        string assetPath = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-                        if (System.IO.Path.GetFileNameWithoutExtension(assetPath).Equals(fileName, System.StringComparison.OrdinalIgnoreCase))
-                        {
-                            prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-                            if (prefab != null) break;
-                        }
-                    }
-                }
-            }
-#endif
-
             if (prefab != null)
             {
                 prefabCache[path] = prefab;
