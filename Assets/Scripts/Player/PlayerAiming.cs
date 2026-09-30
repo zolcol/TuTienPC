@@ -160,15 +160,10 @@ namespace TopDownGame.Player
                 float maxRange = skill.selectorRange > 0f ? skill.selectorRange : skill.range;
                 Vector3 offset = hitPoint - transform.position;
                 offset.y = 0f;
-                if (maxRange > 0f && skill.selectorType == SkillSelectorType.SmartcastCircleAOE && offset.magnitude > maxRange)
-                {
-                    Vector3 clampedPos = transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * maxRange;
-                    currentTargetPoint = CombatFormula.SnapToGround(clampedPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
-                }
-                else
-                {
-                    currentTargetPoint = CombatFormula.SnapToGround(hitPoint, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
-                }
+                Vector3 targetPos = (maxRange > 0f && offset.magnitude > maxRange)
+                    ? transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * maxRange
+                    : hitPoint;
+                currentTargetPoint = CombatFormula.SnapToGround(targetPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
 
                 Vector3 aimDir = currentTargetPoint - transform.position;
                 aimDir.y = 0f;
@@ -178,7 +173,8 @@ namespace TopDownGame.Player
             {
                 if (isTargetLockSkill) return SetTarget(FindTargetInFront(skill.range, skill.IsHeal));
                 currentTargetDirection = inputVector.sqrMagnitude > 0.01f ? inputVector.normalized : transform.forward;
-                Vector3 rawPos = transform.position + currentTargetDirection * (skill.range > 0 ? skill.range : 5f);
+                float maxRange = skill.selectorRange > 0f ? skill.selectorRange : (skill.range > 0f ? skill.range : 5f);
+                Vector3 rawPos = transform.position + currentTargetDirection * maxRange;
                 currentTargetPoint = CombatFormula.SnapToGround(rawPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             }
             return true;
