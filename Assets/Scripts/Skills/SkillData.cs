@@ -15,6 +15,14 @@ namespace TopDownGame.Skills
     }
 
     [Serializable]
+    public class SkillCastEvent
+    {
+        public int frame = 0;
+        public int skillId = 0;
+        public int skillLevel = 0;
+    }
+
+    [Serializable]
     public class SkillMoveEvent
     {
         public int frame = 0;
@@ -147,16 +155,18 @@ namespace TopDownGame.Skills
         public bool canCancel = true;
         public bool notChangeActFrame = false; // 1 = Khóa cứng frame hoạt ảnh, KHÔNG bị tăng tốc bởi AttackSpeed (DATA_CONVENTIONS.md Mục 2 & 5)
 
-        // --- FRAME TIMING & COMBO (Mốc tính bằng Frame ActionEvent chuẩn 30 FPS theo DATA_CONVENTIONS.md Mục 4) ---
+        // --- FRAME TIMING & COMBO (Mốc tính bằng Frame ActionEvent chuẩn 15 FPS theo DATA_CONVENTIONS.md Mục 4 & 5) ---
         public int linkskillinit = -1;
         public int param1 = -1;          // Thời gian cửa sổ combo mở từ khi candoskill đến khi kết thúc (số frame)
         public int param2 = -1;          // Skill ID của chiêu tiếp theo trong combo (-1 nếu không nối combo)
         public int candoskill = -1;      // Bắt đầu mở cửa sổ ấn phím (mốc frame, -1 nếu không ngắt)
-        public int castSkill = 0;        // Bắt đầu áp damage (mốc frame, mặc định 0)
+        public int castSkill = 0;        // Bắt đầu áp damage (mốc frame đầu tiên, mặc định 0)
+        public List<SkillCastEvent> castEvents = new List<SkillCastEvent>(); // Danh sách toàn bộ các mốc gây sát thương / thi triển chiêu trong timeline
         public int canDoRun = -1;        // Có thể hủy hoạt ảnh để di chuyển (mốc frame, -1 nếu phải đánh hết clip)
         public int castLinkSkill = -1;   // Mốc bắt đầu chuyển sang animation chiêu combo tiếp theo (mốc frame)
         public int instantDir = -1;      // Mốc khóa xoay hướng (mốc frame)
         public float instantDirSpeed = 1000f; // Tốc độ xoay mặt về hướng mục tiêu (°/s theo DATA_CONVENTIONS.md Mục 1 & 4)
+        public bool HasMultiCastEvents => castEvents != null && castEvents.Count > 1;
 
         // --- AUDIO & VFX ---
         public int playsound = -1;           // Sound ID tra cứu từ Sound.csv (-1 nếu không có âm thanh)

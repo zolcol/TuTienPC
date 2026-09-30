@@ -169,42 +169,45 @@ namespace TopDownGame.Skills
             Vector3 castOrigin = fromPos + Vector3.up * HitHeightOffset;
             Vector3 targetCenter = toPos + Vector3.up * HitHeightOffset;
 
-            // A. Quét hình cầu dọc đường đạn (SphereCast)
-            int hitCount = Physics.SphereCastNonAlloc(castOrigin, collisionRadius, moveDirection, raycastBuffer, stepDistance, targetLayer);
-            for (int i = 0; i < hitCount; i++)
+            // A. Quét hình cầu dọc đường đạn (SphereCast) khi đạn di chuyển
+            if (stepDistance > 0.001f)
             {
-                RaycastHit hit = raycastBuffer[i];
-                if (hit.collider == null) continue;
-
-                Vector3 hitPoint = hit.point != Vector3.zero ? hit.point : hit.collider.ClosestPoint(castOrigin);
-                if (hitPoint == Vector3.zero) hitPoint = targetCenter;
-
-                if (ProcessHit(hit.collider, hitPoint, moveDirection))
+                int hitCount = Physics.SphereCastNonAlloc(castOrigin, collisionRadius, moveDirection, raycastBuffer, stepDistance, targetLayer);
+                for (int i = 0; i < hitCount; i++)
                 {
-                    // Cơ chế nảy đạn liên hoàn (ChainBouncing)
-                    if (bouncesRemaining > 0)
-                    {
-                        Transform nextTarget = FindNextBounceTarget(hitPoint, hit.collider);
-                        if (nextTarget != null)
-                        {
-                            bouncesRemaining--;
-                            homingTarget = nextTarget;
-                            Vector3 toNext = (nextTarget.position - transform.position);
-                            toNext.y = 0f;
-                            moveDirection = toNext.sqrMagnitude > 0.001f ? toNext.normalized : moveDirection;
-                            transform.position = new Vector3(hitPoint.x, fromPos.y, hitPoint.z);
-                            transform.rotation = Quaternion.LookRotation(moveDirection);
-                            distanceTraveled = 0f;
-                            return false; // Tiếp tục bay sang mục tiêu kế tiếp
-                        }
-                    }
+                    RaycastHit hit = raycastBuffer[i];
+                    if (hit.collider == null) continue;
 
-                    // Kiểm tra xem đạn có tự hủy khi trúng đích hay tiếp tục xuyên thấu
-                    bool shouldVanish = missileData != null && missileData.ShouldVanishOnHit;
-                    if (shouldVanish)
+                    Vector3 hitPoint = hit.point != Vector3.zero ? hit.point : hit.collider.ClosestPoint(castOrigin);
+                    if (hitPoint == Vector3.zero) hitPoint = targetCenter;
+
+                    if (ProcessHit(hit.collider, hitPoint, moveDirection))
                     {
-                        ExplodeAndDestroy(hitPoint, true);
-                        return true;
+                        // Cơ chế nảy đạn liên hoàn (ChainBouncing)
+                        if (bouncesRemaining > 0)
+                        {
+                            Transform nextTarget = FindNextBounceTarget(hitPoint, hit.collider);
+                            if (nextTarget != null)
+                            {
+                                bouncesRemaining--;
+                                homingTarget = nextTarget;
+                                Vector3 toNext = (nextTarget.position - transform.position);
+                                toNext.y = 0f;
+                                moveDirection = toNext.sqrMagnitude > 0.001f ? toNext.normalized : moveDirection;
+                                transform.position = new Vector3(hitPoint.x, fromPos.y, hitPoint.z);
+                                transform.rotation = Quaternion.LookRotation(moveDirection);
+                                distanceTraveled = 0f;
+                                return false; // Tiếp tục bay sang mục tiêu kế tiếp
+                            }
+                        }
+
+                        // Kiểm tra xem đạn có tự hủy khi trúng đích hay tiếp tục xuyên thấu
+                        bool shouldVanish = missileData != null && missileData.ShouldVanishOnHit;
+                        if (shouldVanish)
+                        {
+                            ExplodeAndDestroy(hitPoint, true);
+                            return true;
+                        }
                     }
                 }
             }

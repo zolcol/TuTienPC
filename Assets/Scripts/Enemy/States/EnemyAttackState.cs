@@ -1,5 +1,6 @@
 using UnityEngine;
 using TopDownGame.Skills;
+using TopDownGame.Combat;
 
 namespace TopDownGame.Enemy
 {
@@ -10,6 +11,7 @@ namespace TopDownGame.Enemy
         private float totalDuration;
         private bool hasTriggeredHit;
         private bool hasTriggeredSound;
+        private readonly System.Collections.Generic.HashSet<SkillCastEvent> triggeredCastEvents = new System.Collections.Generic.HashSet<SkillCastEvent>();
 
         public EnemyAttackState(EnemyController enemy, TopDownGame.StateMachine.StateMachine stateMachine) 
             : base(enemy, stateMachine) { }
@@ -32,6 +34,7 @@ namespace TopDownGame.Enemy
             timer = 0f;
             hasTriggeredHit = false;
             hasTriggeredSound = false;
+            triggeredCastEvents.Clear();
 
             // Xoay dứt khoát về phía người chơi khi bắt đầu ra đòn
             enemy.RotateTowardsTarget();
@@ -80,8 +83,31 @@ namespace TopDownGame.Enemy
                 TopDownGame.Audio.SoundManager.Instance.PlaySkillSound(currentSkill, enemy.transform);
             }
 
-            // 3. Gây sát thương tại mốc castSkill (frame/15s)
-            if (!hasTriggeredHit && timer >= currentSkill.CastSkillTime)
+            // 3. Gây sát thương theo danh sách castEvents (hoặc fallback castSkill)
+            if (currentSkill.castEvents != null && currentSkill.castEvents.Count > 0)
+            {
+                foreach (var castEv in currentSkill.castEvents)
+                {
+                    if (!triggeredCastEvents.Contains(castEv))
+                    {
+                        float castTime = CombatFormula.FrameToSeconds(castEv.frame);
+                        if (timer >= castTime)
+                        {
+                            triggeredCastEvents.Add(castEv);
+                            hasTriggeredHit = true;
+
+                            SkillData targetSkill = currentSkill;
+                            if (castEv.skillId > 0 && castEv.skillId != currentSkill.id)
+                            {
+                                SkillData subSkill = SkillDatabase.GetSkill(castEv.skillId);
+                                if (subSkill != null) targetSkill = subSkill;
+                            }
+                            enemy.ExecuteSkillDamage(targetSkill);
+                        }
+                    }
+                }
+            }
+            else if (!hasTriggeredHit && timer >= currentSkill.CastSkillTime)
             {
                 hasTriggeredHit = true;
                 enemy.ExecuteSkillDamage(currentSkill);

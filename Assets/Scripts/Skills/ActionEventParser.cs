@@ -13,6 +13,7 @@ namespace TopDownGame.Skills
         public float crossFade = 0.1f;
         public int candoskill = -1;
         public int castSkill = 2;
+        public List<SkillCastEvent> castEvents = new List<SkillCastEvent>();
         public int canDoRun = -1;
         public int castLinkSkill = -1;
         public int param1 = -1;
@@ -89,6 +90,13 @@ namespace TopDownGame.Skills
                                 summary.playsound = CsvParserHelper.ParseInt(p1, -1);
                                 summary.playsoundFrame = 0;
                             }
+                            else if (eventName.Equals("CastSkill", StringComparison.OrdinalIgnoreCase))
+                            {
+                                int targetSkillId = CsvParserHelper.ParseInt(p1, 0);
+                                int skillLv = CsvParserHelper.ParseInt(p2, 1);
+                                summary.castEvents.Add(new SkillCastEvent { frame = frame, skillId = targetSkillId, skillLevel = skillLv });
+                                if (summary.castEvents.Count == 1) summary.castSkill = frame;
+                            }
                             else if (eventName.Equals("PlayEffect", StringComparison.OrdinalIgnoreCase) ||
                                      eventName.Equals("PlayEffectNoClear", StringComparison.OrdinalIgnoreCase))
                             {
@@ -99,7 +107,13 @@ namespace TopDownGame.Skills
                         else if (eventType == 2)
                         {
                             if (eventName.Equals("CanDoSkill", StringComparison.OrdinalIgnoreCase)) summary.candoskill = frame;
-                            else if (eventName.Equals("CastSkill", StringComparison.OrdinalIgnoreCase)) summary.castSkill = frame;
+                            else if (eventName.Equals("CastSkill", StringComparison.OrdinalIgnoreCase))
+                            {
+                                int targetSkillId = CsvParserHelper.ParseInt(p1, 0);
+                                int skillLv = CsvParserHelper.ParseInt(p2, 1);
+                                summary.castEvents.Add(new SkillCastEvent { frame = frame, skillId = targetSkillId, skillLevel = skillLv });
+                                if (summary.castEvents.Count == 1) summary.castSkill = frame;
+                            }
                             else if (eventName.Equals("CastLinkSkill", StringComparison.OrdinalIgnoreCase)) summary.castLinkSkill = frame;
                             else if (eventName.Equals("CanDoRun", StringComparison.OrdinalIgnoreCase)) summary.canDoRun = frame;
                             else if (eventName.Equals("instantdir", StringComparison.OrdinalIgnoreCase))

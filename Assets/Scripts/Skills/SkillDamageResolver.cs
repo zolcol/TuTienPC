@@ -229,13 +229,20 @@ namespace TopDownGame.Skills
                 }
             }
 
+            bool isAreaHeal = (missile != null && missile.canRepeatDmg && missile.dmgInterval > 0f);
+            bool isHoT = (skill.HasFlySkill && skill.flyEventInterval > 0);
+
             // 2. Thực hiện hồi máu và hiển thị hiệu ứng Buff trên người từng mục tiêu theo StateEffect.csv
+            // (Nếu là chiêu hồi máu định kỳ DoT/HoT, coroutine bên dưới sẽ điều phối chính xác từng nhịp hồi máu)
             for (int i = 0; i < targetsToHealBuffer.Count; i++)
             {
                 var target = targetsToHealBuffer[i];
                 if (target != null && !target.IsDead)
                 {
-                    target.Heal(healAmount);
+                    if (isSubSkillTick || (!isAreaHeal && !isHoT))
+                    {
+                        target.Heal(healAmount);
+                    }
 
                     // Kích hoạt hiệu ứng hình ảnh (VFX hồi máu / Buff) trên mục tiêu theo stateEffectId cấu hình trong Skill.csv
                     if (!isSubSkillTick && skill.stateEffectId > 0)
@@ -264,13 +271,13 @@ namespace TopDownGame.Skills
             targetsToHealBuffer.Clear();
 
             // 3. Cơ chế hồi máu liên tục theo đợt (Heal Over Time qua FlySkill - vd: Skill 306 gọi 307 mỗi 15 frames)
-            if (!isSubSkillTick && skill.HasFlySkill && skill.flyEventInterval > 0 && EffectManager.Instance != null)
+            if (!isSubSkillTick && isHoT && EffectManager.Instance != null)
             {
                 EffectManager.Instance.StartCoroutine(HealOverTimeCoroutine(caster, casterStats, skill, explicitTarget, skill.FlyEventIntervalInSeconds, groundDuration));
             }
 
             // 4. Cơ chế bãi hồi máu định kỳ cố định (Area Heal DoT qua CanRepeatDmg & DmgInterval - vd: Skill 313)
-            if (!isSubSkillTick && missile != null && missile.canRepeatDmg && missile.dmgInterval > 0f && EffectManager.Instance != null)
+            if (!isSubSkillTick && isAreaHeal && EffectManager.Instance != null)
             {
                 float intervalSec = missile.DmgIntervalInSeconds;
                 float durationSec = missile.LifeTimeInSeconds;
@@ -519,7 +526,22 @@ namespace TopDownGame.Skills
                     Vector3 ringSpawnPos = originPos + shotDir * spawnOffset;
                     SpawnSingleMissileObject(caster, casterStats, skill, missile, ringSpawnPos, shotDir, targetLayer, explicitTarget);
                 }
-                // Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng <b>{count}</b> đạn vòng tròn <b>{skill.name}</b> (Missile ID: {missileId})");
+                return;
+            }
+
+            // 1.5. Bắn chùm đa đạn đồng loạt song song dàn hàng ngang (MissileForm = 7 - MultiMissileWave / Sóng tỏa)
+            if (skill.missileForm == 7)
+            {
+                // DATA_CONVENTIONS_V2.md Mục 3: Param1 = Khoảng cách cự ly giữa các tia đạn (cm -> mét)
+                float spacingMeters = (skill.skillParam1 > 0f ? skill.skillParam1 : 50f) / 100.0f;
+                Vector3 rightDir = Vector3.Cross(Vector3.up, aimDirection).normalized;
+
+                for (int i = 0; i < count; i++)
+                {
+                    float lateralOffset = (i - (count - 1) * 0.5f) * spacingMeters;
+                    Vector3 waveSpawnPos = spawnPos + rightDir * lateralOffset;
+                    SpawnSingleMissileObject(caster, casterStats, skill, missile, waveSpawnPos, aimDirection, targetLayer, explicitTarget);
+                }
                 return;
             }
 
@@ -527,7 +549,6 @@ namespace TopDownGame.Skills
             if (count <= 1)
             {
                 SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, aimDirection, targetLayer, explicitTarget);
-                // Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng kiếm khí <b>{skill.name}</b> hướng thẳng tới đích con trỏ chuột (Missile ID: {missileId})");
                 return;
             }
 
@@ -746,6 +767,7 @@ namespace TopDownGame.Skills
 
                 Vector3 sphereCenter = centerPos + Vector3.up * (BoxHeight * 0.5f);
                 int hitCount = Physics.OverlapSphereNonAlloc(sphereCenter, range, hitBuffer, targetLayer);
+                HashSet<IDamageable> tickHitFilter = new HashSet<IDamageable>();
                 for (int j = 0; j < hitCount; j++)
                 {
                     Collider col = hitBuffer[j];
@@ -756,7 +778,7 @@ namespace TopDownGame.Skills
 
                     Vector3 hitDirection = (col.transform.position - centerPos).normalized;
                     Vector3 hitPoint = col.ClosestPoint(sphereCenter);
-                    if (ApplyDamage(col, damage, hitPoint, hitDirection, caster))
+                    if (ApplyDamage(col, damage, hitPoint, hitDirection, caster, tickHitFilter))
                     {
                         if (!string.IsNullOrEmpty(collEffectPath))
                         {
@@ -831,11 +853,14 @@ namespace TopDownGame.Skills
             float durationSec)
         {
             int totalTicks = intervalSec > 0f ? Mathf.FloorToInt(durationSec / intervalSec) : 1;
+            if (totalTicks <= 0) totalTicks = 1;
 
-            for (int tick = 1; tick <= totalTicks; tick++)
+            for (int tick = 0; tick < totalTicks; tick++)
             {
-                if (tick * intervalSec > durationSec) break;
-                yield return new WaitForSeconds(intervalSec);
+                if (tick > 0 && intervalSec > 0f)
+                {
+                    yield return new WaitForSeconds(intervalSec);
+                }
 
                 if (caster == null) yield break;
 

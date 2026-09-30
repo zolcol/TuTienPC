@@ -103,7 +103,7 @@ namespace TopDownGame.Skills
                         int flyEventInterval = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "flyeventinterval", 31), 0);
                         int hitSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "hitskillid", 34), 0);
                         int vanishedSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "vanishedskillid", 36), 0);
-                        int subSkillId = startSkillId > 0 ? startSkillId : (flySkillId > 0 ? flySkillId : hitSkillId);
+                        int subSkillId = startSkillId > 0 ? startSkillId : 0;
 
                         int rawStartPosType = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "startpostype", 5), 1);
                         VfxStartPosType startPosType = Enum.IsDefined(typeof(VfxStartPosType), rawStartPosType) ? (VfxStartPosType)rawStartPosType : VfxStartPosType.Caster;
@@ -292,6 +292,7 @@ namespace TopDownGame.Skills
                             param2 = evSummary.param2,
                             candoskill = evSummary.candoskill,
                             castSkill = evSummary.castSkill,
+                            castEvents = new List<SkillCastEvent>(evSummary.castEvents),
                             canDoRun = evSummary.canDoRun,
                             castLinkSkill = evSummary.castLinkSkill,
                             instantDir = evSummary.instantDir,
@@ -312,6 +313,15 @@ namespace TopDownGame.Skills
                             acceSpeedInfo2 = acceSpeedInfo2,
                             acceSpeedInfo3 = acceSpeedInfo3
                         };
+
+                        if (data.castEvents.Count == 0)
+                        {
+                            data.castEvents.Add(new SkillCastEvent { frame = data.castSkill >= 0 ? data.castSkill : 2, skillId = skillId, skillLevel = 1 });
+                        }
+                        else if (data.castSkill < 0)
+                        {
+                            data.castSkill = data.castEvents[0].frame;
+                        }
 
                         skills[skillId] = data;
                     }

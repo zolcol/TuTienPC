@@ -14,6 +14,7 @@ namespace TopDownGame.Player
         private bool hasTriggeredSound;
         private bool hasBufferedComboInput;
         private readonly HashSet<SkillEffectEvent> triggeredEvents = new HashSet<SkillEffectEvent>();
+        private readonly HashSet<SkillCastEvent> triggeredCastEvents = new HashSet<SkillCastEvent>();
 
         public PlayerAttackState(PlayerController player, TopDownGame.StateMachine.StateMachine stateMachine) 
             : base(player, stateMachine) { }
@@ -56,6 +57,7 @@ namespace TopDownGame.Player
             }
 
             triggeredEvents.Clear();
+            triggeredCastEvents.Clear();
 
             // Cập nhật hướng xoay ban đầu khi vung đòn theo InstantDir (DATA_CONVENTIONS.md Mục 1 & 4)
             player.ResetTurnVelocity();
@@ -144,8 +146,33 @@ namespace TopDownGame.Player
                 }
             }
 
-            // 4. Kích hoạt gây sát thương tại mốc castSkill (frame/15s)
-            if (!hasTriggeredHit && timer >= (currentSkill.CastSkillTime / speedFactor))
+            // 4. Kích hoạt toàn bộ các đợt gây sát thương theo timeline (CastSkill events)
+            if (currentSkill.castEvents != null && currentSkill.castEvents.Count > 0)
+            {
+                foreach (var castEv in currentSkill.castEvents)
+                {
+                    if (!triggeredCastEvents.Contains(castEv))
+                    {
+                        float castTime = CombatFormula.FrameToSeconds(castEv.frame) / speedFactor;
+                        if (timer >= castTime)
+                        {
+                            triggeredCastEvents.Add(castEv);
+                            hasTriggeredHit = true;
+
+                            SkillData targetSkillToCast = currentSkill;
+                            if (castEv.skillId > 0 && castEv.skillId != currentSkill.id)
+                            {
+                                SkillData subSkill = SkillDatabase.GetSkill(castEv.skillId);
+                                if (subSkill != null) targetSkillToCast = subSkill;
+                            }
+
+                            player.ExecuteSkillDamage(targetSkillToCast);
+                            player.OnHitTriggered(targetSkillToCast);
+                        }
+                    }
+                }
+            }
+            else if (!hasTriggeredHit && timer >= (currentSkill.CastSkillTime / speedFactor))
             {
                 hasTriggeredHit = true;
                 player.ExecuteSkillDamage(currentSkill);
