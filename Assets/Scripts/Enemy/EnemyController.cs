@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Combat;
@@ -158,13 +159,40 @@ namespace TopDownGame.Enemy
 
         public void EnsureAnimationController()
         {
-            if (AnimationController == null) AnimationController = GetComponentInChildren<LegacyAnimationController>();
+            if (AnimationController == null)
+            {
+                AnimationController = GetComponentInChildren<LegacyAnimationController>();
+            }
             if (AnimationController == null)
             {
                 Animation anim = GetComponentInChildren<Animation>();
                 AnimationController = anim != null ? anim.gameObject.AddComponent<LegacyAnimationController>() : gameObject.AddComponent<LegacyAnimationController>();
             }
-            if (AnimationController != null) AnimationController.AutoFindAnimationComponents();
+            if (AnimationController != null)
+            {
+                AnimationController.AutoFindAnimationComponents();
+                AnimationController.CacheReferences();
+            }
+        }
+
+        public void Initialize(int templateId, int level = 1, Vector3? spawnPosition = null)
+        {
+            npcTemplateId = templateId;
+            if (Stats != null)
+            {
+                Stats.MonsterLevel = level;
+            }
+            if (spawnPosition.HasValue && Perception != null)
+            {
+                Perception.SpawnPosition = spawnPosition.Value;
+            }
+            ApplyTemplateData();
+            EnsureAnimationController();
+            if (AnimationController != null)
+            {
+                AnimationController.AutoFindAnimationComponents();
+                AnimationController.PlayIdle();
+            }
         }
 
         [ContextMenu("Áp dụng NpcTemplate (Nạp Model & Skills)")]
@@ -175,12 +203,14 @@ namespace TopDownGame.Enemy
             NpcTemplateData template = NpcTemplateDatabase.GetTemplate(npcTemplateId);
             if (template == null) return;
 
+            int level = Stats != null ? Stats.MonsterLevel : 1;
             var attrib = template.GetAttribute();
             if (attrib != null && Stats != null)
             {
-                Stats.Health.SetMaxValue(attrib.maxLife, true);
-                Stats.SetPhysicalDamage(attrib.AverageAttack);
-                Stats.SetMagicDamage(attrib.woodDamage + attrib.waterDamage + attrib.fireDamage + attrib.earthDamage + attrib.metalDamage);
+                Stats.Health.SetMaxValue(attrib.GetMaxLife(level), true);
+                Stats.SetPhysicalDamage(attrib.GetAverageAttack(level));
+                Stats.SetMagicDamage(attrib.GetTotalMagicDamage(level));
+                Stats.SetAttackSpeed(attrib.attackSpeed > 0 ? attrib.attackSpeed : 15f);
             }
 
             var resData = template.GetRes();
@@ -201,16 +231,31 @@ namespace TopDownGame.Enemy
 
             if (!string.IsNullOrEmpty(template.prefab))
             {
-                bool hasChild = false;
-                foreach (Transform child in transform)
+                GameObject modelPrefab = NpcTemplateDatabase.LoadPrefab(template.prefab);
+                if (modelPrefab != null)
                 {
-                    if (child.GetComponentInChildren<LegacyAnimationController>() != null || child.GetComponentInChildren<Renderer>() != null) { hasChild = true; break; }
-                }
-                if (!hasChild)
-                {
-                    GameObject modelPrefab = NpcTemplateDatabase.LoadPrefab(template.prefab);
-                    if (modelPrefab != null)
+                    Transform existingModel = null;
+                    foreach (Transform child in transform)
                     {
+                        if (child.GetComponentInChildren<Renderer>() != null || child.GetComponentInChildren<Animation>() != null)
+                        {
+                            existingModel = child;
+                            break;
+                        }
+                    }
+
+                    if (existingModel == null)
+                    {
+                        GameObject modelInst = Instantiate(modelPrefab, transform);
+                        modelInst.name = modelPrefab.name;
+                        modelInst.transform.localPosition = Vector3.zero;
+                        modelInst.transform.localRotation = Quaternion.identity;
+                    }
+                    else if (!existingModel.name.StartsWith(modelPrefab.name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (Application.isPlaying) Destroy(existingModel.gameObject);
+                        else DestroyImmediate(existingModel.gameObject);
+
                         GameObject modelInst = Instantiate(modelPrefab, transform);
                         modelInst.name = modelPrefab.name;
                         modelInst.transform.localPosition = Vector3.zero;

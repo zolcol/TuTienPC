@@ -76,12 +76,14 @@ Assets/Scripts/
 │   ├── EnemyBrain.cs                  # Quản lý Cooldown skill quái, chọn skill sẵn sàng, gọi Resolver
 │   ├── EnemyController.cs             # FSM Runner quái vật, CharacterController move, apply Template
 │   ├── EnemyPerception.cs             # Nhận diện mục tiêu: visionRadius (phát hiện), activeRadius (leash)
+│   ├── EnemySpawnPoint.cs             # SPAWN POINT: Quản lý bãi quái, tham số id, level, count, radius, respawn
 │   ├── EnemyStats.cs                  # Máu quái (kế thừa EntityStats), MonsterLevel, exp calculation & reward
 │   └── States/
 │       ├── EnemyBaseState.cs          # State cơ sở
 │       ├── EnemyIdleState.cs          # Đứng chờ / Đi bộ về điểm spawn nếu quá xa
 │       ├── EnemyChaseState.cs         # Rượt theo Player khi trong Vision & Active Radius
 │       ├── EnemyAttackState.cs        # Xoay về Player, play anim, apply dame tại mốc castSkill
+│       ├── EnemyHurtState.cs          # Chạy anim bat (bị thương), dừng lại chờ hết anim
 │       └── EnemyDeadState.cs          # Chạy anim die, tắt collider, hủy object sau delay
 │
 ├── Input/
@@ -101,7 +103,8 @@ Assets/Scripts/
 │       ├── PlayerBaseState.cs         # State cơ sở người chơi
 │       ├── PlayerIdleState.cs         # Đứng thủ thế (sta), lắng nghe Skill / Attack / Move
 │       ├── PlayerMoveState.cs         # Chạy bộ (run), có thể ngắt để tung chiêu / đánh thường
-│       └── PlayerAttackState.cs       # ĐIỀU KHIỂN ĐÒN ĐÁNH: MovePos, InstantDir, Combo window, Cancel
+│       ├── PlayerAttackState.cs       # ĐIỀU KHIỂN ĐÒN ĐÁNH: MovePos, InstantDir, Combo window, Cancel
+│       └── PlayerHurtState.cs         # Chạy anim bat (bị thương), cho phép ngắt bằng Skill / Attack / Move
 │
 ├── Skills/
 │   ├── ActionEventParser.cs           # Parse ActionEvent.csv (CastSkill, CanDoSkill, CanDoRun, MovePos...)
@@ -114,6 +117,10 @@ Assets/Scripts/
 │   ├── SkillData.cs                   # DTO kỹ năng: chỉ số, hitbox, frame mốc, sprite icon
 │   ├── SkillDatabase.cs               # Tra cứu SkillData theo ID
 │   └── SkillType.cs / VfxStartPosType.cs # Enums hình thái hitbox và vị trí xuất phát chiêu
+│
+├── StateMachine/
+│   ├── IState.cs                      # Interface trạng thái FSM (Enter, Update, PhysicsUpdate, Exit)
+│   └── StateMachine.cs                # Quản lý chuyển đổi State cơ sở
 │
 ├── Stats/
 │   ├── EntityStats.cs                 # Base stats: Máu, công vật lý/phép, AttackSpeed, IDamageable
@@ -132,7 +139,8 @@ Assets/Scripts/
 │
 └── Editor/
     ├── ComboTimingAnalyzer.cs         # Tool dò khớp frame nối combo giữa 2 animation clips
-    ├── NpcSpawnerBuilder.cs           # Tool dựng nhanh quái ra Scene từ NpcTemplate.csv
+    ├── EnemySpawnPointEditor.cs       # Custom Inspector & Menu tạo EnemySpawnPoint nhanh vào Scene
+    ├── NpcSpawnerBuilder.cs           # Tool dựng nhanh quái/bãi quái ra Scene từ NpcTemplate.csv
     ├── PlayerAnimationPopulator.cs    # Tool quét thư mục nạp clips vào component Animation
     ├── PlayerHUDBuilder.cs            # Tool tạo tự động Canvas UI HUD chuẩn vào Scene
     ├── SkillEffectVerifier.cs         # Tool Unit Test kiểm tra tính toàn vẹn của Skill trong console
@@ -150,6 +158,7 @@ Assets/Scripts/
 | **Sửa logic Di chuyển / Điều khiển xoay / Trọng lực** | `Player/CharacterMovement.cs`<br>`Player/States/PlayerMoveState.cs` | `Player/PlayerController.cs` |
 | **Sửa cơ chế Ngắm chiêu / Smartcast / Indicator** | `Player/PlayerAiming.cs` | `Combat/CombatEnums.cs` |
 | **Sửa luồng Tung chiêu / Combo / Hủy đòn (Cancel)** | `Player/States/PlayerAttackState.cs`<br>`Player/PlayerCombat.cs` | `Skills/SkillData.cs`<br>`Combat/CombatFormula.cs` |
+| **Sửa phản ứng Bị thương (Hit Reaction / Flinch)** | `Player/States/PlayerHurtState.cs`<br>`Enemy/States/EnemyHurtState.cs` | `LegacyAnimationController.cs`<br>`Stats/EntityStats.cs` |
 | **Sửa thuật toán Va chạm Hitbox / Gây Sát thương / Hồi máu** | `Skills/SkillDamageResolver.cs` | `Skills/SkillData.cs`<br>`Stats/EntityStats.cs` |
 | **Sửa cơ chế Đạn bay / Bám đuổi / Nảy đạn (Projectile)** | `Skills/ProjectileController.cs`<br>`Skills/ProjectilePool.cs` | `Data/MissileDatabase.cs` |
 | **Thêm / Sửa thuộc tính Kỹ năng từ Database** | `Skills/SkillData.cs`<br>`Skills/SkillCsvParser.cs`<br>`Skills/ActionEventParser.cs` | `Data/GameDatabase.cs` |
@@ -159,7 +168,7 @@ Assets/Scripts/
 | **Sửa Giao diện / HUD / Hiệu ứng Cooldown** | `UI/PlayerHUD.cs`<br>`UI/SkillSlotUI.cs` | `Editor/PlayerHUDBuilder.cs` |
 | **Sửa Số nhảy Sát thương / Floating Text (Dame, Heal, Exp, Miss)** | `UI/FloatingTextManager.cs`<br>`UI/FloatingTextItem.cs`<br>`Data/FloatingTextDatabase.cs` | `Data/FloatingTextData.cs`<br>`Settings/N/FloatingText.csv` |
 | **Sửa Âm thanh / Tiếng chém trúng / Voice** | `Audio/SoundManager.cs`<br>`Audio/SoundDatabase.cs` | `Audio/SoundData.cs` |
-| **Tạo Tool Editor mới hoặc chỉnh sửa Spawner** | `Editor/NpcSpawnerBuilder.cs`<br>`NPC/NpcTemplateDatabase.cs` | `Enemy/EnemyController.cs` |
+| **Tạo Tool Editor mới hoặc chỉnh sửa Spawner** | `Enemy/EnemySpawnPoint.cs`<br>`Editor/EnemySpawnPointEditor.cs`<br>`Editor/NpcSpawnerBuilder.cs` | `Enemy/EnemyController.cs`<br>`NPC/NpcTemplateDatabase.cs` |
 
 ---
 
@@ -170,7 +179,8 @@ Assets/Scripts/
 graph TD
     Input[PlayerInputReader / AI Perception] --> Check[PlayerCombat.CanExecuteSkill]
     Check --> Aim[PlayerAiming: Xác định Direction / Target]
-    Aim --> AttackState[PlayerAttackState.Enter]
+    AttackState[PlayerAttackState.Enter]
+    Aim --> AttackState
     AttackState --> Anim[LegacyAnimationController: PlayAction & Scale 15FPS]
     AttackState --> InstantDir[Movement.RotateTowardsCastDirection]
     AttackState --> MovePos[CharacterController.Move tiến về trước]
@@ -185,18 +195,39 @@ graph TD
     ComboWindow -- Không & timer >= CanDoRun --> Cancel[Chuyển sang PlayerMoveState]
 ```
 
-### 5.2. Thứ tự nạp dữ liệu (Dependency Loading Order)
+### 5.2. Luồng Sinh Quái Vật & Hồi Sinh (Enemy Spawning Lifecycle)
+```mermaid
+graph TD
+    SpawnPoint[EnemySpawnPoint: maxCount, level, radius] --> Raycast[Dò mặt đất XZ qua Physics.Raycast]
+    Raycast --> Create[EnemySpawnPoint.CreateEnemyInstance]
+    Create --> Model[Nạp Prefab Model con trước]
+    Create --> CC[Thêm CharacterController theo NpcRes]
+    Create --> Stats[EnemyStats: MonsterLevel & Scale Máu/Công]
+    Create --> Ctrl[EnemyController.Initialize -> ApplyTemplateData]
+    Ctrl --> AnimInit[LegacyAnimationController: AutoFindAnims & AlwaysAnimate]
+    AnimInit --> StateInit[FSM Initialize: IdleState -> PlayIdle]
+    StateInit --> Live[Quái sống & tuần tra quanh SpawnPosition]
+    Live --> Death[EnemyStats.OnDeath -> EnemyDeadState]
+    Death --> Clean[CleanupDeadEnemies -> Bắt đầu đếm Respawn Delay]
+    Clean --> RespawnTimer{Hết thời gian Respawn?}
+    RespawnTimer -- Có --> Raycast
+```
+
+### 5.3. Thứ tự nạp dữ liệu (Dependency Loading Order)
 Khi gọi `GameDatabase.EnsureLoaded()`, dữ liệu **phải** được nạp theo đúng trình tự sau để tránh `NullReferenceException`:
 1. `Sounds` (`Sound.csv`)
-2. `Effects` (`EffectRes.csv`)
-3. `Missiles` (`Missile.csv`) $\rightarrow$ cần `EffectDatabase` để lấy đường dẫn VFX bay/nổ.
-4. `StateEffects` (`StateEffect.csv`) $\rightarrow$ cần `EffectDatabase`.
-5. `PartSlots` (`PartSlot.csv`)
-6. `FactionSkills` (`FactionSkill.csv`)
-7. `NpcRes` (`NpcRes.csv`)
-8. `NpcAttributes` (`NpcAttribute.csv`)
-9. `NpcTemplates` (`NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes` & `NpcAttribute`.
-10. `Skills` (`Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
+2. `FloatingTexts` (`FloatingText.csv`)
+3. `PlayerLevels` (`PlayerLevel.csv`)
+4. `ExpRules` (`ExpRule.csv`)
+5. `Effects` (`EffectRes.csv`)
+6. `Missiles` (`Missile.csv`) $\rightarrow$ cần `EffectDatabase` để lấy đường dẫn VFX bay/nổ.
+7. `StateEffects` (`StateEffect.csv`) $\rightarrow$ cần `EffectDatabase`.
+8. `PartSlots` (`PartSlot.csv`)
+9. `FactionSkills` (`FactionSkill.csv`)
+10. `NpcRes` (`NpcRes.csv`)
+11. `NpcAttributes` (`NpcAttribute.csv`)
+12. `NpcTemplates` (`NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes` & `NpcAttribute`.
+13. `Skills` (`Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
 
 ---
 
@@ -207,3 +238,4 @@ Khi gọi `GameDatabase.EnsureLoaded()`, dữ liệu **phải** được nạp t
 * ❌ **KHÔNG** gọi `Instantiate()` cho đạn bay hoặc hiệu ứng lặp đi lặp lại. Phải dùng `ProjectilePool.Instance.Get()` và `EffectManager.Instance.SpawnEffect(...)`.
 * ❌ **KHÔNG** dùng `Physics.OverlapSphere` (sinh rác GC). Luôn dùng phiên bản NonAlloc với bộ đệm tĩnh: `Physics.OverlapSphereNonAlloc(..., hitBuffer, ...)`.
 * ❌ **KHÔNG** xóa bỏ hàm gán Tag/Layer đệ quy khi tạo quái. Nếu các GameObject con chứa Mesh/Collider không mang layer `Enemy`, `PlayerAiming` và `SkillDamageResolver` sẽ bỏ qua mục tiêu.
+* ❌ **KHÔNG** tạo `LegacyAnimationController` trước khi nạp Model Prefab con khi sinh quái động (Dynamic Spawn). Phải nạp Model Prefab con trước hoặc gọi `AutoFindAnimationComponents()` sau khi gắn model và luôn đặt `Animation.cullingType = AnimationCullingType.AlwaysAnimate` để tránh mất animation ngoài frustum camera.

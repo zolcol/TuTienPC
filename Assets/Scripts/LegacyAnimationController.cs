@@ -81,31 +81,54 @@ namespace TopDownGame
 
         public void AutoFindAnimationComponents()
         {
-            if (bodyAnimation == null)
+            Animation[] allAnims = GetComponentsInChildren<Animation>(true);
+            if (allAnims != null && allAnims.Length > 0)
             {
-                bodyAnimation = GetComponentInChildren<Animation>();
-                if (bodyAnimation == null && transform.parent != null)
+                bodyAnimation = null;
+                headAnimation = null;
+
+                foreach (var anim in allAnims)
                 {
-                    bodyAnimation = transform.parent.GetComponentInChildren<Animation>();
+                    string objName = anim.gameObject.name.ToLowerInvariant();
+                    if (objName.Contains("head") || objName.Contains("tou"))
+                    {
+                        headAnimation = anim;
+                    }
+                    else if (objName.Contains("body") || objName.Contains("shen") || bodyAnimation == null)
+                    {
+                        if (bodyAnimation == null || objName.Contains("body") || objName.Contains("shen"))
+                        {
+                            bodyAnimation = anim;
+                        }
+                    }
+                }
+
+                if (allAnims.Length >= 2 && headAnimation == null && bodyAnimation != null)
+                {
+                    foreach (var anim in allAnims)
+                    {
+                        if (anim != bodyAnimation)
+                        {
+                            headAnimation = anim;
+                            break;
+                        }
+                    }
                 }
             }
-
-            if (headAnimation == null)
+            else if (transform.parent != null)
             {
-                Transform headTf = transform.Find("Head");
-                if (headTf != null)
-                {
-                    headAnimation = headTf.GetComponentInChildren<Animation>();
-                }
+                bodyAnimation = transform.parent.GetComponentInChildren<Animation>();
             }
 
             ConfigureAnimationSettings(bodyAnimation);
             ConfigureAnimationSettings(headAnimation);
+            cachedNpcResData = null;
         }
 
         private void ConfigureAnimationSettings(Animation animComp)
         {
             if (animComp == null) return;
+            animComp.enabled = true;
             animComp.cullingType = AnimationCullingType.AlwaysAnimate;
             foreach (AnimationState state in animComp)
             {
@@ -175,7 +198,8 @@ namespace TopDownGame
             if (string.IsNullOrEmpty(clip) && bodyAnimation != null && bodyAnimation.clip != null)
                 clip = bodyAnimation.clip.name;
 
-            if (string.IsNullOrEmpty(clip) || currentClip == clip) return;
+            if (string.IsNullOrEmpty(clip)) return;
+            if (currentClip == clip && bodyAnimation != null && bodyAnimation.IsPlaying(clip)) return;
             PlayActionInternal(clip, WrapMode.Loop, moveCrossFadeTime, false);
         }
 
@@ -186,7 +210,8 @@ namespace TopDownGame
             if (string.IsNullOrEmpty(clip) && bodyAnimation != null && bodyAnimation.clip != null)
                 clip = bodyAnimation.clip.name;
 
-            if (string.IsNullOrEmpty(clip) || currentClip == clip) return;
+            if (string.IsNullOrEmpty(clip)) return;
+            if (currentClip == clip && bodyAnimation != null && bodyAnimation.IsPlaying(clip)) return;
             PlayActionInternal(clip, WrapMode.Loop, moveCrossFadeTime, false);
         }
 
@@ -194,7 +219,8 @@ namespace TopDownGame
         {
             if (isLocked) return;
             string clip = ResolveClipName(CLIP_RUN) ?? ResolveClipName(CLIP_WALK) ?? ResolveClipName("jsrun");
-            if (string.IsNullOrEmpty(clip) || currentClip == clip) return;
+            if (string.IsNullOrEmpty(clip)) return;
+            if (currentClip == clip && bodyAnimation != null && bodyAnimation.IsPlaying(clip)) return;
             PlayActionInternal(clip, WrapMode.Loop, moveCrossFadeTime, false);
         }
 
@@ -202,7 +228,8 @@ namespace TopDownGame
         {
             if (isLocked) return;
             string clip = ResolveClipName(CLIP_WALK) ?? ResolveClipName(CLIP_RUN);
-            if (string.IsNullOrEmpty(clip) || currentClip == clip) return;
+            if (string.IsNullOrEmpty(clip)) return;
+            if (currentClip == clip && bodyAnimation != null && bodyAnimation.IsPlaying(clip)) return;
             PlayActionInternal(clip, WrapMode.Loop, moveCrossFadeTime, false);
         }
 

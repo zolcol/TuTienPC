@@ -60,10 +60,16 @@ namespace TopDownGame.Editor
 
             EditorGUILayout.Space(10);
 
-            if (GUILayout.Button("🚀 TẠO NPC VÀO SCENE", GUILayout.Height(35)))
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("🚀 TẠO 1 NPC ĐƠN LẺ", GUILayout.Height(35)))
             {
                 SpawnNpcInScene(selectedNpcId);
             }
+            if (GUILayout.Button("🎯 TẠO BÃI QUÁI (SPAWN POINT)", GUILayout.Height(35)))
+            {
+                CreateSpawnPointInScene(selectedNpcId);
+            }
+            EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(15);
             GUILayout.Label("Danh sách mẫu trong Database:", EditorStyles.boldLabel);
@@ -196,6 +202,36 @@ namespace TopDownGame.Editor
 
             Debug.Log($"✅ Đã tạo thành công NPC: <b>{rootName}</b> với model <i>{template.prefab}</i> | Máu: {(attrib != null ? attrib.maxLife : 100)} | Tốc độ: {defaultSpeed:F1} m/s | Layer: Enemy ({enemyLayer}) | Tag: Enemy!");
             return rootGO;
+        }
+
+        public static GameObject CreateSpawnPointInScene(int npcId, int level = 1, int maxCount = 3, float radius = 6.0f)
+        {
+            NpcTemplateDatabase.Instance.EnsureLoaded();
+            var template = NpcTemplateDatabase.GetTemplate(npcId);
+            string name = template != null ? template.name : $"NPC_{npcId}";
+
+            GameObject spGO = new GameObject($"SpawnPoint_{name}");
+            Undo.RegisterCreatedObjectUndo(spGO, "Create Spawn Point");
+
+            if (SceneView.lastActiveSceneView != null)
+            {
+                Vector3 spawnPos = SceneView.lastActiveSceneView.camera.transform.position + SceneView.lastActiveSceneView.camera.transform.forward * 5f;
+                spawnPos.y = 0f;
+                spGO.transform.position = spawnPos;
+            }
+
+            var spawner = spGO.AddComponent<EnemySpawnPoint>();
+            spawner.NpcTemplateId = npcId;
+            spawner.MonsterLevel = level;
+            spawner.MaxMonsterCount = maxCount;
+            spawner.SpawnRadius = radius;
+
+            EditorUtility.SetDirty(spGO);
+            Selection.activeGameObject = spGO;
+            EditorGUIUtility.PingObject(spGO);
+
+            Debug.Log($"🎯 Đã tạo thành công Bãi Quái: <b>{spGO.name}</b> (Template #{npcId}, Lv.{level}, Max: {maxCount}, Radius: {radius}m)!");
+            return spGO;
         }
 
         private static void SetTagAndLayerRecursively(GameObject obj, string tag, int layer)
