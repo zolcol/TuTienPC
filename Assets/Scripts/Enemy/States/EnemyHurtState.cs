@@ -20,19 +20,19 @@ namespace TopDownGame.Enemy
             base.Enter();
             timer = 0f;
 
-            if (enemy.AnimationController != null)
+            bool hasHurtClip = enemy.AnimationController != null && enemy.AnimationController.HasClip(LegacyAnimationController.CLIP_HURT);
+            if (hasHurtClip)
             {
                 enemy.AnimationController.PlayHurt(0.05f);
                 hurtDuration = enemy.AnimationController.GetClipDuration(LegacyAnimationController.CLIP_HURT);
+                if (hurtDuration <= 0.05f)
+                {
+                    hurtDuration = 0.25f;
+                }
             }
             else
             {
-                hurtDuration = 0.4f;
-            }
-
-            if (hurtDuration <= 0.05f)
-            {
-                hurtDuration = 0.4f;
+                hurtDuration = 0f;
             }
         }
 

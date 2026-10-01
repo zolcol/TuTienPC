@@ -10,6 +10,7 @@ namespace TopDownGame.Enemy
         public override void Enter()
         {
             base.Enter();
+            enemy.IsReturningToSpawn = false;
             if (enemy.AnimationController != null)
             {
                 enemy.AnimationController.PlayRun();
@@ -36,6 +37,7 @@ namespace TopDownGame.Enemy
             // 1. Vượt quá tầm truy đuổi / Leash Range (ActiveRadius) tính từ điểm xuất phát hoặc khoảng cách mục tiêu
             if (distanceToTarget > enemy.ActiveRadius || distanceFromSpawn > enemy.ActiveRadius)
             {
+                enemy.IsReturningToSpawn = true;
                 stateMachine.ChangeState(enemy.IdleState);
                 return;
             }

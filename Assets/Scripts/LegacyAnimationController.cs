@@ -157,6 +157,8 @@ namespace TopDownGame
             else if (lower == "wlk") found = FindDirectClip("run");
             else if (lower == "die") found = FindDirectClip("jfd");
             else if (lower == "jfd") found = FindDirectClip("die");
+            else if (lower == "bat") found = FindDirectClip("jt");
+            else if (lower == "jt") found = FindDirectClip("bat");
 
             return found;
         }

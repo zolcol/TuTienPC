@@ -42,6 +42,7 @@ namespace TopDownGame.Enemy
         public float DistanceFromSpawn => Perception != null ? Perception.GetDistanceToSpawn() : 0f;
         public float MoveSpeed => moveSpeed;
         public float WalkSpeed => walkSpeed;
+        public bool IsReturningToSpawn { get; set; }
 
         public int NpcResId => (npcTemplateId > 0 && NpcTemplateDatabase.GetTemplate(npcTemplateId) != null) ? NpcTemplateDatabase.GetTemplate(npcTemplateId).npcResId : 0;
 
@@ -141,6 +142,8 @@ namespace TopDownGame.Enemy
         private void HandleDamaged(float amount, Vector3 hitPoint, Vector3 hitDirection)
         {
             if (Stats == null || Stats.IsDead || StateMachine.CurrentState == DeadState) return;
+            if (StateMachine.CurrentState == AttackState) return;
+            if (AnimationController == null || !AnimationController.HasClip(LegacyAnimationController.CLIP_HURT)) return;
             StateMachine.ChangeState(HurtState);
         }
 
