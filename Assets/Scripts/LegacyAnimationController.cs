@@ -112,7 +112,7 @@ namespace TopDownGame
             }
         }
 
-        public string ResolveClipName(string targetClip)
+        private string FindDirectClip(string targetClip)
         {
             if (string.IsNullOrEmpty(targetClip)) return null;
 
@@ -137,6 +137,27 @@ namespace TopDownGame
             }
 
             return null;
+        }
+
+        public string ResolveClipName(string targetClip)
+        {
+            if (string.IsNullOrEmpty(targetClip)) return null;
+
+            string found = FindDirectClip(targetClip);
+            if (!string.IsNullOrEmpty(found)) return found;
+
+            // Fallback thông minh theo chuẩn quy ước CastActionID
+            string lower = targetClip.ToLowerInvariant();
+            if (lower == "st") found = FindDirectClip("sta");
+            else if (lower == "sta") found = FindDirectClip("st");
+            else if (lower.StartsWith("at0") || lower.StartsWith("at1")) found = FindDirectClip("at");
+            else if (lower == "at") found = FindDirectClip("at01") ?? FindDirectClip("at02");
+            else if (lower == "run") found = FindDirectClip("wlk") ?? FindDirectClip("jsrun");
+            else if (lower == "wlk") found = FindDirectClip("run");
+            else if (lower == "die") found = FindDirectClip("jfd");
+            else if (lower == "jfd") found = FindDirectClip("die");
+
+            return found;
         }
 
         public bool HasClip(string clipName)

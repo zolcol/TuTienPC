@@ -104,6 +104,10 @@ namespace TopDownGame.Enemy
                 SkillData skill = SkillDatabase.GetSkill(id);
                 if (skill != null && !IsOnCooldown(skill.id))
                 {
+                    // Bỏ qua các kỹ năng tự thân / bị động / buff khi đang tìm chiêu tấn công mục tiêu
+                    if (skill.targetSelf || skill.relation == SkillRelation.Self)
+                        continue;
+
                     // Buffer nhỏ 0.35m để dung hòa bán kính Collider va chạm giữa Enemy và Player
                     float effectiveSkillRange = (skill.range > 0f ? skill.range : 2.0f) + 0.35f;
                     if (distanceToTarget < 0f || distanceToTarget <= effectiveSkillRange)
@@ -127,7 +131,7 @@ namespace TopDownGame.Enemy
                 for (int i = 0; i < attackSkillIds.Count; i++)
                 {
                     var sk = SkillDatabase.GetSkill(attackSkillIds[i]);
-                    if (sk != null && sk.range > 0f && sk.range < minR)
+                    if (sk != null && !sk.targetSelf && sk.relation != SkillRelation.Self && sk.range > 0f && sk.range < minR)
                     {
                         minR = sk.range;
                     }
