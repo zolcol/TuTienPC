@@ -28,6 +28,12 @@ namespace TopDownGame.UI
         [SerializeField] private TextMeshProUGUI manaText;
         [SerializeField] private float manaLerpSpeed = 10f;
 
+        [Header("Level & Exp Bar (Tùy chọn)")]
+        [SerializeField] private Image expFill;
+        [SerializeField] private TextMeshProUGUI expText;
+        [SerializeField] private TextMeshProUGUI levelText;
+        [SerializeField] private float expLerpSpeed = 10f;
+
         [Header("Skill Slots (Hiển thị theo thứ tự Q - E - R)")]
         [SerializeField] private SkillSlotUI skillSlot_Q;
         [SerializeField] private SkillSlotUI skillSlot_E;
@@ -35,6 +41,7 @@ namespace TopDownGame.UI
 
         private float targetHealthFill = 1f;
         private float targetManaFill = 1f;
+        private float targetExpFill = 0f;
         private float ghostTimer;
 
         private void Start()
@@ -61,14 +68,18 @@ namespace TopDownGame.UI
             {
                 stats.Health.OnValueChanged += HandleHealthChanged;
                 stats.Mana.OnValueChanged += HandleManaChanged;
+                stats.OnExpChanged += HandleExpChanged;
+                stats.OnLevelUp += HandleLevelUp;
 
                 // Cập nhật giá trị khởi điểm ngay lập tức
                 HandleHealthChanged(stats.Health.CurrentValue, stats.Health.MaxValue);
                 HandleManaChanged(stats.Mana.CurrentValue, stats.Mana.MaxValue);
+                HandleExpChanged(stats.CurrentLevel, stats.CurrentExp, stats.GetExpUpgradeForCurrentLevel());
 
                 if (healthFill != null) healthFill.fillAmount = targetHealthFill;
                 if (healthGhostFill != null) healthGhostFill.fillAmount = targetHealthFill;
                 if (manaFill != null) manaFill.fillAmount = targetManaFill;
+                if (expFill != null) expFill.fillAmount = targetExpFill;
             }
 
             // 2. Thiết lập 3 ô kỹ năng theo thứ tự Q - E - R từ Database
@@ -83,7 +94,21 @@ namespace TopDownGame.UI
             {
                 player.Stats.Health.OnValueChanged -= HandleHealthChanged;
                 player.Stats.Mana.OnValueChanged -= HandleManaChanged;
+                player.Stats.OnExpChanged -= HandleExpChanged;
+                player.Stats.OnLevelUp -= HandleLevelUp;
             }
+        }
+
+        private void HandleExpChanged(int level, long exp, long maxExp)
+        {
+            if (levelText != null) levelText.text = $"Lv.{level}";
+            targetExpFill = maxExp > 0 ? Mathf.Clamp01((float)exp / maxExp) : 1f;
+            if (expText != null) expText.text = $"{exp} / {maxExp}";
+        }
+
+        private void HandleLevelUp(int newLevel)
+        {
+            if (levelText != null) levelText.text = $"Lv.{newLevel}";
         }
 
         private void Update()
@@ -136,6 +161,16 @@ namespace TopDownGame.UI
                 if (Mathf.Abs(manaFill.fillAmount - targetManaFill) < 0.001f)
                 {
                     manaFill.fillAmount = targetManaFill;
+                }
+            }
+
+            // 4. Thanh EXP vàng cam
+            if (expFill != null)
+            {
+                expFill.fillAmount = Mathf.Lerp(expFill.fillAmount, targetExpFill, Time.deltaTime * expLerpSpeed);
+                if (Mathf.Abs(expFill.fillAmount - targetExpFill) < 0.001f)
+                {
+                    expFill.fillAmount = targetExpFill;
                 }
             }
         }

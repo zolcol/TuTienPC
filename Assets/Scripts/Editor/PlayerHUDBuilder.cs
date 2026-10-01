@@ -22,6 +22,10 @@ namespace TopDownGame.Editor
         private static readonly Color MpBgColor = new Color(0.04f, 0.09f, 0.22f, 0.95f);
         private static readonly Color MpFillColor = new Color(0.15f, 0.60f, 1f, 1f); // Xanh lam sáng
 
+        private static readonly Color ExpBgColor = new Color(0.18f, 0.14f, 0.04f, 0.95f);
+        private static readonly Color ExpFillColor = new Color(1.0f, 0.72f, 0.12f, 1f); // Vàng cam sáng
+        private static readonly Color LevelBadgeBgColor = new Color(0.12f, 0.10f, 0.05f, 0.95f);
+
         private static readonly Color CooldownOverlayColor = new Color(0f, 0f, 0f, 0.75f);
         private static readonly Color GoldTextColor = new Color(1f, 0.88f, 0.45f, 1f);
 
@@ -65,8 +69,11 @@ namespace TopDownGame.Editor
             // Lấy hoặc tạo Sprite trắng phẳng (không bo cong) để hỗ trợ Image.Type.Filled
             Sprite flatSprite = GetOrCreateFlatWhiteSprite();
 
-            // 6. Tạo cụm Thanh Máu & Mana ở Góc trên bên Trái (Top-Left)
-            CreateStatusPanel(hudRoot.transform, flatSprite, out Image healthFill, out Image healthGhostFill, out TextMeshProUGUI healthText, out Image manaFill, out TextMeshProUGUI manaText);
+            // 6. Tạo cụm Thanh Máu, Mana, EXP & Level Badge ở Góc trên bên Trái (Top-Left)
+            CreateStatusPanel(hudRoot.transform, flatSprite, 
+                out Image healthFill, out Image healthGhostFill, out TextMeshProUGUI healthText, 
+                out Image manaFill, out TextMeshProUGUI manaText,
+                out Image expFill, out TextMeshProUGUI expText, out TextMeshProUGUI levelText);
 
             // 7. Tạo cụm 3 Ô Kỹ Năng ở Dưới cùng Chính giữa theo thứ tự Q - E - R
             CreateSkillPanel(hudRoot.transform, flatSprite, out SkillSlotUI slotQ, out SkillSlotUI slotE, out SkillSlotUI slotR);
@@ -82,6 +89,9 @@ namespace TopDownGame.Editor
             hudSO.FindProperty("healthText").objectReferenceValue = healthText;
             hudSO.FindProperty("manaFill").objectReferenceValue = manaFill;
             hudSO.FindProperty("manaText").objectReferenceValue = manaText;
+            hudSO.FindProperty("expFill").objectReferenceValue = expFill;
+            hudSO.FindProperty("expText").objectReferenceValue = expText;
+            hudSO.FindProperty("levelText").objectReferenceValue = levelText;
             hudSO.FindProperty("skillSlot_Q").objectReferenceValue = slotQ;
             hudSO.FindProperty("skillSlot_E").objectReferenceValue = slotE;
             hudSO.FindProperty("skillSlot_R").objectReferenceValue = slotR;
@@ -93,7 +103,7 @@ namespace TopDownGame.Editor
             EditorUtility.DisplayDialog(
                 "Thành Công!",
                 "Đã tạo giao diện HUD hoàn chỉnh:\n" +
-                "• Thanh Máu & Mana: Góc trên bên Trái (vạch phẳng, to rõ, có hiệu ứng vạch vàng tụt theo)\n" +
+                "• Cụm Status Góc trên Trái: Thanh Máu (HP), Mana (MP), Vạch EXP và Huy hiệu Cấp độ (Lv.1)\n" +
                 "• 3 Ô Kỹ năng: Dưới cùng Chính giữa (Thứ tự: Q - E - R)\n" +
                 "• Canvas đã được gắn khít vào Main Camera\n" +
                 (player != null ? "• Đã tự động liên kết với PlayerController và PlayerStats trong Scene!" : "• Lưu ý: Chưa tìm thấy PlayerController trong Scene."),
@@ -179,9 +189,12 @@ namespace TopDownGame.Editor
             }
         }
 
-        private static void CreateStatusPanel(Transform parent, Sprite flatSprite, out Image healthFill, out Image healthGhostFill, out TextMeshProUGUI healthText, out Image manaFill, out TextMeshProUGUI manaText)
+        private static void CreateStatusPanel(Transform parent, Sprite flatSprite, 
+            out Image healthFill, out Image healthGhostFill, out TextMeshProUGUI healthText, 
+            out Image manaFill, out TextMeshProUGUI manaText,
+            out Image expFill, out TextMeshProUGUI expText, out TextMeshProUGUI levelText)
         {
-            // Panel nền góc trên-trái (Thiết kế phẳng, vạch thẳng vuông vắn, to và rõ ràng)
+            // Panel nền góc trên-trái (Mở rộng chiều cao lên 136px để chứa gọn gàng thanh EXP và Level)
             GameObject panelGO = new GameObject("StatusPanel_TopLeft", typeof(RectTransform), typeof(Image));
             panelGO.transform.SetParent(parent, false);
 
@@ -190,7 +203,7 @@ namespace TopDownGame.Editor
             panelRect.anchorMax = new Vector2(0f, 1f);
             panelRect.pivot = new Vector2(0f, 1f);
             panelRect.anchoredPosition = new Vector2(30f, -30f);
-            panelRect.sizeDelta = new Vector2(440f, 110f);
+            panelRect.sizeDelta = new Vector2(440f, 136f);
 
             Image panelImg = panelGO.GetComponent<Image>();
             panelImg.sprite = flatSprite;
@@ -203,15 +216,15 @@ namespace TopDownGame.Editor
             hpBarRect.anchorMin = new Vector2(0f, 1f);
             hpBarRect.anchorMax = new Vector2(0f, 1f);
             hpBarRect.pivot = new Vector2(0f, 1f);
-            hpBarRect.anchoredPosition = new Vector2(62f, -16f);
-            hpBarRect.sizeDelta = new Vector2(360f, 34f);
+            hpBarRect.anchoredPosition = new Vector2(62f, -14f);
+            hpBarRect.sizeDelta = new Vector2(360f, 32f);
 
             Image hpBgImg = hpBarGO.GetComponent<Image>();
             hpBgImg.sprite = flatSprite;
             hpBgImg.color = HpBgColor;
 
             // Label "HP"
-            CreateBadgeText(panelGO.transform, "HP", new Vector2(16f, -16f), new Vector2(40f, 34f), 16, new Color(1f, 0.35f, 0.35f));
+            CreateBadgeText(panelGO.transform, "HP", new Vector2(16f, -14f), new Vector2(40f, 32f), 15, new Color(1f, 0.35f, 0.35f));
 
             // Vạch vàng Ghost tụt theo (Nằm ngay sau vạch đỏ, cần flatSprite để hoạt động Image.Type.Filled)
             GameObject ghostGO = new GameObject("GhostFill", typeof(RectTransform), typeof(Image));
@@ -255,15 +268,15 @@ namespace TopDownGame.Editor
             mpBarRect.anchorMin = new Vector2(0f, 1f);
             mpBarRect.anchorMax = new Vector2(0f, 1f);
             mpBarRect.pivot = new Vector2(0f, 1f);
-            mpBarRect.anchoredPosition = new Vector2(62f, -60f);
-            mpBarRect.sizeDelta = new Vector2(360f, 24f);
+            mpBarRect.anchoredPosition = new Vector2(62f, -54f);
+            mpBarRect.sizeDelta = new Vector2(360f, 22f);
 
             Image mpBgImg = mpBarGO.GetComponent<Image>();
             mpBgImg.sprite = flatSprite;
             mpBgImg.color = MpBgColor;
 
             // Label "MP"
-            CreateBadgeText(panelGO.transform, "MP", new Vector2(16f, -60f), new Vector2(40f, 24f), 14, new Color(0.35f, 0.75f, 1f));
+            CreateBadgeText(panelGO.transform, "MP", new Vector2(16f, -54f), new Vector2(40f, 22f), 13, new Color(0.35f, 0.75f, 1f));
 
             // Fill Mana xanh
             GameObject mpFillGO = new GameObject("Fill", typeof(RectTransform), typeof(Image));
@@ -282,7 +295,56 @@ namespace TopDownGame.Editor
             manaFill.color = MpFillColor;
 
             // Text số Mana
-            manaText = CreateValueText(mpBarGO.transform, "100 / 100", 12);
+            manaText = CreateValueText(mpBarGO.transform, "100 / 100", 11);
+
+            // 3. VẠCH LEVEL & KINH NGHIỆM (EXP BAR)
+            GameObject expBarGO = new GameObject("ExpBar", typeof(RectTransform), typeof(Image));
+            expBarGO.transform.SetParent(panelGO.transform, false);
+            RectTransform expBarRect = expBarGO.GetComponent<RectTransform>();
+            expBarRect.anchorMin = new Vector2(0f, 1f);
+            expBarRect.anchorMax = new Vector2(0f, 1f);
+            expBarRect.pivot = new Vector2(0f, 1f);
+            expBarRect.anchoredPosition = new Vector2(62f, -86f);
+            expBarRect.sizeDelta = new Vector2(360f, 14f);
+
+            Image expBgImg = expBarGO.GetComponent<Image>();
+            expBgImg.sprite = flatSprite;
+            expBgImg.color = ExpBgColor;
+
+            // Huy hiệu Level bên trái (Ví dụ: Lv.1)
+            GameObject levelBadgeGO = new GameObject("LevelBadge", typeof(RectTransform), typeof(Image));
+            levelBadgeGO.transform.SetParent(panelGO.transform, false);
+            RectTransform levelBadgeRect = levelBadgeGO.GetComponent<RectTransform>();
+            levelBadgeRect.anchorMin = new Vector2(0f, 1f);
+            levelBadgeRect.anchorMax = new Vector2(0f, 1f);
+            levelBadgeRect.pivot = new Vector2(0f, 1f);
+            levelBadgeRect.anchoredPosition = new Vector2(16f, -84f);
+            levelBadgeRect.sizeDelta = new Vector2(40f, 18f);
+
+            Image levelBadgeImg = levelBadgeGO.GetComponent<Image>();
+            levelBadgeImg.sprite = flatSprite;
+            levelBadgeImg.color = LevelBadgeBgColor;
+
+            levelText = CreateBadgeText(levelBadgeGO.transform, "Lv.1", Vector2.zero, Vector2.zero, 11, GoldTextColor, true);
+
+            // Fill EXP vàng cam sáng
+            GameObject expFillGO = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+            expFillGO.transform.SetParent(expBarGO.transform, false);
+            RectTransform expFillRect = expFillGO.GetComponent<RectTransform>();
+            expFillRect.anchorMin = Vector2.zero;
+            expFillRect.anchorMax = Vector2.one;
+            expFillRect.sizeDelta = Vector2.zero;
+
+            expFill = expFillGO.GetComponent<Image>();
+            expFill.sprite = flatSprite;
+            expFill.type = Image.Type.Filled;
+            expFill.fillMethod = Image.FillMethod.Horizontal;
+            expFill.fillOrigin = (int)Image.OriginHorizontal.Left;
+            expFill.fillAmount = 0f;
+            expFill.color = ExpFillColor;
+
+            // Text số EXP (Hiển thị phần trăm / số lượng)
+            expText = CreateValueText(expBarGO.transform, "0 / 28000", 9);
         }
 
         private static void CreateSkillPanel(Transform parent, Sprite flatSprite, out SkillSlotUI slotQ, out SkillSlotUI slotE, out SkillSlotUI slotR)
@@ -429,17 +491,26 @@ namespace TopDownGame.Editor
             return tmp;
         }
 
-        private static void CreateBadgeText(Transform parent, string text, Vector2 anchoredPos, Vector2 size, float fontSize, Color color)
+        private static TextMeshProUGUI CreateBadgeText(Transform parent, string text, Vector2 anchoredPos, Vector2 size, float fontSize, Color color, bool isStretch = false)
         {
             GameObject labelGO = new GameObject("Label_" + text, typeof(RectTransform), typeof(TextMeshProUGUI));
             labelGO.transform.SetParent(parent, false);
 
             RectTransform rect = labelGO.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = anchoredPos;
-            rect.sizeDelta = size;
+            if (isStretch)
+            {
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.sizeDelta = Vector2.zero;
+            }
+            else
+            {
+                rect.anchorMin = new Vector2(0f, 1f);
+                rect.anchorMax = new Vector2(0f, 1f);
+                rect.pivot = new Vector2(0f, 1f);
+                rect.anchoredPosition = anchoredPos;
+                rect.sizeDelta = size;
+            }
 
             TextMeshProUGUI tmp = labelGO.GetComponent<TextMeshProUGUI>();
             tmp.text = text;
@@ -447,6 +518,7 @@ namespace TopDownGame.Editor
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = color;
+            return tmp;
         }
     }
 }

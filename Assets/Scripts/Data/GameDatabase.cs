@@ -19,6 +19,8 @@ namespace TopDownGame.Data
         public static SkillDatabase Skills => SkillDatabase.Instance;
         public static SoundDatabase Sounds => SoundDatabase.Instance;
         public static FloatingTextDatabase FloatingTexts => FloatingTextDatabase.Instance;
+        public static PlayerLevelDatabase PlayerLevels => PlayerLevelDatabase.Instance;
+        public static ExpRuleDatabase ExpRules => ExpRuleDatabase.Instance;
 
         private static bool isInitialized = false;
 
@@ -33,7 +35,9 @@ namespace TopDownGame.Data
             NpcTemplates.IsLoaded &&
             Skills.IsLoaded &&
             Sounds.IsLoaded &&
-            FloatingTexts.IsLoaded;
+            FloatingTexts.IsLoaded &&
+            PlayerLevels.IsLoaded &&
+            ExpRules.IsLoaded;
 
         public static void EnsureLoaded()
         {
@@ -42,6 +46,8 @@ namespace TopDownGame.Data
             // Nạp theo đúng thứ tự phụ thuộc (Dependency Order)
             Sounds.EnsureLoaded();
             FloatingTexts.EnsureLoaded();
+            PlayerLevels.EnsureLoaded();
+            ExpRules.EnsureLoaded();
             Effects.EnsureLoaded();
             Missiles.EnsureLoaded();
             StateEffects.EnsureLoaded();
@@ -61,6 +67,8 @@ namespace TopDownGame.Data
 
             Sounds.Clear();
             FloatingTexts.Clear();
+            PlayerLevels.Clear();
+            ExpRules.Clear();
             Effects.Clear();
             Missiles.Clear();
             StateEffects.Clear();

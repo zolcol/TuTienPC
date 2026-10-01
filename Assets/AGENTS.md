@@ -60,6 +60,7 @@ Assets/Scripts/
 ├── Data/
 │   ├── CsvParserHelper.cs             # Parse dòng CSV, xử lý ngoặc kép, bóc tách chuỗi đa tầng {Lv,Val}
 │   ├── EffectDatabase.cs              # Nạp EffectRes.csv (đường dẫn prefab VFX, cờ lockRotate)
+│   ├── ExpRuleDatabase.cs             # Nạp ExpRule.csv (ma trận % exp khi diệt quái theo cấp)
 │   ├── FactionSkillDatabase.cs        # Nạp FactionSkill.csv (tra cứu icon, atlas và thông tin môn phái)
 │   ├── FloatingTextData.cs / FloatingTextDatabase.cs # Nạp FloatingText.csv (cấu hình màu sắc, scale, pop, velocity)
 │   ├── GameDatabase.cs                # Entry-point nạp toàn bộ CSV theo đúng Dependency Order
@@ -68,13 +69,14 @@ Assets/Scripts/
 │   ├── NpcAttributeDatabase.cs        # Nạp NpcAttribute.csv (máu, công vật lý/ngũ hành Level 1)
 │   ├── NpcResData.cs / NpcResDatabase.cs # Nạp NpcRes.csv (chiều cao, độ rộng, ActionFrames, model prefab)
 │   ├── PartSlotData.cs / PartSlotDatabase.cs # Nạp PartSlot.csv (tìm transform xương theo ID: B_RH, head...)
+│   ├── PlayerLevelData.cs / PlayerLevelDatabase.cs # Nạp PlayerLevel.csv (EXP lên cấp, BaseAwardExp)
 │   └── StateEffectDatabase.cs         # Nạp StateEffect.csv (VFX buff ngực/đầu theo thời gian)
 │
 ├── Enemy/
 │   ├── EnemyBrain.cs                  # Quản lý Cooldown skill quái, chọn skill sẵn sàng, gọi Resolver
 │   ├── EnemyController.cs             # FSM Runner quái vật, CharacterController move, apply Template
 │   ├── EnemyPerception.cs             # Nhận diện mục tiêu: visionRadius (phát hiện), activeRadius (leash)
-│   ├── EnemyStats.cs                  # Máu quái (kế thừa EntityStats), expReward, despawn delay
+│   ├── EnemyStats.cs                  # Máu quái (kế thừa EntityStats), MonsterLevel, exp calculation & reward
 │   └── States/
 │       ├── EnemyBaseState.cs          # State cơ sở
 │       ├── EnemyIdleState.cs          # Đứng chờ / Đi bộ về điểm spawn nếu quá xa
@@ -115,13 +117,13 @@ Assets/Scripts/
 │
 ├── Stats/
 │   ├── EntityStats.cs                 # Base stats: Máu, công vật lý/phép, AttackSpeed, IDamageable
-│   ├── PlayerStats.cs                 # Mở rộng cho Player: Thanh Mana và cơ chế tiêu hao năng lượng
+│   ├── PlayerStats.cs                 # Mở rộng cho Player: Mana, Cấp độ (Level), Kinh nghiệm (Exp), LevelUp
 │   └── ResourceStat.cs                # Cặp giá trị Current/Max, tự hồi máu/mana, phát Action event
 │
 ├── UI/
 │   ├── FloatingTextItem.cs            # Hiệu ứng chữ/số nảy 3D (Billboard, Scale Pop, Fade Out)
 │   ├── FloatingTextManager.cs         # POOLING FLOATING TEXT: SpawnDamage, SpawnHeal, SpawnExp, Miss...
-│   ├── PlayerHUD.cs                   # Điều khiển HUD: Máu lerp + Ghost Bar vàng, Mana, 3 ô skill
+│   ├── PlayerHUD.cs                   # Điều khiển HUD: Máu lerp + Ghost Bar vàng, Mana, Level/EXP, 3 ô skill
 │   └── SkillSlotUI.cs                 # Ô skill đơn lẻ: Icon, Overlay xoay 360°, đếm ngược số giây, Mana cost
 │
 ├── Audio/
@@ -153,7 +155,7 @@ Assets/Scripts/
 | **Thêm / Sửa thuộc tính Kỹ năng từ Database** | `Skills/SkillData.cs`<br>`Skills/SkillCsvParser.cs`<br>`Skills/ActionEventParser.cs` | `Data/GameDatabase.cs` |
 | **Sửa AI / Hành vi Quái vật / Boss** | `Enemy/EnemyBrain.cs`<br>`Enemy/EnemyPerception.cs`<br>`Enemy/States/EnemyAttackState.cs` | `Enemy/EnemyController.cs` |
 | **Sửa Hoạt ảnh / Khớp xương / Đồng bộ Body & Head** | `LegacyAnimationController.cs`<br>`Combat/VfxLockRotation.cs`<br>`Data/PartSlotDatabase.cs` | `Skills/CastActionID.cs` |
-| **Sửa Chỉ số Máu, Mana, Công thủ, Tốc đánh** | `Stats/EntityStats.cs`<br>`Stats/PlayerStats.cs`<br>`Combat/CombatFormula.cs` | `Stats/ResourceStat.cs` |
+| **Sửa Chỉ số Máu, Mana, Cấp độ, Kinh nghiệm, Tốc đánh** | `Stats/EntityStats.cs`<br>`Stats/PlayerStats.cs`<br>`Data/PlayerLevelDatabase.cs`<br>`Data/ExpRuleDatabase.cs` | `Stats/ResourceStat.cs`<br>`Combat/CombatFormula.cs` |
 | **Sửa Giao diện / HUD / Hiệu ứng Cooldown** | `UI/PlayerHUD.cs`<br>`UI/SkillSlotUI.cs` | `Editor/PlayerHUDBuilder.cs` |
 | **Sửa Số nhảy Sát thương / Floating Text (Dame, Heal, Exp, Miss)** | `UI/FloatingTextManager.cs`<br>`UI/FloatingTextItem.cs`<br>`Data/FloatingTextDatabase.cs` | `Data/FloatingTextData.cs`<br>`Settings/N/FloatingText.csv` |
 | **Sửa Âm thanh / Tiếng chém trúng / Voice** | `Audio/SoundManager.cs`<br>`Audio/SoundDatabase.cs` | `Audio/SoundData.cs` |

@@ -58,6 +58,12 @@ namespace TopDownGame.Data
             return int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out int val) ? val : defaultVal;
         }
 
+        public static long ParseLong(string s, long defaultVal = 0L)
+        {
+            if (string.IsNullOrEmpty(s)) return defaultVal;
+            return long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out long val) ? val : defaultVal;
+        }
+
         public static float ParseFloat(string s, float defaultVal = 0f)
         {
             if (string.IsNullOrEmpty(s)) return defaultVal;

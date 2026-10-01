@@ -1,5 +1,6 @@
 using UnityEngine;
 using TopDownGame.Stats;
+using TopDownGame.UI;
 
 namespace TopDownGame.Enemy
 {
@@ -10,8 +11,8 @@ namespace TopDownGame.Enemy
     public class EnemyStats : EntityStats
     {
         [Header("Enemy Rewards & Settings")]
-        [Tooltip("Lượng kinh nghiệm rơi ra khi quái chết (mở rộng sau này)")]
-        [SerializeField] private int expReward = 20;
+        [Tooltip("Cấp độ quái vật (mặc định lv 1 theo quy ước hiện tại)")]
+        [SerializeField] private int monsterLevel = 1;
 
         [Tooltip("Thời gian xác quái biến mất sau khi chết (giây)")]
         [SerializeField] private float despawnDelay = 3.0f;
@@ -21,13 +22,35 @@ namespace TopDownGame.Enemy
         [SerializeField] private bool showHealthBar = true;
         [SerializeField] private float healthBarOffsetY = 2.0f;
 
-        public int ExpReward => expReward;
+        private bool hasAwardedExp = false;
+
+        public int MonsterLevel { get => monsterLevel; set => monsterLevel = Mathf.Max(1, value); }
         public float DespawnDelay => despawnDelay;
 
         protected override void Die()
         {
             base.Die();
-            // Có thể thêm hiệu ứng âm thanh quái chết, rơi đồ tại đây
+            AwardExpToPlayer();
+        }
+
+        private void AwardExpToPlayer()
+        {
+            if (hasAwardedExp) return;
+            hasAwardedExp = true;
+
+            var player = FindObjectOfType<TopDownGame.Player.PlayerController>();
+            if (player != null && player.Stats != null)
+            {
+                int pLevel = player.Stats.CurrentLevel;
+                long exp = TopDownGame.Data.ExpRuleDatabase.Instance.CalculateExpReward(pLevel, monsterLevel);
+
+                if (exp > 0)
+                {
+                    player.Stats.AddExp(exp);
+                    Vector3 textSpawnPos = transform.position + Vector3.up * 1.8f;
+                    FloatingTextManager.Instance.SpawnExp((int)exp, textSpawnPos);
+                }
+            }
         }
 
         private void OnGUI()
