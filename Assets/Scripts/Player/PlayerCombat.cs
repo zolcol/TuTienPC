@@ -50,26 +50,6 @@ namespace TopDownGame.Player
         {
             player = GetComponent<PlayerController>();
             SkillDatabase.Instance.EnsureLoaded();
-            TopDownGame.Data.FactionSkillDatabase.Instance.EnsureLoaded();
-            if (factionId > 0) ApplyFactionSkills(factionId, false);
-        }
-
-        [ContextMenu("Nạp Kỹ Năng Theo Môn Phái")]
-        public void ApplyFactionSkills() => ApplyFactionSkills(factionId, true);
-
-        public void ApplyFactionSkills(int targetFaction, bool overwriteExisting = false)
-        {
-            factionId = targetFaction;
-            var list = TopDownGame.Data.FactionSkillDatabase.GetSkillsByFaction(targetFaction);
-            if (list == null || list.Count == 0) return;
-            foreach (var fSkill in list)
-            {
-                if (fSkill.btnName.Equals("Attack", StringComparison.OrdinalIgnoreCase)) { if (overwriteExisting || defaultNormalAttackId <= 0) defaultNormalAttackId = fSkill.skillId; }
-                else if (fSkill.btnName.Equals("Skill1", StringComparison.OrdinalIgnoreCase)) { if (overwriteExisting || skillSlotQ_Id <= 0) skillSlotQ_Id = fSkill.skillId; }
-                else if (fSkill.btnName.Equals("Skill2", StringComparison.OrdinalIgnoreCase)) { if (overwriteExisting || skillSlotE_Id <= 0) skillSlotE_Id = fSkill.skillId; }
-                else if (fSkill.btnName.Equals("Skill3", StringComparison.OrdinalIgnoreCase)) { if (overwriteExisting || skillSlotQ_Id <= 0) skillSlotQ_Id = fSkill.skillId; }
-                else if (fSkill.btnName.Equals("Skill5", StringComparison.OrdinalIgnoreCase) || fSkill.isAnger) { if (overwriteExisting || skillSlotR_Id <= 0) skillSlotR_Id = fSkill.skillId; }
-            }
         }
 
         public void TickCooldowns()

@@ -60,7 +60,7 @@ Assets/Scripts/
 ├── Data/
 │   ├── CsvParserHelper.cs             # Parse dòng CSV, xử lý ngoặc kép, bóc tách chuỗi đa tầng {Lv,Val}
 │   ├── EffectDatabase.cs              # Nạp EffectRes.csv (đường dẫn prefab VFX, cờ lockRotate)
-│   ├── FactionSkillDatabase.cs        # Nạp FactionSkill.csv (gán Q, E, R, Attack theo môn phái)
+│   ├── FactionSkillDatabase.cs        # Nạp FactionSkill.csv (tra cứu icon, atlas và thông tin môn phái)
 │   ├── GameDatabase.cs                # Entry-point nạp toàn bộ CSV theo đúng Dependency Order
 │   ├── ICsvTable.cs                   # Interface nạp/xóa bảng dữ liệu
 │   ├── MissileDatabase.cs             # Nạp Missile.csv (tốc độ đạn, tầm nổ, hitbox shape, vfx fly/hit)
@@ -92,7 +92,7 @@ Assets/Scripts/
 ├── Player/
 │   ├── CharacterMovement.cs           # Camera-relative movement, xoay nhân vật, trọng lực
 │   ├── PlayerAiming.cs                # Smartcast, raycast chuột/gamepad, điều khiển Indicator VFX
-│   ├── PlayerCombat.cs                # Quản lý Cooldown Q-E-R, phái (Faction), gọi SkillDamageResolver
+│   ├── PlayerCombat.cs                # Quản lý Cooldown & Slot kỹ năng (Q-E-R, Attack), gọi SkillDamageResolver
 │   ├── PlayerController.cs            # FSM Runner người chơi, facade kết nối Movement-Combat-Aiming
 │   └── States/
 │       ├── PlayerBaseState.cs         # State cơ sở người chơi

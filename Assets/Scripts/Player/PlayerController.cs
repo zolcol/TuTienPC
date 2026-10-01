@@ -67,8 +67,6 @@ namespace TopDownGame.Player
 
         private void FixedUpdate() => StateMachine.PhysicsUpdate();
 
-        public void ApplyFactionSkills() => Combat?.ApplyFactionSkills();
-        public void ApplyFactionSkills(int targetFaction, bool overwriteExisting = false) => Combat?.ApplyFactionSkills(targetFaction, overwriteExisting);
         public bool IsOnCooldown(int skillId) => Combat != null && Combat.IsOnCooldown(skillId);
         public float GetRemainingCooldown(int skillId) => Combat != null ? Combat.GetRemainingCooldown(skillId) : 0f;
         public void StartCooldown(int skillId, float duration) => Combat?.StartCooldown(skillId, duration);
