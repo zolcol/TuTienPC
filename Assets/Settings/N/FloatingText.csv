@@ -1,0 +1,9 @@
+Id,TypeName,Duration,StartScale,PeakScale,EndScale,PopDuration,FadeStartTime,ColorHex,FontSize,MoveVelocityX,MoveVelocityY,MoveVelocityZ,RandomJitter,Prefix,Suffix,IsBold,Desc
+1,NormalDamage,0.85,0.7,1.2,0.9,0.12,0.45,#FFF8E7,4.2,0,1.8,0,0.35,-,,1,Sát thương thường
+2,CritDamage,1.05,0.8,1.65,1.1,0.15,0.55,#FF2A2A,5.2,0,2.4,0,0.4,-,!,1,Sát thương chí mạng
+3,Heal,1.0,0.7,1.25,0.9,0.14,0.5,#2ECC71,4.2,0,1.5,0,0.25,+, HP,1,Hồi phục sinh lực
+4,PlayerDamaged,0.95,0.8,1.35,1.0,0.12,0.5,#FF4D4D,4.5,0,1.6,0,0.3,-,,1,Người chơi chịu sát thương
+5,ManaRestored,0.9,0.7,1.2,0.9,0.12,0.45,#3498DB,3.8,0,1.4,0,0.25,+, MP,1,Hồi phục nội lực
+6,Miss,0.8,0.8,1.1,0.85,0.1,0.4,#BDC3C7,3.6,0.5,1.2,0,0.2,,,1,Đòn đánh trượt
+7,ExpGain,1.1,0.7,1.2,0.9,0.12,0.6,#F1C40F,3.8,0,1.5,0,0.2,+, EXP,1,Nhận kinh nghiệm
+8,LevelUp,1.6,0.8,1.8,1.2,0.2,0.9,#FFD700,5.8,0,2.0,0,0.1,,,1,Thăng cấp

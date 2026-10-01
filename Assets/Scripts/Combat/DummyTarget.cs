@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using TopDownGame.UI;
 
 namespace TopDownGame.Combat
 {
@@ -36,7 +37,8 @@ namespace TopDownGame.Combat
         {
             currentHealth = Mathf.Max(0f, currentHealth - amount);
 
-            // Debug.Log($"💥 <color=orange>[HIT]</color> {gameObject.name} bị chém -{amount} Máu! (Còn lại: {currentHealth}/{maxHealth})");
+            Vector3 spawnPos = (hitPoint != Vector3.zero) ? hitPoint : (transform.position + Vector3.up * 1.5f);
+            FloatingTextManager.Instance.SpawnDamage(amount, spawnPos, false);
 
             if (meshRenderer != null)
             {

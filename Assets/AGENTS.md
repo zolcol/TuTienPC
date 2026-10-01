@@ -61,6 +61,7 @@ Assets/Scripts/
 │   ├── CsvParserHelper.cs             # Parse dòng CSV, xử lý ngoặc kép, bóc tách chuỗi đa tầng {Lv,Val}
 │   ├── EffectDatabase.cs              # Nạp EffectRes.csv (đường dẫn prefab VFX, cờ lockRotate)
 │   ├── FactionSkillDatabase.cs        # Nạp FactionSkill.csv (tra cứu icon, atlas và thông tin môn phái)
+│   ├── FloatingTextData.cs / FloatingTextDatabase.cs # Nạp FloatingText.csv (cấu hình màu sắc, scale, pop, velocity)
 │   ├── GameDatabase.cs                # Entry-point nạp toàn bộ CSV theo đúng Dependency Order
 │   ├── ICsvTable.cs                   # Interface nạp/xóa bảng dữ liệu
 │   ├── MissileDatabase.cs             # Nạp Missile.csv (tốc độ đạn, tầm nổ, hitbox shape, vfx fly/hit)
@@ -118,6 +119,8 @@ Assets/Scripts/
 │   └── ResourceStat.cs                # Cặp giá trị Current/Max, tự hồi máu/mana, phát Action event
 │
 ├── UI/
+│   ├── FloatingTextItem.cs            # Hiệu ứng chữ/số nảy 3D (Billboard, Scale Pop, Fade Out)
+│   ├── FloatingTextManager.cs         # POOLING FLOATING TEXT: SpawnDamage, SpawnHeal, SpawnExp, Miss...
 │   ├── PlayerHUD.cs                   # Điều khiển HUD: Máu lerp + Ghost Bar vàng, Mana, 3 ô skill
 │   └── SkillSlotUI.cs                 # Ô skill đơn lẻ: Icon, Overlay xoay 360°, đếm ngược số giây, Mana cost
 │
@@ -152,6 +155,7 @@ Assets/Scripts/
 | **Sửa Hoạt ảnh / Khớp xương / Đồng bộ Body & Head** | `LegacyAnimationController.cs`<br>`Combat/VfxLockRotation.cs`<br>`Data/PartSlotDatabase.cs` | `Skills/CastActionID.cs` |
 | **Sửa Chỉ số Máu, Mana, Công thủ, Tốc đánh** | `Stats/EntityStats.cs`<br>`Stats/PlayerStats.cs`<br>`Combat/CombatFormula.cs` | `Stats/ResourceStat.cs` |
 | **Sửa Giao diện / HUD / Hiệu ứng Cooldown** | `UI/PlayerHUD.cs`<br>`UI/SkillSlotUI.cs` | `Editor/PlayerHUDBuilder.cs` |
+| **Sửa Số nhảy Sát thương / Floating Text (Dame, Heal, Exp, Miss)** | `UI/FloatingTextManager.cs`<br>`UI/FloatingTextItem.cs`<br>`Data/FloatingTextDatabase.cs` | `Data/FloatingTextData.cs`<br>`Settings/N/FloatingText.csv` |
 | **Sửa Âm thanh / Tiếng chém trúng / Voice** | `Audio/SoundManager.cs`<br>`Audio/SoundDatabase.cs` | `Audio/SoundData.cs` |
 | **Tạo Tool Editor mới hoặc chỉnh sửa Spawner** | `Editor/NpcSpawnerBuilder.cs`<br>`NPC/NpcTemplateDatabase.cs` | `Enemy/EnemyController.cs` |
 

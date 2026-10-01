@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using TopDownGame.Combat;
+using TopDownGame.UI;
 
 namespace TopDownGame.Stats
 {
@@ -53,6 +54,9 @@ namespace TopDownGame.Stats
             health.Modify(-amount);
             OnDamaged?.Invoke(amount, hitPoint, hitDirection);
 
+            Vector3 spawnPos = (hitPoint != Vector3.zero) ? hitPoint : (transform.position + Vector3.up * 1.5f);
+            FloatingTextManager.Instance.SpawnDamage(amount, spawnPos, this is PlayerStats);
+
             if (health.CurrentValue <= 0f)
             {
                 Die();
@@ -63,6 +67,7 @@ namespace TopDownGame.Stats
         {
             if (IsDead || amount <= 0f) return;
             health.Modify(amount);
+            FloatingTextManager.Instance.SpawnHeal(amount, transform.position + Vector3.up * 1.5f);
         }
 
         public virtual void Revive(float healthPercentage = 1.0f)

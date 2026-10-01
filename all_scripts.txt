@@ -85,6 +85,7 @@ namespace TopDownGame
         public const string CLIP_RUN = "run";            // Chạy bộ (Run)
         public const string CLIP_WALK = "wlk";           // Đi bộ / Tản bộ (Walk)
         public const string CLIP_DIE = "die";            // Tử vong / Gục ngã (Die)
+        public const string CLIP_HURT = "bat";          // Bị thương / Giật mình tại chỗ (Hit Flinch - ActId 9)
 
         [Header("Animation Components (Đầu & Thân)")]
         [Tooltip("Component Animation gắn trên GameObject Thân (tự tìm nếu để trống)")]
@@ -179,7 +180,7 @@ namespace TopDownGame
             }
         }
 
-        public string ResolveClipName(string targetClip)
+        private string FindDirectClip(string targetClip)
         {
             if (string.IsNullOrEmpty(targetClip)) return null;
 
@@ -204,6 +205,29 @@ namespace TopDownGame
             }
 
             return null;
+        }
+
+        public string ResolveClipName(string targetClip)
+        {
+            if (string.IsNullOrEmpty(targetClip)) return null;
+
+            string found = FindDirectClip(targetClip);
+            if (!string.IsNullOrEmpty(found)) return found;
+
+            // Fallback thông minh theo chuẩn quy ước CastActionID
+            string lower = targetClip.ToLowerInvariant();
+            if (lower == "st") found = FindDirectClip("sta");
+            else if (lower == "sta") found = FindDirectClip("st");
+            else if (lower.StartsWith("at0") || lower.StartsWith("at1")) found = FindDirectClip("at");
+            else if (lower == "at") found = FindDirectClip("at01") ?? FindDirectClip("at02");
+            else if (lower == "run") found = FindDirectClip("wlk") ?? FindDirectClip("jsrun");
+            else if (lower == "wlk") found = FindDirectClip("run");
+            else if (lower == "die") found = FindDirectClip("jfd");
+            else if (lower == "jfd") found = FindDirectClip("die");
+            else if (lower == "bat") found = FindDirectClip("jt");
+            else if (lower == "jt") found = FindDirectClip("bat");
+
+            return found;
         }
 
         public bool HasClip(string clipName)
@@ -254,6 +278,14 @@ namespace TopDownGame
             string clip = ResolveClipName(CLIP_DIE) ?? ResolveClipName("jfd");
             if (string.IsNullOrEmpty(clip)) return;
             PlayActionInternal(clip, WrapMode.ClampForever, actionCrossFadeTime, true, null);
+        }
+
+        public void PlayHurt(float customFadeTime = -1f)
+        {
+            string clip = ResolveClipName(CLIP_HURT) ?? ResolveClipName("jt");
+            if (string.IsNullOrEmpty(clip)) return;
+            float fadeDuration = customFadeTime >= 0f ? customFadeTime : 0.05f;
+            PlayActionInternal(clip, WrapMode.ClampForever, fadeDuration, true, null);
         }
 
         public void PlayAction(SkillData skill, WrapMode wrapMode = WrapMode.Once, float customFadeTime = -1f)
@@ -5747,6 +5779,10 @@ namespace TopDownGame.Enemy
                 SkillData skill = SkillDatabase.GetSkill(id);
                 if (skill != null && !IsOnCooldown(skill.id))
                 {
+                    // Bỏ qua các kỹ năng tự thân / bị động / buff khi đang tìm chiêu tấn công mục tiêu
+                    if (skill.targetSelf || skill.relation == SkillRelation.Self)
+                        continue;
+
                     // Buffer nhỏ 0.35m để dung hòa bán kính Collider va chạm giữa Enemy và Player
                     float effectiveSkillRange = (skill.range > 0f ? skill.range : 2.0f) + 0.35f;
                     if (distanceToTarget < 0f || distanceToTarget <= effectiveSkillRange)
@@ -5770,7 +5806,7 @@ namespace TopDownGame.Enemy
                 for (int i = 0; i < attackSkillIds.Count; i++)
                 {
                     var sk = SkillDatabase.GetSkill(attackSkillIds[i]);
-                    if (sk != null && sk.range > 0f && sk.range < minR)
+                    if (sk != null && !sk.targetSelf && sk.relation != SkillRelation.Self && sk.range > 0f && sk.range < minR)
                     {
                         minR = sk.range;
                     }
@@ -5841,6 +5877,7 @@ namespace TopDownGame.Enemy
         public EnemyIdleState IdleState { get; private set; }
         public EnemyChaseState ChaseState { get; private set; }
         public EnemyAttackState AttackState { get; private set; }
+        public EnemyHurtState HurtState { get; private set; }
         public EnemyDeadState DeadState { get; private set; }
 
         public EnemyPerception Perception { get; private set; }
@@ -5857,6 +5894,7 @@ namespace TopDownGame.Enemy
         public float DistanceFromSpawn => Perception != null ? Perception.GetDistanceToSpawn() : 0f;
         public float MoveSpeed => moveSpeed;
         public float WalkSpeed => walkSpeed;
+        public bool IsReturningToSpawn { get; set; }
 
         public int NpcResId => (npcTemplateId > 0 && NpcTemplateDatabase.GetTemplate(npcTemplateId) != null) ? NpcTemplateDatabase.GetTemplate(npcTemplateId).npcResId : 0;
 
@@ -5879,6 +5917,7 @@ namespace TopDownGame.Enemy
             IdleState = new EnemyIdleState(this, StateMachine);
             ChaseState = new EnemyChaseState(this, StateMachine);
             AttackState = new EnemyAttackState(this, StateMachine);
+            HurtState = new EnemyHurtState(this, StateMachine);
             DeadState = new EnemyDeadState(this, StateMachine);
         }
 
@@ -5886,11 +5925,22 @@ namespace TopDownGame.Enemy
         {
             EnsureAnimationController();
             TryFindTarget();
-            if (Stats != null) Stats.OnDeath += HandleDeath;
+            if (Stats != null)
+            {
+                Stats.OnDeath += HandleDeath;
+                Stats.OnDamaged += HandleDamaged;
+            }
             StateMachine.Initialize(IdleState);
         }
 
-        private void OnDestroy() { if (Stats != null) Stats.OnDeath -= HandleDeath; }
+        private void OnDestroy()
+        {
+            if (Stats != null)
+            {
+                Stats.OnDeath -= HandleDeath;
+                Stats.OnDamaged -= HandleDamaged;
+            }
+        }
 
         private void Update()
         {
@@ -5940,6 +5990,14 @@ namespace TopDownGame.Enemy
         }
 
         private void HandleDeath() => StateMachine.ChangeState(DeadState);
+
+        private void HandleDamaged(float amount, Vector3 hitPoint, Vector3 hitDirection)
+        {
+            if (Stats == null || Stats.IsDead || StateMachine.CurrentState == DeadState) return;
+            if (StateMachine.CurrentState == AttackState) return;
+            if (AnimationController == null || !AnimationController.HasClip(LegacyAnimationController.CLIP_HURT)) return;
+            StateMachine.ChangeState(HurtState);
+        }
 
         public void TryFindTarget() => Perception?.TryFindTarget();
         public float GetDistanceToTarget() => Perception != null ? Perception.GetDistanceToTarget() : float.MaxValue;
@@ -6401,6 +6459,7 @@ namespace TopDownGame.Enemy
         public override void Enter()
         {
             base.Enter();
+            enemy.IsReturningToSpawn = false;
             if (enemy.AnimationController != null)
             {
                 enemy.AnimationController.PlayRun();
@@ -6427,6 +6486,7 @@ namespace TopDownGame.Enemy
             // 1. Vượt quá tầm truy đuổi / Leash Range (ActiveRadius) tính từ điểm xuất phát hoặc khoảng cách mục tiêu
             if (distanceToTarget > enemy.ActiveRadius || distanceFromSpawn > enemy.ActiveRadius)
             {
+                enemy.IsReturningToSpawn = true;
                 stateMachine.ChangeState(enemy.IdleState);
                 return;
             }
@@ -6515,6 +6575,79 @@ namespace TopDownGame.Enemy
 
 
 ==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Enemy\States\EnemyHurtState.cs
+==================================================
+
+using UnityEngine;
+using TopDownGame.Skills;
+
+namespace TopDownGame.Enemy
+{
+    /// <summary>
+    /// Trạng thái bị thương cơ bản cho Quái vật (ActId = 9, bat).
+    /// Khi bị thương, quái vật dừng lại chờ hết thời lượng hoạt ảnh mới tiếp tục di chuyển / tấn công.
+    /// </summary>
+    public class EnemyHurtState : EnemyBaseState
+    {
+        private float timer;
+        private float hurtDuration;
+
+        public EnemyHurtState(EnemyController enemy, TopDownGame.StateMachine.StateMachine stateMachine) 
+            : base(enemy, stateMachine) { }
+
+        public override void Enter()
+        {
+            base.Enter();
+            timer = 0f;
+
+            bool hasHurtClip = enemy.AnimationController != null && enemy.AnimationController.HasClip(LegacyAnimationController.CLIP_HURT);
+            if (hasHurtClip)
+            {
+                enemy.AnimationController.PlayHurt(0.05f);
+                hurtDuration = enemy.AnimationController.GetClipDuration(LegacyAnimationController.CLIP_HURT);
+                if (hurtDuration <= 0.05f)
+                {
+                    hurtDuration = 0.25f;
+                }
+            }
+            else
+            {
+                hurtDuration = 0f;
+            }
+        }
+
+        public override void Update()
+        {
+            base.Update();
+
+            timer += Time.deltaTime;
+            if (timer >= hurtDuration)
+            {
+                // Khi hoàn tất hoạt ảnh bị thương, ưu tiên quay lại truy đuổi nếu target còn trong tầm
+                if (enemy.Target != null && enemy.GetDistanceToTarget() <= enemy.ActiveRadius && enemy.GetDistanceToSpawn() <= enemy.ActiveRadius)
+                {
+                    stateMachine.ChangeState(enemy.ChaseState);
+                }
+                else
+                {
+                    stateMachine.ChangeState(enemy.IdleState);
+                }
+            }
+        }
+
+        public override void Exit()
+        {
+            base.Exit();
+            if (enemy.AnimationController != null)
+            {
+                enemy.AnimationController.ForceResetClip();
+            }
+        }
+    }
+}
+
+
+==================================================
 // FILE: D:\Unity Project\test1\Assets\Scripts\Enemy\States\EnemyIdleState.cs
 ==================================================
 
@@ -6548,8 +6681,17 @@ namespace TopDownGame.Enemy
             float distanceToTarget = enemy.GetDistanceToTarget();
             float distanceFromSpawn = enemy.GetDistanceToSpawn();
 
-            // 1. Nếu phát hiện người chơi trong tầm quan sát (VisionRadius) và trong vùng hoạt động hợp lệ (ActiveRadius)
-            if (enemy.Target != null && distanceToTarget <= enemy.DetectionRange && distanceFromSpawn <= enemy.ActiveRadius)
+            // Nếu đang quay về điểm spawn (Leash Mode), chỉ cho phép rượt lại khi đã lùi an toàn vào trong hoặc Player áp sát cực gần
+            if (enemy.IsReturningToSpawn)
+            {
+                if (distanceFromSpawn <= enemy.ActiveRadius * 0.75f || distanceToTarget <= enemy.GetMinAttackRange() || distanceFromSpawn <= 0.8f)
+                {
+                    enemy.IsReturningToSpawn = false;
+                }
+            }
+
+            // 1. Nếu không trong trạng thái trả quái về spawn, phát hiện người chơi trong tầm quan sát (VisionRadius) và trong vùng hoạt động hợp lệ (ActiveRadius)
+            if (!enemy.IsReturningToSpawn && enemy.Target != null && distanceToTarget <= enemy.DetectionRange && distanceFromSpawn <= enemy.ActiveRadius)
             {
                 // Nếu đã ở ngay trong tầm đánh và có chiêu sẵn sàng -> Tấn công ngay
                 var readyAttack = enemy.GetReadyAttack(distanceToTarget);
@@ -6577,6 +6719,7 @@ namespace TopDownGame.Enemy
             }
             else
             {
+                enemy.IsReturningToSpawn = false;
                 if (enemy.AnimationController != null)
                 {
                     enemy.AnimationController.PlayIdle();
@@ -7582,26 +7725,6 @@ namespace TopDownGame.Player
         {
             player = GetComponent<PlayerController>();
             SkillDatabase.Instance.EnsureLoaded();
-            TopDownGame.Data.FactionSkillDatabase.Instance.EnsureLoaded();
-            if (factionId > 0) ApplyFactionSkills(factionId, false);
-        }
-
-        [ContextMenu("Nạp Kỹ Năng Theo Môn Phái")]
-        public void ApplyFactionSkills() => ApplyFactionSkills(factionId, true);
-
-        public void ApplyFactionSkills(int targetFaction, bool overwriteExisting = false)
-        {
-            factionId = targetFaction;
-            var list = TopDownGame.Data.FactionSkillDatabase.GetSkillsByFaction(targetFaction);
-            if (list == null || list.Count == 0) return;
-            foreach (var fSkill in list)
-            {
-                if (fSkill.btnName.Equals("Attack", StringComparison.OrdinalIgnoreCase)) { if (overwriteExisting || defaultNormalAttackId <= 0) defaultNormalAttackId = fSkill.skillId; }
-                else if (fSkill.btnName.Equals("Skill1", StringComparison.OrdinalIgnoreCase)) { if (overwriteExisting || skillSlotQ_Id <= 0) skillSlotQ_Id = fSkill.skillId; }
-                else if (fSkill.btnName.Equals("Skill2", StringComparison.OrdinalIgnoreCase)) { if (overwriteExisting || skillSlotE_Id <= 0) skillSlotE_Id = fSkill.skillId; }
-                else if (fSkill.btnName.Equals("Skill3", StringComparison.OrdinalIgnoreCase)) { if (overwriteExisting || skillSlotQ_Id <= 0) skillSlotQ_Id = fSkill.skillId; }
-                else if (fSkill.btnName.Equals("Skill5", StringComparison.OrdinalIgnoreCase) || fSkill.isAnger) { if (overwriteExisting || skillSlotR_Id <= 0) skillSlotR_Id = fSkill.skillId; }
-            }
         }
 
         public void TickCooldowns()
@@ -7745,6 +7868,7 @@ namespace TopDownGame.Player
         public PlayerIdleState IdleState { get; private set; }
         public PlayerMoveState MoveState { get; private set; }
         public PlayerAttackState AttackState { get; private set; }
+        public PlayerHurtState HurtState { get; private set; }
 
         public CharacterMovement Movement { get; private set; }
         public PlayerAiming Aiming { get; private set; }
@@ -7783,9 +7907,29 @@ namespace TopDownGame.Player
             IdleState = new PlayerIdleState(this, StateMachine);
             MoveState = new PlayerMoveState(this, StateMachine);
             AttackState = new PlayerAttackState(this, StateMachine);
+            HurtState = new PlayerHurtState(this, StateMachine);
         }
 
-        private void Start() => StateMachine.Initialize(IdleState);
+        private void Start()
+        {
+            if (Stats != null) Stats.OnDamaged += HandleDamaged;
+            StateMachine.Initialize(IdleState);
+        }
+
+        private void OnDestroy()
+        {
+            if (Stats != null) Stats.OnDamaged -= HandleDamaged;
+        }
+
+        private void HandleDamaged(float amount, Vector3 hitPoint, Vector3 hitDirection)
+        {
+            if (Stats == null || Stats.IsDead) return;
+            // Chỉ nhảy hoạt ảnh bị thương khi người chơi đang đứng yên (Idle)
+            if (StateMachine.CurrentState == IdleState)
+            {
+                StateMachine.ChangeState(HurtState);
+            }
+        }
 
         private void Update()
         {
@@ -7797,8 +7941,6 @@ namespace TopDownGame.Player
 
         private void FixedUpdate() => StateMachine.PhysicsUpdate();
 
-        public void ApplyFactionSkills() => Combat?.ApplyFactionSkills();
-        public void ApplyFactionSkills(int targetFaction, bool overwriteExisting = false) => Combat?.ApplyFactionSkills(targetFaction, overwriteExisting);
         public bool IsOnCooldown(int skillId) => Combat != null && Combat.IsOnCooldown(skillId);
         public float GetRemainingCooldown(int skillId) => Combat != null ? Combat.GetRemainingCooldown(skillId) : 0f;
         public void StartCooldown(int skillId, float duration) => Combat?.StartCooldown(skillId, duration);
@@ -8162,6 +8304,89 @@ namespace TopDownGame.Player
         public virtual void Update() { }
         public virtual void PhysicsUpdate() { }
         public virtual void Exit() { }
+    }
+}
+
+
+==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Player\States\PlayerHurtState.cs
+==================================================
+
+using UnityEngine;
+using TopDownGame.Skills;
+
+namespace TopDownGame.Player
+{
+    /// <summary>
+    /// Trạng thái bị thương cơ bản cho Người chơi (ActId = 9, bat).
+    /// Kích hoạt khi người chơi đang đứng yên (Idle) và có thể bị ngắt lập tức bởi Di chuyển, Đánh thường, Tung chiêu.
+    /// </summary>
+    public class PlayerHurtState : PlayerBaseState
+    {
+        private float timer;
+        private float hurtDuration;
+
+        public PlayerHurtState(PlayerController player, TopDownGame.StateMachine.StateMachine stateMachine) 
+            : base(player, stateMachine) { }
+
+        public override void Enter()
+        {
+            base.Enter();
+            timer = 0f;
+
+            if (player.AnimationController != null)
+            {
+                player.AnimationController.PlayHurt(0.05f);
+                hurtDuration = player.AnimationController.GetClipDuration(LegacyAnimationController.CLIP_HURT);
+            }
+            else
+            {
+                hurtDuration = 0.4f;
+            }
+
+            if (hurtDuration <= 0.05f)
+            {
+                hurtDuration = 0.4f;
+            }
+        }
+
+        public override void Update()
+        {
+            base.Update();
+
+            // Ưu tiên 1: Ngắt hoạt ảnh bị thương bằng Tung kỹ năng (Q, E, R)
+            if (player.CheckAndTriggerSkills()) return;
+
+            // Ưu tiên 2: Ngắt hoạt ảnh bị thương bằng Đánh thường
+            if (player.IsAttackPressed())
+            {
+                if (player.StartNormalAttack()) return;
+            }
+
+            // Ưu tiên 3: Ngắt hoạt ảnh bị thương bằng Di chuyển
+            Vector3 input = player.GetInputVector();
+            if (input.sqrMagnitude > 0.001f)
+            {
+                stateMachine.ChangeState(player.MoveState);
+                return;
+            }
+
+            // Ưu tiên 4: Chờ hết thời lượng hoạt ảnh bị thương rồi trở về trạng thái Idle
+            timer += Time.deltaTime;
+            if (timer >= hurtDuration)
+            {
+                stateMachine.ChangeState(player.IdleState);
+            }
+        }
+
+        public override void Exit()
+        {
+            base.Exit();
+            if (player.AnimationController != null)
+            {
+                player.AnimationController.ForceResetClip();
+            }
+        }
     }
 }
 
