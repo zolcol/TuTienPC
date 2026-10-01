@@ -18,6 +18,7 @@ namespace TopDownGame
         public const string CLIP_RUN = "run";            // Chạy bộ (Run)
         public const string CLIP_WALK = "wlk";           // Đi bộ / Tản bộ (Walk)
         public const string CLIP_DIE = "die";            // Tử vong / Gục ngã (Die)
+        public const string CLIP_HURT = "bat";          // Bị thương / Giật mình tại chỗ (Hit Flinch - ActId 9)
 
         [Header("Animation Components (Đầu & Thân)")]
         [Tooltip("Component Animation gắn trên GameObject Thân (tự tìm nếu để trống)")]
@@ -208,6 +209,14 @@ namespace TopDownGame
             string clip = ResolveClipName(CLIP_DIE) ?? ResolveClipName("jfd");
             if (string.IsNullOrEmpty(clip)) return;
             PlayActionInternal(clip, WrapMode.ClampForever, actionCrossFadeTime, true, null);
+        }
+
+        public void PlayHurt(float customFadeTime = -1f)
+        {
+            string clip = ResolveClipName(CLIP_HURT) ?? ResolveClipName("jt");
+            if (string.IsNullOrEmpty(clip)) return;
+            float fadeDuration = customFadeTime >= 0f ? customFadeTime : 0.05f;
+            PlayActionInternal(clip, WrapMode.ClampForever, fadeDuration, true, null);
         }
 
         public void PlayAction(SkillData skill, WrapMode wrapMode = WrapMode.Once, float customFadeTime = -1f)

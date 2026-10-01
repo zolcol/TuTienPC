@@ -15,6 +15,7 @@ namespace TopDownGame.Player
         public PlayerIdleState IdleState { get; private set; }
         public PlayerMoveState MoveState { get; private set; }
         public PlayerAttackState AttackState { get; private set; }
+        public PlayerHurtState HurtState { get; private set; }
 
         public CharacterMovement Movement { get; private set; }
         public PlayerAiming Aiming { get; private set; }
@@ -53,9 +54,29 @@ namespace TopDownGame.Player
             IdleState = new PlayerIdleState(this, StateMachine);
             MoveState = new PlayerMoveState(this, StateMachine);
             AttackState = new PlayerAttackState(this, StateMachine);
+            HurtState = new PlayerHurtState(this, StateMachine);
         }
 
-        private void Start() => StateMachine.Initialize(IdleState);
+        private void Start()
+        {
+            if (Stats != null) Stats.OnDamaged += HandleDamaged;
+            StateMachine.Initialize(IdleState);
+        }
+
+        private void OnDestroy()
+        {
+            if (Stats != null) Stats.OnDamaged -= HandleDamaged;
+        }
+
+        private void HandleDamaged(float amount, Vector3 hitPoint, Vector3 hitDirection)
+        {
+            if (Stats == null || Stats.IsDead) return;
+            // Chỉ nhảy hoạt ảnh bị thương khi người chơi đang đứng yên (Idle)
+            if (StateMachine.CurrentState == IdleState)
+            {
+                StateMachine.ChangeState(HurtState);
+            }
+        }
 
         private void Update()
         {

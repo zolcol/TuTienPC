@@ -25,6 +25,7 @@ namespace TopDownGame.Enemy
         public EnemyIdleState IdleState { get; private set; }
         public EnemyChaseState ChaseState { get; private set; }
         public EnemyAttackState AttackState { get; private set; }
+        public EnemyHurtState HurtState { get; private set; }
         public EnemyDeadState DeadState { get; private set; }
 
         public EnemyPerception Perception { get; private set; }
@@ -63,6 +64,7 @@ namespace TopDownGame.Enemy
             IdleState = new EnemyIdleState(this, StateMachine);
             ChaseState = new EnemyChaseState(this, StateMachine);
             AttackState = new EnemyAttackState(this, StateMachine);
+            HurtState = new EnemyHurtState(this, StateMachine);
             DeadState = new EnemyDeadState(this, StateMachine);
         }
 
@@ -70,11 +72,22 @@ namespace TopDownGame.Enemy
         {
             EnsureAnimationController();
             TryFindTarget();
-            if (Stats != null) Stats.OnDeath += HandleDeath;
+            if (Stats != null)
+            {
+                Stats.OnDeath += HandleDeath;
+                Stats.OnDamaged += HandleDamaged;
+            }
             StateMachine.Initialize(IdleState);
         }
 
-        private void OnDestroy() { if (Stats != null) Stats.OnDeath -= HandleDeath; }
+        private void OnDestroy()
+        {
+            if (Stats != null)
+            {
+                Stats.OnDeath -= HandleDeath;
+                Stats.OnDamaged -= HandleDamaged;
+            }
+        }
 
         private void Update()
         {
@@ -124,6 +137,12 @@ namespace TopDownGame.Enemy
         }
 
         private void HandleDeath() => StateMachine.ChangeState(DeadState);
+
+        private void HandleDamaged(float amount, Vector3 hitPoint, Vector3 hitDirection)
+        {
+            if (Stats == null || Stats.IsDead || StateMachine.CurrentState == DeadState) return;
+            StateMachine.ChangeState(HurtState);
+        }
 
         public void TryFindTarget() => Perception?.TryFindTarget();
         public float GetDistanceToTarget() => Perception != null ? Perception.GetDistanceToTarget() : float.MaxValue;
