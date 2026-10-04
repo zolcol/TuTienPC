@@ -98,6 +98,32 @@ namespace TopDownGame.Data
                         // Áp dụng Visual Style mặc định theo từng loại
                         ApplyVisualStyle(data);
 
+                        // Ghi đè chỉ số từ các cột mở rộng trong CSV (nếu có)
+                        if (row.Length > 5 && !string.IsNullOrEmpty(row[5]) && ColorUtility.TryParseHtmlString(row[5].Trim(), out Color c))
+                        {
+                            data.color = c;
+                        }
+                        if (row.Length > 6 && !string.IsNullOrEmpty(row[6]) && ColorUtility.TryParseHtmlString(row[6].Trim(), out Color oc))
+                        {
+                            data.outlineColor = oc;
+                        }
+                        if (row.Length > 7 && float.TryParse(row[7].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float ow))
+                        {
+                            data.outlineWidth = ow;
+                        }
+                        if (row.Length > 8 && float.TryParse(row[8].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fs))
+                        {
+                            data.fontSize = fs;
+                        }
+                        if (row.Length > 9 && !string.IsNullOrEmpty(row[9]))
+                        {
+                            data.prefix = row[9];
+                        }
+                        if (row.Length > 10 && !string.IsNullOrEmpty(row[10]))
+                        {
+                            data.suffix = row[10];
+                        }
+
                         itemsByType[charType] = data;
                         itemsByName[typeStr] = data;
                     }
@@ -138,89 +164,92 @@ namespace TopDownGame.Data
             switch (data.type)
             {
                 case FlyCharType.HitNormal:
-                    data.color = new Color(1.0f, 0.96f, 0.82f, 1.0f); // Sáng vàng kem
-                    data.outlineColor = new Color(0.1f, 0.1f, 0.1f, 1.0f);
-                    data.outlineWidth = 0.22f;
-                    data.fontSize = 3.6f;
+                    data.color = new Color(1.0f, 1.0f, 1.0f, 1.0f); // Trắng thuần sắc nét chuẩn ARPG
+                    data.outlineColor = new Color(0.02f, 0.02f, 0.04f, 1.0f); // Viền đen tuyền
+                    data.outlineWidth = 0.26f;
+                    data.fontSize = 3.8f;
+                    data.prefix = "";
                     break;
 
                 case FlyCharType.HitDeadly:
-                    data.color = new Color(1.0f, 0.88f, 0.0f, 1.0f); // Vàng kim bạo kích rực rỡ
-                    data.outlineColor = new Color(0.45f, 0.05f, 0.0f, 1.0f); // Viền đỏ cam đậm
-                    data.outlineWidth = 0.28f;
-                    data.fontSize = 4.8f;
-                    data.prefix = "★ ";
+                    data.color = new Color(1.0f, 0.80f, 0.0f, 1.0f); // Vàng kim hổ phách bạo kích sang trọng
+                    data.outlineColor = new Color(0.20f, 0.04f, 0.0f, 1.0f); // Viền nâu đỏ cháy sẫm
+                    data.outlineWidth = 0.32f;
+                    data.fontSize = 4.6f;
+                    data.prefix = "";
                     break;
 
                 case FlyCharType.HitMiss:
-                    data.color = new Color(0.8f, 0.8f, 0.8f, 1.0f);
-                    data.outlineColor = new Color(0.15f, 0.15f, 0.15f, 1.0f);
-                    data.outlineWidth = 0.2f;
+                    data.color = new Color(0.72f, 0.77f, 0.84f, 1.0f); // Bạc thép khói mờ
+                    data.outlineColor = new Color(0.08f, 0.10f, 0.14f, 1.0f);
+                    data.outlineWidth = 0.22f;
                     data.fontSize = 3.2f;
+                    data.prefix = "";
                     break;
 
                 case FlyCharType.HurtNormal:
-                    data.color = new Color(1.0f, 0.25f, 0.2f, 1.0f); // Đỏ tươi sát thương nhận vào
-                    data.outlineColor = new Color(0.2f, 0.0f, 0.0f, 1.0f);
-                    data.outlineWidth = 0.24f;
+                    data.color = new Color(1.0f, 0.18f, 0.18f, 1.0f); // Đỏ thẫm máu cảnh báo nguy hiểm
+                    data.outlineColor = new Color(0.22f, 0.0f, 0.0f, 1.0f); // Viền đỏ đen sẫm
+                    data.outlineWidth = 0.26f;
                     data.fontSize = 3.8f;
                     data.prefix = "-";
                     break;
 
                 case FlyCharType.HurtDeadly:
-                    data.color = new Color(1.0f, 0.1f, 0.35f, 1.0f); // Đỏ thẫm bạo kích
-                    data.outlineColor = new Color(0.25f, 0.0f, 0.0f, 1.0f);
-                    data.outlineWidth = 0.28f;
+                    data.color = new Color(1.0f, 0.05f, 0.28f, 1.0f); // Đỏ thẫm bạo kích
+                    data.outlineColor = new Color(0.18f, 0.0f, 0.05f, 1.0f);
+                    data.outlineWidth = 0.32f;
                     data.fontSize = 4.6f;
                     data.prefix = "CRIT -";
                     break;
 
                 case FlyCharType.HurtMiss:
-                    data.color = new Color(0.35f, 0.85f, 1.0f, 1.0f); // Xanh dương nhạt (Né đòn)
-                    data.outlineColor = new Color(0.0f, 0.15f, 0.3f, 1.0f);
-                    data.outlineWidth = 0.22f;
+                    data.color = new Color(0.25f, 0.82f, 1.0f, 1.0f); // Lam thiên thanh (Né đòn huyền ảo)
+                    data.outlineColor = new Color(0.0f, 0.12f, 0.24f, 1.0f);
+                    data.outlineWidth = 0.26f;
                     data.fontSize = 3.4f;
+                    data.prefix = "";
                     break;
 
                 case FlyCharType.Treatment:
-                    data.color = new Color(0.2f, 0.95f, 0.35f, 1.0f); // Xanh ngọc hồi sinh lực
-                    data.outlineColor = new Color(0.0f, 0.25f, 0.08f, 1.0f);
-                    data.outlineWidth = 0.24f;
+                    data.color = new Color(0.18f, 0.95f, 0.45f, 1.0f); // Xanh ngọc lục bảo hồi máu phát sáng
+                    data.outlineColor = new Color(0.0f, 0.20f, 0.08f, 1.0f);
+                    data.outlineWidth = 0.26f;
                     data.fontSize = 4.0f;
                     data.prefix = "+";
                     break;
 
                 case FlyCharType.AddExp:
-                    data.color = new Color(1.0f, 0.72f, 0.1f, 1.0f); // Vàng cam EXP
-                    data.outlineColor = new Color(0.3f, 0.15f, 0.0f, 1.0f);
-                    data.outlineWidth = 0.24f;
+                    data.color = new Color(1.0f, 0.74f, 0.05f, 1.0f); // Vàng kim EXP
+                    data.outlineColor = new Color(0.24f, 0.12f, 0.0f, 1.0f);
+                    data.outlineWidth = 0.26f;
                     data.fontSize = 3.6f;
-                    data.prefix = "EXP +";
+                    data.prefix = "+EXP ";
                     break;
 
                 case FlyCharType.Vitality:
                 case FlyCharType.Strength:
                 case FlyCharType.Dexterity:
                 case FlyCharType.Energy:
-                    data.color = new Color(0.75f, 0.45f, 1.0f, 1.0f); // Tím thuộc tính
-                    data.outlineColor = new Color(0.15f, 0.0f, 0.25f, 1.0f);
-                    data.outlineWidth = 0.2f;
+                    data.color = new Color(0.72f, 0.35f, 1.0f, 1.0f); // Tím ma pháp thuộc tính
+                    data.outlineColor = new Color(0.14f, 0.0f, 0.24f, 1.0f);
+                    data.outlineWidth = 0.24f;
                     data.fontSize = 3.4f;
                     break;
 
                 case FlyCharType.HitMissIgnore:
                 case FlyCharType.HurtMissIgnore:
-                    data.color = new Color(0.9f, 0.9f, 0.95f, 1.0f);
-                    data.outlineColor = new Color(0.2f, 0.2f, 0.25f, 1.0f);
-                    data.outlineWidth = 0.2f;
+                    data.color = new Color(0.88f, 0.91f, 0.96f, 1.0f); // Bạch kim miễn nhiễm
+                    data.outlineColor = new Color(0.10f, 0.13f, 0.18f, 1.0f);
+                    data.outlineWidth = 0.24f;
                     data.fontSize = 3.2f;
                     break;
 
                 default:
                     data.color = Color.white;
                     data.outlineColor = Color.black;
-                    data.outlineWidth = 0.2f;
-                    data.fontSize = 3.5f;
+                    data.outlineWidth = 0.24f;
+                    data.fontSize = 3.6f;
                     break;
             }
         }
