@@ -9,9 +9,8 @@ namespace TopDownGame.Player
 {
     public class PlayerCombat : MonoBehaviour
     {
-        [Header("=== FACTION & SKILL SLOTS ===")]
+        [Header("=== CHARACTER & SKILL SLOTS ===")]
         [SerializeField] private int defaultNormalAttackId = 301;
-        [SerializeField] private int factionId = 2;
         [SerializeField] private int npcResId = 2;
         [SerializeField] private int skillSlotQ_Id = 306;
         [SerializeField] private int skillSlotE_Id = 308;
@@ -33,8 +32,15 @@ namespace TopDownGame.Player
         private float gizmoTimer;
 
         public int DefaultNormalAttackId { get => defaultNormalAttackId; set => defaultNormalAttackId = value; }
-        public int FactionId { get => factionId; set => factionId = value; }
-        public int NpcResId { get => npcResId; set => npcResId = value; }
+        public int NpcResId 
+        { 
+            get => npcResId; 
+            set 
+            { 
+                npcResId = value; 
+                if (player != null) player.ApplyHitboxFromNpcRes(); 
+            } 
+        }
         public int SkillSlotQ_Id { get => skillSlotQ_Id; set => skillSlotQ_Id = value; }
         public int SkillSlotE_Id { get => skillSlotE_Id; set => skillSlotE_Id = value; }
         public int SkillSlotR_Id { get => skillSlotR_Id; set => skillSlotR_Id = value; }

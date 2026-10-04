@@ -1,7 +1,7 @@
 # ⚔️ QUY CHUẨN DỮ LIỆU KỸ NĂNG, ĐẠN ĐẠO & ĐỊNH HƯỚNG CHIÊU THỨC
 
 > **Tài liệu thành phần:** Nằm trong bộ quy chuẩn dữ liệu [DATA_CONVENTIONS_V2.md](../DATA_CONVENTIONS_V2.md).
-> **Phạm vi:** Cấu hình kỹ năng (Skill.csv, AutoSkill.csv, SkillLevelUp.csv), đạn đạo (Missile.csv), khung hoạt ảnh sự kiện (ActionEvent.csv), cơ chế Selector định hướng & Môn phái (FactionSkill.csv).
+> **Phạm vi:** Cấu hình kỹ năng (Skill.csv, AutoSkill.csv, SkillLevelUp.csv), đạn đạo (Missile.csv), khung hoạt ảnh sự kiện (ActionEvent.csv), cơ chế Selector định hướng.
 
 ---
 
@@ -214,28 +214,6 @@ Bảng quy định cơ chế tự động kích hoạt chiêu thức / kỹ năn
   - `BtnName1`: Nút phím được phép gán kỹ năng này vào.
 
 ---
-
----
-
-## 8. CHI TIẾT BẢNG FactionSkill.csv (MÔN PHÁI & THÔNG TIN KỸ NĂNG)
-
-* **`FactionSkill.csv`**: Tra cứu thông tin môn phái (`Faction`), Icon/Atlas hiển thị (`btnIcon`, `iconAtlas`), cấp mở khóa (`GainLevel`) và cờ `IsAnger = 1` cho Tuyệt kỹ Nộ (Ulti). Không dùng để gán cứng nút bấm.
-
-### 🏛️ Bảng Mã Môn Phái Chuẩn & Môn Phái Thức Tỉnh (`Faction` ID):
-Game phân chia hệ thống môn phái thành 2 ID riêng biệt: **Môn Phái Tiêu Chuẩn** ($1 \sim 19$) và **Môn Phái Thức Tỉnh / Phân Nhánh** ($26 \sim 42$):
-
-| Tên Môn Phái | Hệ Ngũ Hành | Faction ID (Chuẩn) | Faction ID (Thức Tỉnh) | Bộ Skill Chủ Đạo Thức Tỉnh |
-| :--- | :---: | :---: | :---: | :--- |
-| **Thiên Vương** | Kim | `1` | `38` | `8401` (Công), `8410` (Skill1), `8406` (Skill2), `8413` (Skill3), `8408` (Skill4) |
-| **Nga Mi (EM)** | Thủy | `2` | `28` | `6901` (Công), `6908` (Thiên Vũ Bảo Luân), `6906` (Giang Hải), `6910` (Bạch Lộ), `6916` (Cửu Âm Bạch Cốt Trảo) |
-| **Đào Hoa** | Hỏa | `3` | `39` | `8601` (Công), `8610` (Skill1), `8607` (Skill2), `8606` (Skill3), `8612` (Skill4) |
-| **Tiêu Dao** | Mộc | `4` | `29` | `7001` (Công), `7008` (Skill1), `7006` (Skill2), `7013` (Skill3), `7015` (Skill4) |
-| **Võ Đang** | Thổ | `5` | `26` | `6701` (Công), `6710` (Skill1), `6706` (Skill2), `6712` (Skill3), `6713` (Skill4) |
-| **Thiên Nhẫn** | Hỏa | `6` | `31` | `7301` (Công), `7305` (Skill1), `7308` (Skill2), `7311` (Skill3), `7322` (Skill4) |
-| **Thúy Yên** | Thủy | `8` | `41` | `9001` (Công), `9010` (Skill1), `9006` (Skill2), `9015` (Skill3), `9028` (Skill4) |
-| **Đường Môn** | Mộc | `9` | `36` | `8201` (Công), `8208` (Skill1), `8206` (Skill2), `8210` (Skill3), `8212` (Skill4) |
-| **Côn Lôn** | Thổ | `10` | `35` | `7901` (Công), `7910` (Skill1), `7906` (Skill2), `7908` (Skill3), `7912` (Skill4) |
-| **Trường Ca** | Thổ | `12` | `42` | `9201` (Công), `9207` (Skill1), `9205` (Skill2), `9211` (Skill3), `9225` (Skill4) |
 
 * **`Sound.csv`**: Tra cứu gói SoundBank Wwise và Event âm thanh xuất chiêu / va chạm.
 

@@ -9,7 +9,6 @@ namespace TopDownGame.Data
     public static class GameDatabase
     {
         public static EffectDatabase Effects => EffectDatabase.Instance;
-        public static FactionSkillDatabase FactionSkills => FactionSkillDatabase.Instance;
         public static MissileDatabase Missiles => MissileDatabase.Instance;
         public static NpcAttributeDatabase NpcAttributes => NpcAttributeDatabase.Instance;
         public static NpcResDatabase NpcRes => NpcResDatabase.Instance;
@@ -27,7 +26,6 @@ namespace TopDownGame.Data
 
         public static bool IsAllLoaded => isInitialized &&
             Effects.IsLoaded &&
-            FactionSkills.IsLoaded &&
             Missiles.IsLoaded &&
             NpcAttributes.IsLoaded &&
             NpcRes.IsLoaded &&
@@ -55,7 +53,6 @@ namespace TopDownGame.Data
             Missiles.EnsureLoaded();
             StateEffects.EnsureLoaded();
             PartSlots.EnsureLoaded();
-            FactionSkills.EnsureLoaded();
             NpcRes.EnsureLoaded();
             NpcAttributes.EnsureLoaded();
             NpcTemplates.EnsureLoaded();
@@ -77,7 +74,6 @@ namespace TopDownGame.Data
             Missiles.Clear();
             StateEffects.Clear();
             PartSlots.Clear();
-            FactionSkills.Clear();
             NpcRes.Clear();
             NpcAttributes.Clear();
             NpcTemplates.Clear();

@@ -1,5 +1,6 @@
 using UnityEngine;
 using TopDownGame.Combat;
+using TopDownGame.Data;
 using TopDownGame.Input;
 using TopDownGame.Skills;
 using TopDownGame.StateMachine;
@@ -59,6 +60,7 @@ namespace TopDownGame.Player
 
         private void Start()
         {
+            ApplyHitboxFromNpcRes();
             if (Stats != null) Stats.OnDamaged += HandleDamaged;
             StateMachine.Initialize(IdleState);
         }
@@ -127,5 +129,25 @@ namespace TopDownGame.Player
         public void PlaySkillCastEffect(SkillData skill) => Combat?.PlaySkillCastEffect(skill);
         public void PlaySkillEffectEvent(SkillEffectEvent ev) => Combat?.PlaySkillEffectEvent(ev);
         public void OnHitTriggered(SkillData skill) => Combat?.OnHitTriggered(skill);
+
+        /// <summary>
+        /// Tự động cập nhật kích thước CharacterController theo dữ liệu NpcRes (height, width)
+        /// </summary>
+        public void ApplyHitboxFromNpcRes()
+        {
+            NpcResDatabase.Instance.EnsureLoaded();
+            var resData = NpcResDatabase.GetRes(NpcResId);
+            if (resData == null) return;
+
+            CharacterController cc = CharacterController;
+            if (cc == null) return;
+
+            float height = resData.height > 0f ? resData.height : 1.8f;
+            float radius = resData.width > 0f ? resData.width : 0.5f;
+
+            cc.height = height;
+            cc.radius = radius;
+            cc.center = new Vector3(0f, height * 0.5f, 0f);
+        }
     }
 }

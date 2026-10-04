@@ -68,13 +68,6 @@ namespace TopDownGame.Skills
                         string iconName = GetColRaw(tokens, colMap, "icon", 7);
                         string iconAtlas = GetColRaw(tokens, colMap, "iconatlas", 8);
 
-                        var fSkill = FactionSkillDatabase.GetFactionSkill(skillId);
-                        if (fSkill != null)
-                        {
-                            if (!string.IsNullOrEmpty(fSkill.btnIcon)) iconName = fSkill.btnIcon;
-                            if (!string.IsNullOrEmpty(fSkill.iconAtlas)) iconAtlas = fSkill.iconAtlas;
-                        }
-
                         string resolvedIconPath = "";
                         if (!string.IsNullOrEmpty(iconAtlas) && !string.IsNullOrEmpty(iconName))
                         {

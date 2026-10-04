@@ -78,7 +78,6 @@ Bảng `NpcTemplate.csv` là bảng trung tâm chứa **toàn bộ** entity tron
 | **`Sex`** | `int` | Giới tính: `1` = Nam, `2` = Nữ. |
 
 > **Lọc nhân vật player:** Dùng cột `Index` với prefix `Character_*`, `newrole_*`, `Shadow_*`, `Baby_*` hoặc lọc theo `Kind IN (0, 7, 8, 9)` kết hợp `Camp = 1`.
-> Thông tin môn phái tra qua **`FactionSkill.csv`** (cột `Faction`).
 
 ---
 

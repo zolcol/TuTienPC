@@ -46,7 +46,6 @@ namespace TopDownGame.Data
         public static string ActionEventCsv => GetFilePath("Combat", "ActionEvent.csv");
         public static string ActionNameCsv => GetFilePath("Combat", "ActionName.csv");
         public static string MissileCsv => GetFilePath("Combat", "Missile.csv");
-        public static string FactionSkillCsv => GetFilePath("Combat", "FactionSkill.csv");
 
         public static string NpcTemplateCsv => GetFilePath("NPC", "NpcTemplate.csv");
         public static string CharacterCsv => GetFilePath("NPC", "Character.csv");

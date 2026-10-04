@@ -70,7 +70,6 @@ Assets/Scripts/
 │   ├── CsvParserHelper.cs             # Parse dòng CSV, xử lý ngoặc kép, bóc tách chuỗi {Lv,Val} nội suy tuyến tính
 │   ├── EffectDatabase.cs              # Nạp EffectRes.csv (đường dẫn prefab VFX, cờ lockRotate)
 │   ├── ExpRuleDatabase.cs             # Nạp ExpRule.csv (ma trận % exp khi diệt quái theo cấp)
-│   ├── FactionSkillDatabase.cs        # Nạp FactionSkill.csv (tra cứu icon, atlas và thông tin môn phái)
 │   ├── FlyCharData.cs / FlyCharDatabase.cs # Nạp FlyChar.csv (cấu hình đường cong chuyển động, Scale/Alpha/Offset/Angle vector chuẩn JX)
 │   ├── GameDatabase.cs                # Entry-point nạp toàn bộ CSV theo đúng Dependency Order
 │   ├── GameDataPaths.cs               # Hằng số đường dẫn tương đối tới các file CSV/INI trong GameData
@@ -246,11 +245,10 @@ Khi gọi `GameDatabase.EnsureLoaded()`, dữ liệu **phải** được nạp t
 7. `Missiles` (`Settings/GameData/Combat/Missile.csv`) $\rightarrow$ cần `EffectDatabase` để lấy đường dẫn VFX bay/nổ.
 8. `StateEffects` (`Settings/GameData/VFX_Slots/StateEffect.csv`) $\rightarrow$ cần `EffectDatabase`.
 9. `PartSlots` (`Settings/GameData/VFX_Slots/PartSlot.csv`)
-10. `FactionSkills` (`Settings/GameData/Combat/FactionSkill.csv`)
-11. `NpcRes` (`Settings/GameData/NPC/NpcRes.csv`)
-12. `NpcAttributes` (`Settings/GameData/NPC/NpcAttribute.csv`)
-13. `NpcTemplates` (`Settings/GameData/NPC/NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes`, `NpcAttribute` & `NpcAi`.
-14. `Skills` (`Settings/GameData/Combat/Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
+10. `NpcRes` (`Settings/GameData/NPC/NpcRes.csv`)
+11. `NpcAttributes` (`Settings/GameData/NPC/NpcAttribute.csv`)
+12. `NpcTemplates` (`Settings/GameData/NPC/NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes`, `NpcAttribute` & `NpcAi`.
+13. `Skills` (`Settings/GameData/Combat/Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
 
 ---
 

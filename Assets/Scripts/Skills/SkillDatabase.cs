@@ -36,7 +36,6 @@ namespace TopDownGame.Skills
             Clear();
 
             EffectDatabase.Instance.EnsureLoaded();
-            FactionSkillDatabase.Instance.EnsureLoaded();
             StateEffectDatabase.Instance.EnsureLoaded();
             MissileDatabase.Instance.EnsureLoaded();
 
