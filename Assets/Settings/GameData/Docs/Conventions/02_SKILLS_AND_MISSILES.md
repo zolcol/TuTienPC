@@ -217,9 +217,9 @@ Bảng quy định cơ chế tự động kích hoạt chiêu thức / kỹ năn
 
 ---
 
-## 8. CHI TIẾT BẢNG FactionSkill.csv (MÔN PHÁI & PHÂN BỔ KỸ NĂNG)
+## 8. CHI TIẾT BẢNG FactionSkill.csv (MÔN PHÁI & THÔNG TIN KỸ NĂNG)
 
-* **`FactionSkill.csv`**: Định vị vị trí nút bấm trên HUD UI (`Attack`, `Skill1`, `Skill2`, `Skill3`, `Skill4`, `Skill_Dodge`), cờ `IsAnger = 1` cho Tuyệt kỹ Nộ (Ulti).
+* **`FactionSkill.csv`**: Tra cứu thông tin môn phái (`Faction`), Icon/Atlas hiển thị (`btnIcon`, `iconAtlas`), cấp mở khóa (`GainLevel`) và cờ `IsAnger = 1` cho Tuyệt kỹ Nộ (Ulti). Không dùng để gán cứng nút bấm.
 
 ### 🏛️ Bảng Mã Môn Phái Chuẩn & Môn Phái Thức Tỉnh (`Faction` ID):
 Game phân chia hệ thống môn phái thành 2 ID riêng biệt: **Môn Phái Tiêu Chuẩn** ($1 \sim 19$) và **Môn Phái Thức Tỉnh / Phân Nhánh** ($26 \sim 42$):
