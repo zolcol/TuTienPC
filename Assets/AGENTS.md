@@ -66,6 +66,7 @@ Assets/Scripts/
 │   ├── GameDatabase.cs                # Entry-point nạp toàn bộ CSV theo đúng Dependency Order
 │   ├── ICsvTable.cs                   # Interface nạp/xóa bảng dữ liệu
 │   ├── MissileDatabase.cs             # Nạp Missile.csv (tốc độ đạn, tầm nổ, hitbox shape, vfx fly/hit)
+│   ├── NpcAiData.cs / NpcAiDatabase.cs# Nạp AI INI profiles (CommonActive, CommonPassive, BreathTick, StrikeBack)
 │   ├── NpcAttributeDatabase.cs        # Nạp NpcAttribute.csv (máu, công vật lý/ngũ hành theo cấp)
 │   ├── NpcResData.cs / NpcResDatabase.cs # Nạp NpcRes.csv (chiều cao, độ rộng, ActionFrames, model prefab)
 │   ├── PartSlotData.cs / PartSlotDatabase.cs # Nạp PartSlot.csv (tìm transform xương theo ID: B_RH, head...)
@@ -75,14 +76,15 @@ Assets/Scripts/
 ├── Enemy/
 │   ├── EnemyBrain.cs                  # Quản lý Cooldown skill quái, chọn skill sẵn sàng, gọi Resolver
 │   ├── EnemyController.cs             # FSM Runner quái vật, CharacterController move, apply Template
-│   ├── EnemyPerception.cs             # Nhận diện mục tiêu: visionRadius (phát hiện), activeRadius (leash)
+│   ├── EnemyPerception.cs             # Nhận diện mục tiêu: AI Breath Tick, TargetLock, agro, StrikeBack
 │   ├── EnemySpawnPoint.cs             # SPAWN POINT: Quản lý bãi quái, tham số id, level, count, radius, respawn
 │   ├── EnemyStats.cs                  # Máu quái (kế thừa EntityStats), MonsterLevel, exp calculation & reward
 │   └── States/
 │       ├── EnemyBaseState.cs          # State cơ sở
-│       ├── EnemyIdleState.cs          # Đứng chờ / Đi bộ về điểm spawn nếu quá xa
-│       ├── EnemyChaseState.cs         # Rượt theo Player khi trong Vision & Active Radius
+│       ├── EnemyIdleState.cs          # Đứng chờ / Tản bộ ngẫu nhiên (RandmonMove) / AI Breath Tick
+│       ├── EnemyChaseState.cs         # Rượt theo Player khi trong Vision & Active Radius, hỗ trợ ForbitMove
 │       ├── EnemyAttackState.cs        # Xoay về Player, play anim, apply dame tại mốc castSkill
+│       ├── EnemyReturnState.cs        # Quay về Spawn (Leash), bật Invulnerable, tự hồi full HP khi về tới nơi
 │       ├── EnemyHurtState.cs          # Chạy anim bat (bị thương), dừng lại chờ hết anim
 │       └── EnemyDeadState.cs          # Chạy anim die, tắt collider, hủy object sau delay
 │

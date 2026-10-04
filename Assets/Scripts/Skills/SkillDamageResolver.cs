@@ -901,7 +901,14 @@ namespace TopDownGame.Skills
                 if (!filter.Contains(damageable))
                 {
                     filter.Add(damageable);
-                    damageable.TakeDamage(damage, hitPoint, hitDirection);
+                    if (damageable is EntityStats entityStats)
+                    {
+                        entityStats.TakeDamage(damage, hitPoint, hitDirection, caster);
+                    }
+                    else
+                    {
+                        damageable.TakeDamage(damage, hitPoint, hitDirection);
+                    }
                     return true;
                 }
             }
@@ -931,7 +938,14 @@ namespace TopDownGame.Skills
                     hitTracker[damageable] = Time.time;
                 }
 
-                damageable.TakeDamage(damage, hitPoint, hitDirection);
+                if (damageable is EntityStats entityStats)
+                {
+                    entityStats.TakeDamage(damage, hitPoint, hitDirection, caster);
+                }
+                else
+                {
+                    damageable.TakeDamage(damage, hitPoint, hitDirection);
+                }
                 return true;
             }
             return false;

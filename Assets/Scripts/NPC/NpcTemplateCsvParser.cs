@@ -52,6 +52,12 @@ namespace TopDownGame.NPC
                         float visionMeters = rawVision / 100f;
                         float activeMeters = rawActive / 100f;
 
+                        string aiFile = GetColString(tokens, colMap, "aifile", 21);
+                        if (string.IsNullOrWhiteSpace(aiFile)) aiFile = "CommonActive";
+
+                        int forbitMoveVal = GetColInt(tokens, colMap, "forbitmove", 27, 0);
+                        bool forbitMove = forbitMoveVal == 1;
+
                         float rawSpeed = GetColFloat(tokens, colMap, "runspeed", 25, 0f);
                         float runSpeed = rawSpeed > 0f ? (rawSpeed * 15.0f / 100.0f) : 5.0f;
 
@@ -79,6 +85,8 @@ namespace TopDownGame.NPC
                             skill3 = skill3,
                             visionRadius = visionMeters,
                             activeRadius = activeMeters,
+                            aiFile = aiFile,
+                            forbitMove = forbitMove,
                             runSpeed = runSpeed,
                             walkSpeed = walkSpeed,
                             prefab = prefab

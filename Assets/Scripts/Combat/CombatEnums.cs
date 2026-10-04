@@ -230,6 +230,19 @@ namespace TopDownGame.Combat
     }
 
     /// <summary>
+    /// Thuật toán ưu tiên chọn mục tiêu AI theo DATA_CONVENTIONS_V2.md (Mục 21)
+    /// </summary>
+    public enum AiTargetSelectType
+    {
+        StrikeBack = 0, // Ưu tiên đánh trả kẻ vừa đánh mình
+        Nearest = 1,    // Ưu tiên mục tiêu gần nhất
+        Poorest = 2,    // Ưu tiên mục tiêu ít máu nhất (% hoặc HP)
+        Richest = 3,    // Ưu tiên mục tiêu nhiều máu nhất
+        Random = 4,     // Chọn ngẫu nhiên trong tầm nhìn
+        Player = 5      // Ưu tiên người chơi hơn pet/phân thân
+    }
+
+    /// <summary>
     /// Struct phân tích chuỗi Gia Tốc / Lướt / Khinh Công theo DATA_CONVENTIONS_V2.md (Mục 3 & 18)
     /// </summary>
     [System.Serializable]

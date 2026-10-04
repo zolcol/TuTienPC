@@ -131,7 +131,11 @@ namespace TopDownGame.Enemy
             {
                 enemy.StartCooldown(currentSkill.id, currentSkill.cooldown);
 
-                if (enemy.Target != null && enemy.GetDistanceToTarget() <= enemy.ActiveRadius && enemy.GetDistanceToSpawn() <= enemy.ActiveRadius)
+                if (enemy.GetDistanceToSpawn() > enemy.ActiveRadius)
+                {
+                    stateMachine.ChangeState(enemy.ReturnState);
+                }
+                else if (enemy.Target != null && enemy.GetDistanceToTarget() <= enemy.ActiveRadius)
                 {
                     stateMachine.ChangeState(enemy.ChaseState);
                 }

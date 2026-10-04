@@ -67,6 +67,21 @@ namespace TopDownGame.Stats
             OnValueChanged?.Invoke(currentValue, maxValue);
         }
 
+        public void SetCurrentValue(float value)
+        {
+            float previous = currentValue;
+            currentValue = Mathf.Clamp(value, 0f, maxValue);
+            if (!Mathf.Approximately(previous, currentValue))
+            {
+                OnValueChanged?.Invoke(currentValue, maxValue);
+            }
+        }
+
+        public void ResetToMax()
+        {
+            Initialize();
+        }
+
         public void SetRegenRate(float newRate)
         {
             regenRate = Mathf.Max(0f, newRate);

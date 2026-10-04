@@ -21,6 +21,7 @@ namespace TopDownGame.Data
         public static FloatingTextDatabase FloatingTexts => FloatingTextDatabase.Instance;
         public static PlayerLevelDatabase PlayerLevels => PlayerLevelDatabase.Instance;
         public static ExpRuleDatabase ExpRules => ExpRuleDatabase.Instance;
+        public static NpcAiDatabase NpcAi => NpcAiDatabase.Instance;
 
         private static bool isInitialized = false;
 
@@ -37,13 +38,15 @@ namespace TopDownGame.Data
             Sounds.IsLoaded &&
             FloatingTexts.IsLoaded &&
             PlayerLevels.IsLoaded &&
-            ExpRules.IsLoaded;
+            ExpRules.IsLoaded &&
+            NpcAi.IsLoaded;
 
         public static void EnsureLoaded()
         {
             if (isInitialized) return;
 
             // Nạp theo đúng thứ tự phụ thuộc (Dependency Order)
+            NpcAi.EnsureLoaded();
             Sounds.EnsureLoaded();
             FloatingTexts.EnsureLoaded();
             PlayerLevels.EnsureLoaded();
@@ -65,6 +68,7 @@ namespace TopDownGame.Data
         {
             isInitialized = false;
 
+            NpcAi.Clear();
             Sounds.Clear();
             FloatingTexts.Clear();
             PlayerLevels.Clear();

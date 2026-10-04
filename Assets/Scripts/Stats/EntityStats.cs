@@ -28,6 +28,8 @@ namespace TopDownGame.Stats
         public float MagicDamage => magicDamage;
         public float AttackSpeed => attackSpeed;
         public bool IsDead { get; protected set; }
+        public bool IsInvulnerable { get; set; }
+        public Transform LastAttacker { get; protected set; }
 
         public void SetPhysicalDamage(float value) => physicalDamage = Mathf.Max(0f, value);
         public void SetMagicDamage(float value) => magicDamage = Mathf.Max(0f, value);
@@ -49,7 +51,17 @@ namespace TopDownGame.Stats
 
         public virtual void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitDirection)
         {
-            if (IsDead || amount <= 0f) return;
+            TakeDamage(amount, hitPoint, hitDirection, null);
+        }
+
+        public virtual void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitDirection, Transform attacker)
+        {
+            if (IsDead || IsInvulnerable || amount <= 0f) return;
+
+            if (attacker != null)
+            {
+                LastAttacker = attacker;
+            }
 
             health.Modify(-amount);
             OnDamaged?.Invoke(amount, hitPoint, hitDirection);
@@ -61,6 +73,12 @@ namespace TopDownGame.Stats
             {
                 Die();
             }
+        }
+
+        public virtual void ResetToFullHealth()
+        {
+            if (IsDead) return;
+            health.ResetToMax();
         }
 
         public virtual void Heal(float amount)

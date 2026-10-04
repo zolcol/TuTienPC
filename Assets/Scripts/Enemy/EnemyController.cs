@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Combat;
+using TopDownGame.Data;
 using TopDownGame.NPC;
 using TopDownGame.Skills;
 using TopDownGame.StateMachine;
@@ -20,12 +21,14 @@ namespace TopDownGame.Enemy
         [SerializeField] private float walkSpeed = 2.5f;
         [SerializeField] private float rotationSmoothTime = 0.1f;
         [SerializeField] private float gravity = -9.81f;
+        [SerializeField] private bool forbitMove = false;
         [SerializeField] private string currentStateDisplay;
 
         public TopDownGame.StateMachine.StateMachine StateMachine { get; private set; }
         public EnemyIdleState IdleState { get; private set; }
         public EnemyChaseState ChaseState { get; private set; }
         public EnemyAttackState AttackState { get; private set; }
+        public EnemyReturnState ReturnState { get; private set; }
         public EnemyHurtState HurtState { get; private set; }
         public EnemyDeadState DeadState { get; private set; }
 
@@ -43,7 +46,8 @@ namespace TopDownGame.Enemy
         public float DistanceFromSpawn => Perception != null ? Perception.GetDistanceToSpawn() : 0f;
         public float MoveSpeed => moveSpeed;
         public float WalkSpeed => walkSpeed;
-        public bool IsReturningToSpawn { get; set; }
+        public bool ForbitMove { get => forbitMove; set => forbitMove = value; }
+        public NpcAiData AiData => Perception != null ? Perception.AiData : null;
 
         public int NpcResId => (npcTemplateId > 0 && NpcTemplateDatabase.GetTemplate(npcTemplateId) != null) ? NpcTemplateDatabase.GetTemplate(npcTemplateId).npcResId : 0;
 
@@ -59,6 +63,7 @@ namespace TopDownGame.Enemy
 
             NpcTemplateDatabase.Instance.EnsureLoaded();
             SkillDatabase.Instance.EnsureLoaded();
+            NpcAiDatabase.Instance.EnsureLoaded();
             ApplyTemplateData();
             EnsureAnimationController();
 
@@ -66,6 +71,7 @@ namespace TopDownGame.Enemy
             IdleState = new EnemyIdleState(this, StateMachine);
             ChaseState = new EnemyChaseState(this, StateMachine);
             AttackState = new EnemyAttackState(this, StateMachine);
+            ReturnState = new EnemyReturnState(this, StateMachine);
             HurtState = new EnemyHurtState(this, StateMachine);
             DeadState = new EnemyDeadState(this, StateMachine);
         }
@@ -110,7 +116,7 @@ namespace TopDownGame.Enemy
 
         public void MoveTowardsTarget()
         {
-            if (Target == null || !CharacterController.enabled) return;
+            if (forbitMove || Target == null || !CharacterController.enabled) return;
             Vector3 dir = Target.position - transform.position;
             dir.y = 0f;
             if (dir.sqrMagnitude > 0.001f) moveDirection = dir.normalized;
@@ -118,14 +124,27 @@ namespace TopDownGame.Enemy
 
         public void MoveTowardsSpawn()
         {
-            if (CharacterController == null || !CharacterController.enabled) return;
+            if (forbitMove || CharacterController == null || !CharacterController.enabled) return;
             Vector3 dir = SpawnPosition - transform.position;
             dir.y = 0f;
             if (dir.sqrMagnitude > 0.01f) moveDirection = dir.normalized * (moveSpeed > 0f ? (walkSpeed / moveSpeed) : 0.5f);
         }
 
+        public void MoveTowardsPosition(Vector3 destination, float speed)
+        {
+            if (forbitMove || CharacterController == null || !CharacterController.enabled) return;
+            Vector3 dir = destination - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.01f)
+            {
+                float speedFactor = moveSpeed > 0f ? (speed / moveSpeed) : 1f;
+                moveDirection = dir.normalized * speedFactor;
+            }
+        }
+
         public void RotateTowardsTarget() => RotateTowards(Target != null ? Target.position - transform.position : Vector3.zero);
         public void RotateTowardsSpawn() => RotateTowards(SpawnPosition - transform.position);
+        public void RotateTowardsDirection(Vector3 dir) => RotateTowards(dir);
 
         private void RotateTowards(Vector3 dir)
         {
@@ -143,8 +162,16 @@ namespace TopDownGame.Enemy
         private void HandleDamaged(float amount, Vector3 hitPoint, Vector3 hitDirection)
         {
             if (Stats == null || Stats.IsDead || StateMachine.CurrentState == DeadState) return;
-            if (StateMachine.CurrentState == AttackState) return;
+
+            // Thông báo tới Perception để kích hoạt phản đòn (StrikeBack)
+            if (Perception != null && Stats.LastAttacker != null)
+            {
+                Perception.NotifyDamaged(Stats.LastAttacker);
+            }
+
+            if (StateMachine.CurrentState == AttackState || StateMachine.CurrentState == ReturnState) return;
             if (AnimationController == null || !AnimationController.HasClip(LegacyAnimationController.CLIP_HURT)) return;
+
             StateMachine.ChangeState(HurtState);
         }
 
@@ -156,6 +183,20 @@ namespace TopDownGame.Enemy
         public void StartCooldown(int skillId, float duration) => Brain?.StartCooldown(skillId, duration);
         public bool IsOnCooldown(int skillId) => Brain != null && Brain.IsOnCooldown(skillId);
         public void ExecuteSkillDamage(SkillData skill) => Brain?.ExecuteSkillDamage(skill, Target);
+
+        public void ResetToFull()
+        {
+            if (Stats != null)
+            {
+                Stats.ResetToFullHealth();
+                Stats.IsInvulnerable = false;
+            }
+            if (Perception != null)
+            {
+                Perception.ClearTarget();
+                Perception.ClearAttacker();
+            }
+        }
 
         public void EnsureAnimationController()
         {
@@ -223,10 +264,18 @@ namespace TopDownGame.Enemy
 
             moveSpeed = template.runSpeed > 0f ? template.runSpeed : 5.0f;
             walkSpeed = template.walkSpeed > 0f ? template.walkSpeed : (moveSpeed * 0.5f);
+            forbitMove = template.forbitMove;
+
+            var aiData = template.GetAi();
+            if (Perception != null)
+            {
+                Perception.SetAiData(aiData);
+                var skillListRef = template.GetSkillList();
+                float firstSkillRange = (skillListRef.Count > 0 && SkillDatabase.GetSkill(skillListRef[0]) != null) ? SkillDatabase.GetSkill(skillListRef[0]).range : 3f;
+                Perception.SetRanges(template.visionRadius, template.activeRadius, firstSkillRange);
+            }
 
             var skillList = template.GetSkillList();
-            float firstSkillRange = (skillList.Count > 0 && SkillDatabase.GetSkill(skillList[0]) != null) ? SkillDatabase.GetSkill(skillList[0]).range : 3f;
-            if (Perception != null) Perception.SetRanges(template.visionRadius, template.activeRadius, firstSkillRange);
             if (Brain != null && skillList.Count > 0) Brain.SetSkillList(skillList);
 
             if (!string.IsNullOrEmpty(template.prefab))

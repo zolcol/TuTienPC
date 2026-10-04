@@ -27,6 +27,7 @@ Tài liệu này tổng hợp toàn bộ quy ước, định nghĩa biến, côn
 18. [Chi Tiết Bảng `FactionSkill.csv` & `Sound.csv`](#18-chi-tiết-bảng-factionskillcsv--soundcsv)
 19. [Tổng Hợp Toàn Bộ Bảng Mã Enum & Struct Chuẩn C# Cho Unity](#19-tổng-hợp-toàn-bộ-bảng-mã-enum--struct-chuẩn-c-cho-unity)
 20. [Hệ Thống Cấp Độ, Kinh Nghiệm Người Chơi & Cơ Chế EXP Quái Rơi (`PlayerLevel.csv` & `ExpRule.csv`)](#20-hệ-thống-cấp-độ-kinh-nghiệm-người-chơi--cơ-chế-exp-quái-rơi-playerlevelcsv--exprulecsv)
+21. [Hệ Thống AI Quái Cơ Bản (`CommonActive.ini` & `CommonPassive.ini`)](#21-hệ-thống-ai-quái-cơ-bản-commonactiveini--commonpassiveini)
 
 ---
 
@@ -672,6 +673,29 @@ namespace GameData.Combat
         Pelvis = 22         // Bip01 Pelvis (Hông / Xương chậu)
     }
 
+    // Kiểu chọn mục tiêu AI (Readme.ini / CommonActive.ini - SelectTarget)
+    public enum AiTargetSelectType
+    {
+        Nearest,    // Gần nhất
+        Poorest,    // Ít máu nhất
+        Richest,    // Nhiều máu nhất
+        StrikeBack, // Kẻ vừa tấn công mình
+        Random,     // Ngẫu nhiên
+        Player      // Ưu tiên người chơi
+    }
+
+    // Cấu hình AI cơ bản cho quái thường
+    [Serializable]
+    public struct NpcAiConfig
+    {
+        public bool Attack;             // Chủ động tấn công (1=Có, 0=Không)
+        public bool StrikeBack;         // Phản đòn khi bị đánh (1=Có, 0=Không)
+        public int RandomMovePercent;   // Tỉ lệ % đi lang thang (RandmonMove)
+        public float BreathTimeSec;     // Nhịp suy nghĩ AI (AiBreathTime / 15.0f giây)
+        public float ChangeTargetSec;   // Thời gian giữ mục tiêu (ChangeTargetTime / 15.0f giây)
+        public AiTargetSelectType TargetType; // Quy tắc chọn mục tiêu
+    }
+
     // Struct phân tích chuỗi Gia Tốc / Lướt / Khinh Công (AcceSpeedInfo)
     [Serializable]
     public struct AcceSpeedInfo
@@ -759,4 +783,70 @@ namespace GameData
     }
 }
 ```
+
+---
+
+## 21. HỆ THỐNG AI QUÁI CƠ BẢN (`CommonActive.ini` & `CommonPassive.ini`)
+
+Hệ thống AI cho quái vật thông thường trong game hoạt động dựa trên sự kết hợp giữa **dữ liệu cấu hình thực thể (`NpcTemplate.csv`)** và **tập tin cấu hình hành vi (`CSV/N/AI/*.ini`)**.
+
+### ⚙️ 1. Cấu Trúc Khối `[Base]` Trong File Cấu Hình AI INI:
+
+Hai profile phổ biến nhất cho quái dã ngoại và phó bản là [`CommonActive.ini`](file:///C:/Users/zolcol/Desktop/Data/CSV/N/AI/CommonActive.ini) (Quái chủ động) và [`CommonPassive.ini`](file:///C:/Users/zolcol/Desktop/Data/CSV/N/AI/CommonPassive.ini) (Quái bị động):
+
+| Tham Số INI | Kiểu | Ý nghĩa trong Gameplay | Giá trị `CommonActive` | Giá trị `CommonPassive` | Quy đổi Unity C# |
+| :--- | :---: | :--- | :---: | :---: | :--- |
+| **`Attack`** | `int` | **Trạng thái chủ động tấn công:**<br>• `1`: Chủ động phát hiện và tấn công kẻ địch khi vào tầm nhìn.<br>• `0`: Bị động, chỉ tấn công khi bị gây sát thương trước. | `1` | `0` | `bool isAggressive = Attack == 1;` |
+| **`StrikeBack`** | `int` | **Phản đòn khi bị đánh:**<br>• `1`: Tự động khóa và đánh trả kẻ vừa gây sát thương.<br>• `0`: Phớt lờ sát thương hoặc bỏ chạy. | `1` | `1` | `bool canCounter = StrikeBack == 1;` |
+| **`RandmonMove`** | `int` | **Xác suất đi lang thang (%)** xung quanh điểm xuất phát khi đang ở trạng thái nhàn rỗi (Idle). | `0` (Đứng canh tại chỗ) | `10` (10% cơ hội tản bộ) | `int wanderChance = RandmonMove;` |
+| **`AiBreathTime`**| `int` | **Nhịp suy nghĩ (Tick Rate) của AI** tính bằng frame chuẩn **15 FPS**. | `15` ($1.0$ giây/lần) | `30` ($2.0$ giây/lần) | `float tickInterval = AiBreathTime / 15.0f;` |
+| **`SelectTarget`**| `string` | **Thuật toán ưu tiên chọn mục tiêu:**<br>• `StrikeBack`: Ưu tiên đánh trả kẻ vừa đánh mình.<br>• `Nearest`: Ưu tiên mục tiêu gần nhất.<br>• `Poorest`: Ưu tiên mục tiêu ít máu nhất.<br>• `Richest`: Ưu tiên mục tiêu nhiều máu nhất.<br>• `Random`: Chọn ngẫu nhiên trong tầm nhìn.<br>• `Player`: Ưu tiên đánh người chơi thay vì pet. | `StrikeBack` | `StrikeBack` | Enum `AiTargetSelectType` |
+| **`ChangeTargetTime`**| `int` | **Thời gian tối thiểu duy trì mục tiêu** (Frames) trước khi được phép chuyển sang mục tiêu khác (Chống đổi mục tiêu liên tục). | `60` ($4.0$ giây) | `60` ($4.0$ giây) | `float lockDuration = ChangeTargetTime / 15.0f;` |
+| **`FleeHpPrecent`** | `int` | Ngưỡng % HP kích hoạt trạng thái bỏ chạy hoảng loạn (`0` = không bao giờ chạy). | `0` | `0` | `int fleeHpThreshold = FleeHpPrecent;` |
+| **`FleeNearRate`** | `int` | Xác suất (%) chạy trốn khi bị kẻ địch áp sát quá gần. | `0` | `0` | `int fleeNearChance = FleeNearRate;` |
+
+---
+
+### 🗺️ 2. Các Trường Dữ Liệu Tương Tác Trong `NpcTemplate.csv`:
+
+Mỗi quái vật đọc dữ liệu từ `NpcTemplate.csv` để xác định không gian hoạt động và kỹ năng tấn công:
+
+* **`VisionRadius`**: Bán kính tầm nhìn phát hiện mục tiêu ($\div 100$ ra mét).
+* **`ActiveRadius`**: Giới hạn vùng hoạt động / khoảng cách rượt đuổi tối đa từ điểm hồi sinh (Leash Range, $\div 100$ ra mét). Nếu mục tiêu chạy vượt quá cự ly này, quái sẽ tự động bỏ truy đuổi và quay về điểm ban đầu.
+* **`NormalSkill1`**: ID kỹ năng đánh cơ bản (trỏ sang `Skill.csv` để lấy tầm xuất chiêu `AttackRadius` và thời gian hồi `TimePerCast`).
+* **`RunSpeed`**: Tốc độ di chuyển khi rượt đuổi (`RunSpeed * 15.0f / 100.0f` m/s).
+* **`ForbitMove`**: `1` = Quái dạng cọc gỗ / trụ phòng thủ cố định không di chuyển.
+
+---
+
+### 🔄 3. Máy Trạng Thái Hữu Hạn Quái Thường (Simple Monster FSM):
+
+```
+                     ┌──────────────────┐
+                     │ 1. IDLE / PATROL │◄─────────────────────────┐
+                     └────────┬─────────┘                          │
+                              │ Thấy địch trong VisionRadius       │
+                              │ (hoặc bị tấn công nếu StrikeBack)  │
+                     ┌────────▼─────────┐                          │
+                     │    2. CHASE      │                          │
+                     └────────┬─────────┘                          │
+                              │ Cự ly <= AttackRadius              │
+                     ┌────────▼─────────┐                   ┌──────┴──────┐
+                     │    3. ATTACK     │                   │ 5. RETURN / │
+                     └────────┬─────────┘                   │   RESET     │
+                              │ HP <= 0                     └──────▲──────┘
+                     ┌────────▼─────────┐                          │
+                     │    4. DEAD       │                          │
+                     └──────────────────┘                          │
+                              ▲                                    │
+                              └────────────────────────────────────┘
+                               Khoảng cách đến SpawnPos > ActiveRadius
+```
+
+* **Vòng lặp thực thi (Update Cycle):**
+  1. **Idle / Patrol**: Mỗi `BreathTimeSec` kiểm tra va chạm kẻ địch trong `VisionRadius`. Nếu có $\rightarrow$ Chuyển sang **Chase**. Nếu không, thực hiện bước đi ngẫu nhiên theo `RandomMovePercent`.
+  2. **Chase**: Tiếp cận mục tiêu theo vận tốc `RunSpeed`. Nếu khoảng cách từ vị trí hiện tại đến `SpawnPos` $> \text{ActiveRadius} \rightarrow$ Chuyển sang **Return**. Nếu cự ly đến mục tiêu $\le \text{AttackRadius} \rightarrow$ Chuyển sang **Attack**.
+  3. **Attack**: Hướng mặt về mục tiêu, tung `NormalSkill1` theo chu kỳ `TimePerCast / 15.0f` giây. Nếu mục tiêu di chuyển ra ngoài `AttackRadius` $\rightarrow$ Tiếp tục **Chase**.
+  4. **Return / Reset**: Bỏ mục tiêu, quay về `SpawnPos`. Miễn nhiễm sát thương và hồi phục toàn bộ HP khi đang trên đường quay về. Khi tới nơi $\rightarrow$ Chuyển về **Idle**.
+  5. **Dead**: Chạy hoạt ảnh chết (`Die`), rớt đồ (`DropFile`), đợi `ReviveFrame / 15.0f` giây để tái sinh.
 

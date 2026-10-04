@@ -29,6 +29,10 @@ namespace TopDownGame.NPC
         public float runSpeed = 5.0f;
         public float walkSpeed = 2.5f;
 
+        // Cấu hình AI & Di chuyển theo DATA_CONVENTIONS_V2.md (Mục 21)
+        public string aiFile = "CommonActive";
+        public bool forbitMove = false;
+
         // Đường dẫn Prefab Model (tự động đồng bộ từ NpcRes.csv)
         public string prefab;
 
@@ -38,6 +42,14 @@ namespace TopDownGame.NPC
         public NpcResData GetRes()
         {
             return NpcResDatabase.GetRes(npcResId);
+        }
+
+        /// <summary>
+        /// Lấy cấu hình AI từ NpcAiDatabase
+        /// </summary>
+        public NpcAiData GetAi()
+        {
+            return NpcAiDatabase.GetAi(aiFile);
         }
 
         /// <summary>
