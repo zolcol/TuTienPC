@@ -37,7 +37,7 @@ namespace TopDownGame.Enemy
             triggeredCastEvents.Clear();
 
             // Xoay dứt khoát về phía người chơi khi bắt đầu ra đòn
-            enemy.RotateTowardsTarget();
+            enemy.RotateTowardsTargetInstantly();
 
             // Kích hoạt Animation
             if (enemy.AnimationController != null)
@@ -58,6 +58,19 @@ namespace TopDownGame.Enemy
             if (currentSkill == null) return;
 
             timer += Time.deltaTime;
+
+            // 0. Xoay bám theo mục tiêu trong giai đoạn chuẩn bị xuất chiêu (trước mốc CastSkillTime)
+            if (timer <= currentSkill.CastSkillTime)
+            {
+                if (currentSkill.instantDirSpeed > 0f)
+                {
+                    enemy.RotateTowardsTarget(currentSkill.instantDirSpeed);
+                }
+                else
+                {
+                    enemy.RotateTowardsTarget();
+                }
+            }
 
             // 1. Nhích tiến nếu có MovePos
             if (currentSkill.movePosSpeed > 0f && currentSkill.movePosDistance > 0f)

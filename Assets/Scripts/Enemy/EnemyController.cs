@@ -146,6 +146,31 @@ namespace TopDownGame.Enemy
         public void RotateTowardsSpawn() => RotateTowards(SpawnPosition - transform.position);
         public void RotateTowardsDirection(Vector3 dir) => RotateTowards(dir);
 
+        public void RotateTowardsTargetInstantly()
+        {
+            if (Target == null) return;
+            Vector3 dir = Target.position - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.001f)
+            {
+                transform.rotation = Quaternion.LookRotation(dir.normalized);
+                turnSmoothVelocity = 0f;
+            }
+        }
+
+        public void RotateTowardsTarget(float speedDegPerSec)
+        {
+            if (Target == null) return;
+            Vector3 dir = Target.position - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.001f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
+                float speed = speedDegPerSec > 0f ? speedDegPerSec : 720f;
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, speed * Time.deltaTime);
+            }
+        }
+
         private void RotateTowards(Vector3 dir)
         {
             dir.y = 0f;

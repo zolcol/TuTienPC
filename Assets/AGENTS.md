@@ -164,7 +164,7 @@ Assets/Scripts/
 | **Sửa thuật toán Va chạm Hitbox / Gây Sát thương / Hồi máu** | `Skills/SkillDamageResolver.cs` | `Skills/SkillData.cs`<br>`Stats/EntityStats.cs` |
 | **Sửa cơ chế Đạn bay / Bám đuổi / Nảy đạn (Projectile)** | `Skills/ProjectileController.cs`<br>`Skills/ProjectilePool.cs` | `Data/MissileDatabase.cs` |
 | **Thêm / Sửa thuộc tính Kỹ năng từ Database** | `Skills/SkillData.cs`<br>`Skills/SkillCsvParser.cs`<br>`Skills/ActionEventParser.cs` | `Data/GameDatabase.cs` |
-| **Sửa AI / Hành vi Quái vật / Boss** | `Enemy/EnemyBrain.cs`<br>`Enemy/EnemyPerception.cs`<br>`Enemy/States/EnemyAttackState.cs` | `Enemy/EnemyController.cs` |
+| **Sửa AI / Hành vi Quái vật / Boss** | `Enemy/EnemyBrain.cs`<br>`Enemy/EnemyPerception.cs`<br>`Enemy/EnemyController.cs`<br>`Enemy/States/EnemyIdleState.cs`<br>`Enemy/States/EnemyChaseState.cs`<br>`Enemy/States/EnemyAttackState.cs`<br>`Enemy/States/EnemyReturnState.cs` | `Data/NpcAiDatabase.cs`<br>`Data/NpcAiData.cs`<br>`NPC/NpcTemplateDatabase.cs` |
 | **Sửa Hoạt ảnh / Khớp xương / Đồng bộ Body & Head** | `LegacyAnimationController.cs`<br>`Combat/VfxLockRotation.cs`<br>`Data/PartSlotDatabase.cs` | `Skills/CastActionID.cs` |
 | **Sửa Chỉ số Máu, Mana, Cấp độ, Kinh nghiệm, Tốc đánh** | `Stats/EntityStats.cs`<br>`Stats/PlayerStats.cs`<br>`Data/PlayerLevelDatabase.cs`<br>`Data/ExpRuleDatabase.cs`<br>`Data/NpcAttributeDatabase.cs`<br>`Data/CsvParserHelper.cs` | `Stats/ResourceStat.cs`<br>`Combat/CombatFormula.cs` |
 | **Sửa Giao diện / HUD / Hiệu ứng Cooldown** | `UI/PlayerHUD.cs`<br>`UI/SkillSlotUI.cs` | `Editor/PlayerHUDBuilder.cs` |
@@ -197,7 +197,7 @@ graph TD
     ComboWindow -- Không & timer >= CanDoRun --> Cancel[Chuyển sang PlayerMoveState]
 ```
 
-### 5.2. Luồng Sinh Quái Vật & Hồi Sinh (Enemy Spawning Lifecycle)
+### 5.2. Luồng Vòng Đời AI & Quái Vật (Monster AI & Spawning Lifecycle)
 ```mermaid
 graph TD
     SpawnPoint[EnemySpawnPoint: maxCount, level, radius] --> Raycast[Dò mặt đất XZ qua Physics.Raycast]
@@ -205,11 +205,20 @@ graph TD
     Create --> Model[Nạp Prefab Model con trước]
     Create --> CC[Thêm CharacterController theo NpcRes]
     Create --> Stats[EnemyStats: MonsterLevel & Scale Máu/Công]
-    Create --> Ctrl[EnemyController.Initialize -> ApplyTemplateData]
+    Create --> Ctrl[EnemyController.Initialize -> ApplyTemplateData: NpcAi & Skills]
     Ctrl --> AnimInit[LegacyAnimationController: AutoFindAnims & AlwaysAnimate]
-    AnimInit --> StateInit[FSM Initialize: IdleState -> PlayIdle]
-    StateInit --> Live[Quái sống & tuần tra quanh SpawnPosition]
-    Live --> Death[EnemyStats.OnDeath -> EnemyDeadState]
+    AnimInit --> StateInit[FSM Initialize: IdleState]
+
+    subgraph AI FSM Loop
+        Idle[1. EnemyIdleState: AI Breath Tick & RandmonMove] -->|Thấy địch trong Vision / Bị đánh| Chase[2. EnemyChaseState: Rượt đuổi / ForbitMove]
+        Chase -->|Cự ly <= AttackRange| Attack[3. EnemyAttackState: CastSkill & Cooldown]
+        Attack -->|Hết chiêu & còn trong tầm| Chase
+        Chase & Attack -->|Cách Spawn > ActiveRadius| Return[4. EnemyReturnState: Leash + Invulnerable]
+        Return -->|Về tới SpawnPos <= 0.6m| Reset[ResetToFull: 100% HP & Tắt Invulnerable]
+        Reset --> Idle
+        Idle & Chase & Attack & Return -->|HP <= 0| Death[5. EnemyDeadState: OnDeath]
+    end
+
     Death --> Clean[CleanupDeadEnemies -> Bắt đầu đếm Respawn Delay]
     Clean --> RespawnTimer{Hết thời gian Respawn?}
     RespawnTimer -- Có --> Raycast
@@ -217,19 +226,20 @@ graph TD
 
 ### 5.3. Thứ tự nạp dữ liệu (Dependency Loading Order)
 Khi gọi `GameDatabase.EnsureLoaded()`, dữ liệu **phải** được nạp theo đúng trình tự sau để tránh `NullReferenceException`:
-1. `Sounds` (`Sound.csv`)
-2. `FloatingTexts` (`FloatingText.csv`)
-3. `PlayerLevels` (`PlayerLevel.csv`)
-4. `ExpRules` (`ExpRule.csv`)
-5. `Effects` (`EffectRes.csv`)
-6. `Missiles` (`Missile.csv`) $\rightarrow$ cần `EffectDatabase` để lấy đường dẫn VFX bay/nổ.
-7. `StateEffects` (`StateEffect.csv`) $\rightarrow$ cần `EffectDatabase`.
-8. `PartSlots` (`PartSlot.csv`)
-9. `FactionSkills` (`FactionSkill.csv`)
-10. `NpcRes` (`NpcRes.csv`)
-11. `NpcAttributes` (`NpcAttribute.csv`)
-12. `NpcTemplates` (`NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes` & `NpcAttribute`.
-13. `Skills` (`Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
+1. `NpcAi` (`Settings/N/AI/*.ini`)
+2. `Sounds` (`Sound.csv`)
+3. `FloatingTexts` (`FloatingText.csv`)
+4. `PlayerLevels` (`PlayerLevel.csv`)
+5. `ExpRules` (`ExpRule.csv`)
+6. `Effects` (`EffectRes.csv`)
+7. `Missiles` (`Missile.csv`) $\rightarrow$ cần `EffectDatabase` để lấy đường dẫn VFX bay/nổ.
+8. `StateEffects` (`StateEffect.csv`) $\rightarrow$ cần `EffectDatabase`.
+9. `PartSlots` (`PartSlot.csv`)
+10. `FactionSkills` (`FactionSkill.csv`)
+11. `NpcRes` (`NpcRes.csv`)
+12. `NpcAttributes` (`NpcAttribute.csv`)
+13. `NpcTemplates` (`NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes`, `NpcAttribute` & `NpcAi`.
+14. `Skills` (`Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
 
 ---
 
