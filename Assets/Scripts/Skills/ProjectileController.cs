@@ -14,7 +14,7 @@ namespace TopDownGame.Skills
     public class ProjectileController : MonoBehaviour
     {
         private static readonly RaycastHit[] raycastBuffer = new RaycastHit[16];
-        private static readonly Collider[] overlapBuffer = new Collider[16];
+        private static readonly Collider[] overlapBuffer = new Collider[32];
 
         [Header("Runtime Info")]
         [SerializeField] private int skillId;
@@ -43,8 +43,11 @@ namespace TopDownGame.Skills
         private bool isDestroying = false;
         private GameObject flyingEffectInstance;
         private readonly Dictionary<IDamageable, float> lastHitTimes = new Dictionary<IDamageable, float>();
+        private readonly Dictionary<IDamageable, int> targetHitCounts = new Dictionary<IDamageable, int>();
+        private IDamageable lastHitEntity = null;
         private int bouncesRemaining = 0;
         private float bounceRadius = 10f;
+        private int maxHitsPerTarget = 0;
 
         #region Lifecycle & Initialization
 
@@ -82,8 +85,11 @@ namespace TopDownGame.Skills
             this.flyTimer = 0f;
 
             // Thiết lập nảy bật liên hoàn (MissileForm = 4)
-            this.bouncesRemaining = (skill != null && skill.missileForm == 4 && skill.skillParam1 > 0) ? (int)skill.skillParam1 : 0;
-            this.bounceRadius = (skill != null && skill.skillParam3 > 0) ? (skill.skillParam3 / 100f) : 10f;
+            bool isBounceMissile = skill != null && skill.missileForm == 4;
+            this.bouncesRemaining = (isBounceMissile && skill.skillParam1 > 0) ? (int)skill.skillParam1 : 0;
+            this.bounceRadius = (isBounceMissile && skill.skillParam3 > 0) ? (skill.skillParam3 / 100f) : 10f;
+            this.maxHitsPerTarget = (isBounceMissile && skill.skillParam4 > 0) ? (int)skill.skillParam4 : 0;
+            this.lastHitEntity = null;
 
             transform.position = startPos;
             transform.rotation = Quaternion.LookRotation(this.moveDirection);
@@ -151,15 +157,34 @@ namespace TopDownGame.Skills
 
         private void UpdateTrajectory(float dt)
         {
-            // Bẻ lái bám mục tiêu (Homing / Target tracking)
-            bool isHoming = missileData != null && (missileData.moveKind == MissileMoveKind.HomingTracking || (int)missileData.moveKind == 2 || missileData.isFollowTarget);
+            // Bẻ lái bám mục tiêu (Homing / Target tracking hoặc Nảy đạn liên hoàn)
+            bool isHoming = (missileData != null && (missileData.moveKind == MissileMoveKind.HomingTracking || (int)missileData.moveKind == 2 || missileData.isFollowTarget))
+                || (skillData != null && skillData.missileForm == 4);
+
             if (isHoming && homingTarget != null)
             {
+                var targetStats = homingTarget.GetComponentInParent<EntityStats>();
+                if (targetStats != null && targetStats.IsDead && skillData != null && skillData.missileForm == 4)
+                {
+                    // Mục tiêu đang bay tới đã chết -> Tìm ngay mục tiêu kế tiếp hoặc nổ
+                    Transform newTarget = FindNextBounceTarget(transform.position, lastHitEntity, null);
+                    if (newTarget != null)
+                    {
+                        homingTarget = newTarget;
+                    }
+                    else
+                    {
+                        ExplodeAndDestroy(transform.position, false);
+                        return;
+                    }
+                }
+
                 Vector3 toTarget = homingTarget.position - transform.position;
                 toTarget.y = 0f;
                 if (toTarget.sqrMagnitude > 0.001f)
                 {
-                    moveDirection = Vector3.RotateTowards(moveDirection, toTarget.normalized, 8f * dt, 0f);
+                    float turnSpeed = (skillData != null && skillData.missileForm == 4) ? 25f : 8f;
+                    moveDirection = Vector3.RotateTowards(moveDirection, toTarget.normalized, turnSpeed * dt, 0f);
                     transform.rotation = Quaternion.LookRotation(moveDirection);
                 }
             }
@@ -187,6 +212,27 @@ namespace TopDownGame.Skills
         #endregion
 
         #region Collision & Hit Resolution
+
+        private bool IsMatchingHomingTarget(Collider col)
+        {
+            if (homingTarget == null) return true;
+            if (col.transform == homingTarget || col.transform.IsChildOf(homingTarget) || homingTarget.IsChildOf(col.transform))
+            {
+                return true;
+            }
+
+            var targetStats = homingTarget.GetComponentInParent<EntityStats>();
+            if (targetStats != null)
+            {
+                var colStats = col.GetComponentInParent<EntityStats>();
+                if (colStats != null && colStats == targetStats)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         private bool CheckCollision(Vector3 fromPos, Vector3 toPos, float stepDistance)
         {
@@ -236,27 +282,67 @@ namespace TopDownGame.Skills
         /// </summary>
         private bool HandleHitTarget(Collider col, Vector3 hitPoint, Vector3 currentPos)
         {
-            if (!ProcessHit(col, hitPoint, moveDirection)) return false;
+            if (col == null || (caster != null && (col.gameObject == caster.gameObject || col.transform.IsChildOf(caster)))) return false;
 
-            // Cơ chế nảy đạn liên hoàn (Chain Bouncing)
-            if (bouncesRemaining > 0)
+            // Nếu đã khóa mục tiêu cụ thể (Homing / Bounce Target), chỉ nhận va chạm đúng mục tiêu đó
+            if (homingTarget != null && !IsMatchingHomingTarget(col))
             {
-                Transform nextTarget = FindNextBounceTarget(hitPoint, col);
-                if (nextTarget != null)
+                return false;
+            }
+
+            IDamageable hitDmg = col.GetComponent<IDamageable>() ?? col.GetComponentInParent<IDamageable>();
+            if (hitDmg == null) return false;
+            if (hitDmg is EntityStats stats && stats.IsDead) return false;
+
+            // Đối với đạn nảy: không va chạm lặp lại với mục tiêu vừa nảy ra
+            if (skillData != null && skillData.missileForm == 4 && hitDmg == lastHitEntity)
+            {
+                return false;
+            }
+
+            // Kiểm tra giới hạn số lần đánh lên mục tiêu này
+            if (skillData != null && skillData.missileForm == 4 && maxHitsPerTarget > 0)
+            {
+                if (targetHitCounts.TryGetValue(hitDmg, out int hitCount) && hitCount >= maxHitsPerTarget)
                 {
-                    bouncesRemaining--;
-                    homingTarget = nextTarget;
-                    Vector3 toNext = nextTarget.position - transform.position;
-                    toNext.y = 0f;
-                    moveDirection = toNext.sqrMagnitude > 0.001f ? toNext.normalized : moveDirection;
-                    transform.position = new Vector3(hitPoint.x, currentPos.y, hitPoint.z);
-                    transform.rotation = Quaternion.LookRotation(moveDirection);
-                    distanceTraveled = 0f;
-                    return false; // Tiếp tục bay đến mục tiêu kế tiếp
+                    return false;
                 }
             }
 
-            // Tự hủy khi trúng đích nếu cấu hình VanishOnHit
+            if (!ProcessHit(col, hitPoint, moveDirection)) return false;
+
+            targetHitCounts[hitDmg] = targetHitCounts.TryGetValue(hitDmg, out int count) ? count + 1 : 1;
+            lastHitEntity = hitDmg;
+
+            // Cơ chế nảy đạn liên hoàn (Chain Bouncing - MissileForm = 4)
+            if (skillData != null && skillData.missileForm == 4)
+            {
+                if (bouncesRemaining > 0)
+                {
+                    Transform nextTarget = FindNextBounceTarget(hitPoint, hitDmg, col);
+                    if (nextTarget != null)
+                    {
+                        bouncesRemaining--;
+                        homingTarget = nextTarget;
+                        Vector3 toNext = nextTarget.position - transform.position;
+                        toNext.y = 0f;
+                        if (toNext.sqrMagnitude > 0.001f)
+                        {
+                            moveDirection = toNext.normalized;
+                            transform.rotation = Quaternion.LookRotation(moveDirection);
+                        }
+                        distanceTraveled = 0f;
+                        lifeTimer = Mathf.Max(lifeTimer, missileData != null ? missileData.LifeTimeInSeconds : 2.5f);
+                        return true; // Đã xử lý va chạm và chuyển hướng nảy thành công
+                    }
+                }
+
+                // Hết số lần nảy hoặc không tìm thấy mục tiêu nảy hợp lệ trong tầm -> Biến mất
+                ExplodeAndDestroy(hitPoint, true);
+                return true;
+            }
+
+            // Tự hủy khi trúng đích nếu cấu hình VanishOnHit (đạn thông thường)
             if (missileData != null && missileData.ShouldVanishOnHit)
             {
                 ExplodeAndDestroy(hitPoint, true);
@@ -282,7 +368,8 @@ namespace TopDownGame.Skills
             }
             else
             {
-                isHitSuccess = SkillDamageResolver.ApplyDamage(col, damage, hitPoint, hitDir, caster, lastHitTimes, repeatInterval);
+                var hitTracker = (skillData != null && skillData.missileForm == 4) ? null : lastHitTimes;
+                isHitSuccess = SkillDamageResolver.ApplyDamage(col, damage, hitPoint, hitDir, caster, hitTracker, repeatInterval);
             }
 
             if (isHitSuccess)
@@ -304,46 +391,63 @@ namespace TopDownGame.Skills
             var targetStats = col.GetComponent<EntityStats>() ?? col.GetComponentInParent<EntityStats>();
             if (targetStats == null || targetStats.IsDead) return false;
 
-            if (lastHitTimes.TryGetValue(targetStats, out float lastTime))
+            if (skillData == null || skillData.missileForm != 4)
             {
-                if (repeatInterval <= 0f || (Time.time - lastTime) < repeatInterval)
+                if (lastHitTimes.TryGetValue(targetStats, out float lastTime))
                 {
-                    return false;
+                    if (repeatInterval <= 0f || (Time.time - lastTime) < repeatInterval)
+                    {
+                        return false;
+                    }
                 }
+                lastHitTimes[targetStats] = Time.time;
             }
 
-            lastHitTimes[targetStats] = Time.time;
             targetStats.Heal(damage);
             return true;
         }
 
-        private Transform FindNextBounceTarget(Vector3 origin, Collider currentHit)
+        private Transform FindNextBounceTarget(Vector3 origin, IDamageable currentHitDamageable, Collider currentHitCol)
         {
             int count = Physics.OverlapSphereNonAlloc(origin, bounceRadius, overlapBuffer, targetLayer);
             Transform best = null;
+            int bestHitCount = int.MaxValue;
             float closestDist = float.MaxValue;
             bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
+            bool isHeal = skillData != null && skillData.IsHeal;
 
             for (int i = 0; i < count; i++)
             {
                 Collider col = overlapBuffer[i];
-                if (col == null || col == currentHit) continue;
-                if (caster != null && col.gameObject == caster.gameObject) continue;
+                if (col == null || col == currentHitCol) continue;
+                if (caster != null && (col.gameObject == caster.gameObject || col.transform.IsChildOf(caster))) continue;
 
-                if (col.TryGetComponent<IDamageable>(out var dmg) || (dmg = col.GetComponentInParent<IDamageable>()) != null)
+                var dmg = col.GetComponent<IDamageable>() ?? col.GetComponentInParent<IDamageable>();
+                if (dmg == null || dmg == currentHitDamageable) continue;
+                if (dmg is EntityStats stats && stats.IsDead) continue;
+
+                if (dmg is Component comp)
                 {
-                    if (dmg is EntityStats stats && stats.IsDead) continue;
-                    if (dmg is Component comp)
+                    bool isTargetPlayer = comp.CompareTag(CombatLayersAndTags.TagPlayer) || comp.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
+                    if (isHeal)
                     {
-                        bool isTargetPlayer = comp.CompareTag(CombatLayersAndTags.TagPlayer) || comp.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
+                        if (isCasterPlayer != isTargetPlayer) continue;
+                    }
+                    else
+                    {
                         if (isCasterPlayer == isTargetPlayer) continue;
+                    }
 
-                        float dist = Vector3.Distance(origin, comp.transform.position);
-                        if (dist < closestDist)
-                        {
-                            closestDist = dist;
-                            best = comp.transform;
-                        }
+                    int hits = targetHitCounts.TryGetValue(dmg, out int h) ? h : 0;
+                    if (maxHitsPerTarget > 0 && hits >= maxHitsPerTarget) continue;
+
+                    float dist = Vector3.Distance(origin, comp.transform.position);
+
+                    if (best == null || hits < bestHitCount || (hits == bestHitCount && dist < closestDist))
+                    {
+                        best = comp.transform;
+                        bestHitCount = hits;
+                        closestDist = dist;
                     }
                 }
             }
@@ -474,8 +578,12 @@ namespace TopDownGame.Skills
             skillData = null;
             missileData = null;
             homingTarget = null;
+            lastHitEntity = null;
             flyTimer = 0f;
             lastHitTimes.Clear();
+            targetHitCounts.Clear();
+            bouncesRemaining = 0;
+            maxHitsPerTarget = 0;
 
             ProjectilePool.Instance.Release(this);
         }
