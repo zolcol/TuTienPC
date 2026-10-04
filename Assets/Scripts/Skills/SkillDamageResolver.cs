@@ -393,7 +393,20 @@ namespace TopDownGame.Skills
                     {
                         hitEntitiesThisCast.Add(damageable);
                         Vector3 hitDirection = (target.position - caster.position).normalized;
-                        damageable.TakeDamage(damage, target.position + Vector3.up * 1.0f, hitDirection);
+                        Vector3 hitPos = target.position + Vector3.up * 1.0f;
+                        if (damageable is EntityStats entityStats)
+                        {
+                            EntityStats casterStats = caster != null ? (caster.GetComponent<EntityStats>() ?? caster.GetComponentInParent<EntityStats>()) : null;
+                            float mitigated = CombatFormula.CalculateMitigatedDamage(damage, entityStats.Armor);
+                            float critRate = casterStats != null ? casterStats.CritRate : 0f;
+                            float critDmg = casterStats != null ? casterStats.CritDamage : 150f;
+                            var (finalDamage, isCrit) = CombatFormula.CalculateCritDamage(mitigated, critRate, critDmg);
+                            entityStats.TakeDamage(finalDamage, hitPos, hitDirection, caster, isCrit);
+                        }
+                        else
+                        {
+                            damageable.TakeDamage(damage, hitPos, hitDirection);
+                        }
                     }
                     return;
                 }
@@ -903,7 +916,12 @@ namespace TopDownGame.Skills
                     filter.Add(damageable);
                     if (damageable is EntityStats entityStats)
                     {
-                        entityStats.TakeDamage(damage, hitPoint, hitDirection, caster);
+                        EntityStats casterStats = caster != null ? (caster.GetComponent<EntityStats>() ?? caster.GetComponentInParent<EntityStats>()) : null;
+                        float mitigated = CombatFormula.CalculateMitigatedDamage(damage, entityStats.Armor);
+                        float critRate = casterStats != null ? casterStats.CritRate : 0f;
+                        float critDmg = casterStats != null ? casterStats.CritDamage : 150f;
+                        var (finalDamage, isCrit) = CombatFormula.CalculateCritDamage(mitigated, critRate, critDmg);
+                        entityStats.TakeDamage(finalDamage, hitPoint, hitDirection, caster, isCrit);
                     }
                     else
                     {
@@ -940,7 +958,12 @@ namespace TopDownGame.Skills
 
                 if (damageable is EntityStats entityStats)
                 {
-                    entityStats.TakeDamage(damage, hitPoint, hitDirection, caster);
+                    EntityStats casterStats = caster != null ? (caster.GetComponent<EntityStats>() ?? caster.GetComponentInParent<EntityStats>()) : null;
+                    float mitigated = CombatFormula.CalculateMitigatedDamage(damage, entityStats.Armor);
+                    float critRate = casterStats != null ? casterStats.CritRate : 0f;
+                    float critDmg = casterStats != null ? casterStats.CritDamage : 150f;
+                    var (finalDamage, isCrit) = CombatFormula.CalculateCritDamage(mitigated, critRate, critDmg);
+                    entityStats.TakeDamage(finalDamage, hitPoint, hitDirection, caster, isCrit);
                 }
                 else
                 {

@@ -59,7 +59,7 @@ Assets/Scripts/
 │
 ├── Combat/
 │   ├── CombatEnums.cs                 # Toàn bộ Enums: NpcKind, NpcCamp, SkillTypeDef, HitboxShape, v.v.
-│   ├── CombatFormula.cs               # STATIC PURE MATH: Đổi Frame sang Giây, tính Tốc Đánh, Damage, Heal
+│   ├── CombatFormula.cs               # STATIC PURE MATH: Đổi Frame sang Giây, tính Tốc Đánh, Damage, Heal, Giảm trừ Giáp & Bạo kích
 │   ├── DummyTarget.cs                 # Bia tập bắn / Bao cát test dame có thanh máu OnGUI
 │   ├── EffectManager.cs               # VFX POOLING: SpawnEffect, SpawnEffectAtSlot, RecycleEffect
 │   ├── GameConstants.cs               # Hằng số tập trung: Tags, Layers, LayerMasks, Animation Clips, Resource Paths
@@ -134,8 +134,8 @@ Assets/Scripts/
 │   └── StateMachine.cs                # Quản lý chuyển đổi State cơ sở
 │
 ├── Stats/
-│   ├── EntityStats.cs                 # Base stats: Máu, công vật lý/phép, AttackSpeed, IDamageable
-│   ├── PlayerStats.cs                 # Mở rộng cho Player: Mana, Cấp độ (Level), Kinh nghiệm (Exp), LevelUp
+│   ├── EntityStats.cs                 # Base stats: Máu, Mana, Công vật lý/phép, Tốc đánh/chạy, Giáp/Kháng, Chí mạng, IDamageable
+│   ├── PlayerStats.cs                 # Mở rộng cho Player: Cấp độ (Level), Kinh nghiệm (Exp), LevelUp
 │   └── ResourceStat.cs                # Cặp giá trị Current/Max, tự hồi máu/mana, phát Action event
 │
 ├── UI/
@@ -175,7 +175,7 @@ Assets/Scripts/
 | **Thêm / Sửa thuộc tính Kỹ năng từ Database** | `Skills/SkillData.cs`<br>`Skills/SkillCsvParser.cs`<br>`Skills/ActionEventParser.cs` | `Data/GameDatabase.cs` |
 | **Sửa AI / Hành vi Quái vật / Boss** | `Enemy/EnemyBrain.cs`<br>`Enemy/EnemyPerception.cs`<br>`Enemy/EnemyController.cs`<br>`Enemy/States/EnemyIdleState.cs`<br>`Enemy/States/EnemyChaseState.cs`<br>`Enemy/States/EnemyAttackState.cs`<br>`Enemy/States/EnemyReturnState.cs` | `Data/NpcAiDatabase.cs`<br>`Data/NpcAiData.cs`<br>`NPC/NpcTemplateDatabase.cs` |
 | **Sửa Hoạt ảnh / Khớp xương / Đồng bộ Body & Head** | `LegacyAnimationController.cs`<br>`Combat/VfxLockRotation.cs`<br>`Data/PartSlotDatabase.cs` | `Skills/CastActionID.cs` |
-| **Sửa Chỉ số Máu, Mana, Cấp độ, Kinh nghiệm, Tốc đánh** | `Stats/EntityStats.cs`<br>`Stats/PlayerStats.cs`<br>`Data/PlayerLevelDatabase.cs`<br>`Data/ExpRuleDatabase.cs`<br>`Data/NpcAttributeDatabase.cs`<br>`Data/CsvParserHelper.cs` | `Stats/ResourceStat.cs`<br>`Combat/CombatFormula.cs` |
+| **Sửa Chỉ số Máu, Mana, Cấp độ, Kinh nghiệm, Tốc đánh, Giáp, Kháng, Chí mạng** | `Stats/EntityStats.cs`<br>`Stats/PlayerStats.cs`<br>`Combat/CombatFormula.cs`<br>`Data/PlayerLevelDatabase.cs`<br>`Data/ExpRuleDatabase.cs`<br>`Data/NpcAttributeDatabase.cs`<br>`Data/CsvParserHelper.cs` | `Stats/ResourceStat.cs` |
 | **Sửa Giao diện / HUD / Hiệu ứng Cooldown** | `UI/PlayerHUD.cs`<br>`UI/SkillSlotUI.cs` | `Editor/PlayerHUDBuilder.cs` |
 | **Sửa Số nhảy Sát thương / Floating Text (Dame, Heal, Exp, Miss)** | `UI/FloatingTextManager.cs`<br>`UI/FloatingTextItem.cs`<br>`Data/FlyCharDatabase.cs` | `Data/FlyCharData.cs`<br>`Settings/GameData/Combat/FlyChar.csv` |
 | **Sửa Âm thanh / Tiếng chém trúng / Voice** | `Audio/SoundManager.cs`<br>`Audio/SoundDatabase.cs` | `Audio/SoundData.cs` |

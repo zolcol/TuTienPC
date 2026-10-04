@@ -7253,13 +7253,18 @@ MonoBehaviour:
     maxValue: 100000
     currentValue: 0
     regenRate: 0
-  physicalDamage: 20
-  magicDamage: 10
-  attackSpeed: 1
   mana:
     maxValue: 100
     currentValue: 0
     regenRate: 5
+  physicalDamage: 20
+  magicDamage: 10
+  attackSpeed: 1
+  critRate: 50
+  critDamage: 150
+  armor: 0
+  magicResist: 0
+  moveSpeed: 5
   currentLevel: 1
   currentExp: 0
 --- !u!114 &2137775178
@@ -7275,7 +7280,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   defaultNormalAttackId: 301
-  factionId: 2
   npcResId: 2
   skillSlotQ_Id: 306
   skillSlotE_Id: 308

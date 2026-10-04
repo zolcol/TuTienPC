@@ -277,6 +277,7 @@ namespace TopDownGame.Enemy
                 Stats.SetPhysicalDamage(attrib.GetAverageAttack(level));
                 Stats.SetMagicDamage(attrib.GetTotalMagicDamage(level));
                 Stats.SetAttackSpeed(attrib.attackSpeed > 0 ? attrib.attackSpeed : 15f);
+                Stats.SetMoveSpeed(template.runSpeed > 0f ? template.runSpeed : 5.0f);
             }
 
             var resData = template.GetRes();

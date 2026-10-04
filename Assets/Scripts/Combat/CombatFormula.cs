@@ -143,6 +143,50 @@ namespace TopDownGame.Combat
         }
 
         /// <summary>
+        /// Tính sát thương sau khi giảm trừ qua Giáp hoặc Kháng Phép theo công thức:
+        /// MitigatedDamage = RawDamage * 100 / (100 + Defense)
+        /// </summary>
+        public static float CalculateMitigatedDamage(float rawDamage, float defense)
+        {
+            if (rawDamage <= 0f) return 0f;
+            if (defense <= 0f) return rawDamage;
+            return rawDamage * (100f / (100f + defense));
+        }
+
+        /// <summary>
+        /// Kiểm tra và tính toán sát thương bạo kích:
+        /// Nếu nổ bạo kích, nhân thêm hệ số (critDamage / 100).
+        /// </summary>
+        public static (float damage, bool isCrit) CalculateCritDamage(float baseDamage, float critRate, float critDamage)
+        {
+            if (baseDamage <= 0f) return (0f, false);
+            bool isCrit = critRate > 0f && (Random.Range(0f, 100f) < critRate);
+            float multiplier = isCrit ? Mathf.Max(1f, critDamage / 100f) : 1f;
+            return (baseDamage * multiplier, isCrit);
+        }
+
+        /// <summary>
+        /// Tính toán sát thương tổng hợp đầy đủ từ Caster sang Target (kết hợp công, thủ và bạo kích).
+        /// </summary>
+        public static (float damage, bool isCrit) CalculateCombatDamage(EntityStats attacker, EntityStats defender, float physScale, float magicScale)
+        {
+            float rawPhys = (attacker != null ? attacker.PhysicalDamage : 20f) * physScale;
+            float rawMagic = (attacker != null ? attacker.MagicDamage : 10f) * magicScale;
+
+            float armor = defender != null ? defender.Armor : 0f;
+            float magicRes = defender != null ? defender.MagicResist : 0f;
+
+            float mitigatedPhys = CalculateMitigatedDamage(rawPhys, armor);
+            float mitigatedMagic = CalculateMitigatedDamage(rawMagic, magicRes);
+            float baseTotal = mitigatedPhys + mitigatedMagic;
+
+            float critRate = attacker != null ? attacker.CritRate : 0f;
+            float critDmg = attacker != null ? attacker.CritDamage : 150f;
+
+            return CalculateCritDamage(baseTotal, critRate, critDmg);
+        }
+
+        /// <summary>
         /// Tính tổng lượng hồi máu dựa trên chỉ số Phép / Nội công của thực thể tung chiêu.
         /// </summary>
         public static float CalculateHeal(EntityStats casterStats, float magicScale)

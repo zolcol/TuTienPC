@@ -26,7 +26,7 @@ namespace TopDownGame.Player
         public PlayerStats Stats { get; private set; }
         public CharacterController CharacterController => Movement != null ? Movement.CharacterController : GetComponent<CharacterController>();
 
-        public float MoveSpeed => Movement != null ? Movement.MoveSpeed : 6f;
+        public float MoveSpeed => (Stats != null && Stats.MoveSpeed > 0f) ? Stats.MoveSpeed : (Movement != null ? Movement.MoveSpeed : 6f);
         public float AttackRotationSmoothTime => Movement != null ? Movement.AttackRotationSmoothTime : 0.14f;
         public int NpcResId => Combat != null ? Combat.NpcResId : 2;
         public SkillData DefaultNormalAttack => Combat != null ? Combat.DefaultNormalAttack : null;
