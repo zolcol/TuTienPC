@@ -23,7 +23,7 @@ Khi gọi `GameDatabase.EnsureLoaded()`, dữ liệu **phải** được nạp t
 
 1. `NpcAi` (`Settings/GameData/AI/*.ini`)
 2. `Sounds` (`Settings/GameData/Feedback/Sound.csv`)
-3. `FloatingTexts` (`Settings/GameData/Feedback/FloatingText.csv`)
+3. `FlyChars` (`Settings/GameData/Combat/FlyChar.csv`)
 4. `PlayerLevels` (`Settings/GameData/Progression/PlayerLevel.csv`)
 5. `ExpRules` (`Settings/GameData/Progression/ExpRule.csv`)
 6. `Effects` (`Settings/GameData/VFX_Slots/EffectRes.csv`)

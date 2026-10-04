@@ -71,6 +71,6 @@ namespace TopDownGame.Data
         public static string PartSlotCsv => GetFilePath("VFX_Slots", "PartSlot.csv");
 
         public static string SoundCsv => GetFilePath("Feedback", "Sound.csv");
-        public static string FloatingTextCsv => GetFilePath("Feedback", "FloatingText.csv");
+        public static string FlyCharCsv => GetFilePath("Combat", "FlyChar.csv");
     }
 }

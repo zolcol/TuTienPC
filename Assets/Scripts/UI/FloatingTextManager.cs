@@ -5,7 +5,7 @@ using TopDownGame.Data;
 namespace TopDownGame.UI
 {
     /// <summary>
-    /// Trình quản lý Floating Text / Số nhảy sát thương trung tâm.
+    /// Trình quản lý Floating Text / Số nhảy sát thương và hiệu ứng chiến đấu trung tâm.
     /// Sử dụng Object Pool tái sử dụng 100%, tuân thủ nguyên tắc Zero-GC trong combat loop.
     /// </summary>
     public class FloatingTextManager : MonoBehaviour
@@ -108,24 +108,20 @@ namespace TopDownGame.UI
         // ==================== CÁC HÀM SPAWN TIỆN ÍCH ====================
 
         /// <summary>
-        /// Spawn một số nảy sát thương cơ bản hoặc chí mạng
+        /// Spawn một số nảy sát thương (Đòn thường hoặc Bạo kích hoặc Bị đánh)
         /// </summary>
         public void SpawnDamage(float amount, Vector3 worldPosition, bool isPlayer = false, bool isCrit = false)
         {
             if (amount <= 0f) return;
 
-            FloatingTextType type;
+            FlyCharType type;
             if (isPlayer)
             {
-                type = FloatingTextType.PlayerDamaged;
-            }
-            else if (isCrit)
-            {
-                type = FloatingTextType.CritDamage;
+                type = isCrit ? FlyCharType.HurtDeadly : FlyCharType.HurtNormal;
             }
             else
             {
-                type = FloatingTextType.NormalDamage;
+                type = isCrit ? FlyCharType.HitDeadly : FlyCharType.HitNormal;
             }
 
             int rounded = Mathf.RoundToInt(amount);
@@ -133,13 +129,13 @@ namespace TopDownGame.UI
         }
 
         /// <summary>
-        /// Spawn số nhảy hồi máu (+HP)
+        /// Spawn số nhảy hồi phục (+HP)
         /// </summary>
         public void SpawnHeal(float amount, Vector3 worldPosition)
         {
             if (amount <= 0f) return;
             int rounded = Mathf.RoundToInt(amount);
-            Spawn(FloatingTextType.Heal, rounded.ToString(), worldPosition);
+            Spawn(FlyCharType.Treatment, rounded.ToString(), worldPosition);
         }
 
         /// <summary>
@@ -149,15 +145,30 @@ namespace TopDownGame.UI
         {
             if (amount <= 0f) return;
             int rounded = Mathf.RoundToInt(amount);
-            Spawn(FloatingTextType.ManaRestored, rounded.ToString(), worldPosition);
+            Spawn(FlyCharType.Treatment, rounded.ToString(), worldPosition);
         }
 
         /// <summary>
-        /// Spawn chữ MISS
+        /// Spawn chữ Đánh trượt / Né đòn
         /// </summary>
-        public void SpawnMiss(Vector3 worldPosition)
+        public void SpawnMiss(Vector3 worldPosition, bool isPlayer = false)
         {
-            Spawn(FloatingTextType.Miss, "MISS", worldPosition);
+            if (isPlayer)
+            {
+                Spawn(FlyCharType.HurtMiss, "NÉ ĐÒN", worldPosition);
+            }
+            else
+            {
+                Spawn(FlyCharType.HitMiss, "MISS", worldPosition);
+            }
+        }
+
+        /// <summary>
+        /// Spawn chữ Né đòn
+        /// </summary>
+        public void SpawnDodge(Vector3 worldPosition)
+        {
+            Spawn(FlyCharType.HurtMiss, "NÉ ĐÒN", worldPosition);
         }
 
         /// <summary>
@@ -166,7 +177,7 @@ namespace TopDownGame.UI
         public void SpawnExp(int amount, Vector3 worldPosition)
         {
             if (amount <= 0) return;
-            Spawn(FloatingTextType.ExpGain, amount.ToString(), worldPosition);
+            Spawn(FlyCharType.AddExp, amount.ToString(), worldPosition);
         }
 
         /// <summary>
@@ -174,32 +185,32 @@ namespace TopDownGame.UI
         /// </summary>
         public void SpawnLevelUp(Vector3 worldPosition)
         {
-            Spawn(FloatingTextType.LevelUp, "LEVEL UP!", worldPosition);
+            Spawn(FlyCharType.AddExp, "LEVEL UP!", worldPosition);
         }
 
         /// <summary>
-        /// Spawn theo enum FloatingTextType
+        /// Spawn theo enum FlyCharType
         /// </summary>
-        public void Spawn(FloatingTextType type, string content, Vector3 worldPosition)
+        public void Spawn(FlyCharType type, string content, Vector3 worldPosition)
         {
-            FloatingTextResData config = GameDatabase.FloatingTexts.Get(type);
+            FlyCharResData config = GameDatabase.FlyChars.Get(type);
             SpawnInternal(config, content, worldPosition);
         }
 
         /// <summary>
-        /// Spawn theo tên định danh typeName (chuẩn module mở rộng từ CSV)
+        /// Spawn theo tên định danh typeName từ CSV
         /// </summary>
         public void Spawn(string typeName, string content, Vector3 worldPosition)
         {
-            FloatingTextResData config = GameDatabase.FloatingTexts.Get(typeName);
+            FlyCharResData config = GameDatabase.FlyChars.Get(typeName);
             SpawnInternal(config, content, worldPosition);
         }
 
-        private void SpawnInternal(FloatingTextResData config, string content, Vector3 worldPosition)
+        private void SpawnInternal(FlyCharResData config, string content, Vector3 worldPosition)
         {
             if (config == null)
             {
-                config = GameDatabase.FloatingTexts.Get(FloatingTextType.NormalDamage);
+                config = GameDatabase.FlyChars.Get(FlyCharType.HitNormal);
             }
 
             FloatingTextItem item;
