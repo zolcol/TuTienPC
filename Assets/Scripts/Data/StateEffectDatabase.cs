@@ -95,33 +95,9 @@ namespace TopDownGame.Data
                     Debug.LogError($"[StateEffectDatabase] ❌ Lỗi đọc StateEffect.csv: {ex.Message}");
                 }
             }
-
-            TextAsset csvFile = Resources.Load<TextAsset>("CSV/N/StateEffect");
-            if (csvFile != null)
+            else
             {
-                string[] lines = csvFile.text.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-                for (int i = 1; i < lines.Length; i++)
-                {
-                    string[] tokens = CsvParserHelper.SplitCsvLine(lines[i]);
-                    if (tokens.Length < 2) continue;
-
-                    int id = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 0), -1);
-                    if (id <= 0) continue;
-
-                    StateEffectData data = new StateEffectData
-                    {
-                        id = id,
-                        name = CsvParserHelper.GetToken(tokens, 1),
-                        effectResId1 = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 2), 0),
-                        slotId1 = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 3), 0),
-                        effectResId2 = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 4), 0),
-                        slotId2 = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 5), 0),
-                        headResId = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 6), 0)
-                    };
-
-                    dataDict[id] = data;
-                }
-                IsLoaded = true;
+                Debug.LogWarning($"[StateEffectDatabase] ⚠️ Không tìm thấy file tại: {filePath}");
             }
         }
 

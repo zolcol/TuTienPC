@@ -164,7 +164,7 @@ namespace TopDownGame.Editor
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = 0.5f;
 
-            SetLayerRecursively(canvas.gameObject, LayerMask.NameToLayer("UI"));
+            SetLayerRecursively(canvas.gameObject, GameConstants.Layers.UILayer);
 
             return canvas;
         }

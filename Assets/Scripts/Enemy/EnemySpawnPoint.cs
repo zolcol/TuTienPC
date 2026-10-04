@@ -234,7 +234,7 @@ namespace TopDownGame.Enemy
 
             // Layer & Tag
             int enemyLayer = LayerMask.NameToLayer(CombatLayersAndTags.LayerEnemy);
-            if (enemyLayer == -1) enemyLayer = 6;
+            if (enemyLayer == -1) enemyLayer = GameConstants.Layers.DefaultEnemyLayerIndex;
 
             // 2. Nạp Model Prefab con trước để Animation Components sẵn sàng
             if (!string.IsNullOrEmpty(template.prefab))

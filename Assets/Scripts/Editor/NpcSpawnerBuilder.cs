@@ -126,8 +126,8 @@ namespace TopDownGame.Editor
             Undo.RegisterCreatedObjectUndo(rootGO, "Create NPC from Template");
 
             // Xác định Layer Enemy (Layer 6)
-            int enemyLayer = LayerMask.NameToLayer("Enemy");
-            if (enemyLayer == -1) enemyLayer = 6;
+            int enemyLayer = GameConstants.Layers.EnemyLayer;
+            if (enemyLayer == -1) enemyLayer = GameConstants.Layers.DefaultEnemyLayerIndex;
 
             // Đặt vị trí trước Scene View Camera nếu có
             if (SceneView.lastActiveSceneView != null)

@@ -186,10 +186,10 @@ namespace TopDownGame.Data
             }
 
             string fileName = Path.GetFileNameWithoutExtension(path);
-            prefab = Resources.Load<GameObject>($"Players/Npcs/Prefabs/{fileName}");
+            prefab = Resources.Load<GameObject>($"{GameConstants.ResourcePaths.NpcPrefabsFolder1}{fileName}");
             if (prefab != null) return prefab;
 
-            prefab = Resources.Load<GameObject>($"Player/Npcs/Prefabs/{fileName}");
+            prefab = Resources.Load<GameObject>($"{GameConstants.ResourcePaths.NpcPrefabsFolder2}{fileName}");
             return prefab;
         }
     }

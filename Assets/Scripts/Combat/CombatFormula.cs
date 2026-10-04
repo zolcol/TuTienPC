@@ -27,9 +27,9 @@ namespace TopDownGame.Combat
         /// </summary>
         public static int GetDefaultGroundLayerMask()
         {
-            int playerLayer = LayerMask.NameToLayer(CombatLayersAndTags.LayerPlayer);
-            int enemyLayer = LayerMask.NameToLayer(CombatLayersAndTags.LayerEnemy);
-            int ignoreRaycast = LayerMask.NameToLayer("Ignore Raycast");
+            int playerLayer = GameConstants.Layers.PlayerLayer;
+            int enemyLayer = GameConstants.Layers.EnemyLayer;
+            int ignoreRaycast = GameConstants.Layers.IgnoreRaycastLayer;
 
             int maskToExclude = 0;
             if (playerLayer >= 0) maskToExclude |= (1 << playerLayer);

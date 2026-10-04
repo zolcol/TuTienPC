@@ -148,31 +148,54 @@ namespace TopDownGame
 
         public void AutoFindAnimationComponents()
         {
-            if (bodyAnimation == null)
+            Animation[] allAnims = GetComponentsInChildren<Animation>(true);
+            if (allAnims != null && allAnims.Length > 0)
             {
-                bodyAnimation = GetComponentInChildren<Animation>();
-                if (bodyAnimation == null && transform.parent != null)
+                bodyAnimation = null;
+                headAnimation = null;
+
+                foreach (var anim in allAnims)
                 {
-                    bodyAnimation = transform.parent.GetComponentInChildren<Animation>();
+                    string objName = anim.gameObject.name.ToLowerInvariant();
+                    if (objName.Contains("head") || objName.Contains("tou"))
+                    {
+                        headAnimation = anim;
+                    }
+                    else if (objName.Contains("body") || objName.Contains("shen") || bodyAnimation == null)
+                    {
+                        if (bodyAnimation == null || objName.Contains("body") || objName.Contains("shen"))
+                        {
+                            bodyAnimation = anim;
+                        }
+                    }
+                }
+
+                if (allAnims.Length >= 2 && headAnimation == null && bodyAnimation != null)
+                {
+                    foreach (var anim in allAnims)
+                    {
+                        if (anim != bodyAnimation)
+                        {
+                            headAnimation = anim;
+                            break;
+                        }
+                    }
                 }
             }
-
-            if (headAnimation == null)
+            else if (transform.parent != null)
             {
-                Transform headTf = transform.Find("Head");
-                if (headTf != null)
-                {
-                    headAnimation = headTf.GetComponentInChildren<Animation>();
-                }
+                bodyAnimation = transform.parent.GetComponentInChildren<Animation>();
             }
 
             ConfigureAnimationSettings(bodyAnimation);
             ConfigureAnimationSettings(headAnimation);
+            cachedNpcResData = null;
         }
 
         private void ConfigureAnimationSettings(Animation animComp)
         {
             if (animComp == null) return;
+            animComp.enabled = true;
             animComp.cullingType = AnimationCullingType.AlwaysAnimate;
             foreach (AnimationState state in animComp)
             {
@@ -242,7 +265,8 @@ namespace TopDownGame
             if (string.IsNullOrEmpty(clip) && bodyAnimation != null && bodyAnimation.clip != null)
                 clip = bodyAnimation.clip.name;
 
-            if (string.IsNullOrEmpty(clip) || currentClip == clip) return;
+            if (string.IsNullOrEmpty(clip)) return;
+            if (currentClip == clip && bodyAnimation != null && bodyAnimation.IsPlaying(clip)) return;
             PlayActionInternal(clip, WrapMode.Loop, moveCrossFadeTime, false);
         }
 
@@ -253,7 +277,8 @@ namespace TopDownGame
             if (string.IsNullOrEmpty(clip) && bodyAnimation != null && bodyAnimation.clip != null)
                 clip = bodyAnimation.clip.name;
 
-            if (string.IsNullOrEmpty(clip) || currentClip == clip) return;
+            if (string.IsNullOrEmpty(clip)) return;
+            if (currentClip == clip && bodyAnimation != null && bodyAnimation.IsPlaying(clip)) return;
             PlayActionInternal(clip, WrapMode.Loop, moveCrossFadeTime, false);
         }
 
@@ -261,7 +286,8 @@ namespace TopDownGame
         {
             if (isLocked) return;
             string clip = ResolveClipName(CLIP_RUN) ?? ResolveClipName(CLIP_WALK) ?? ResolveClipName("jsrun");
-            if (string.IsNullOrEmpty(clip) || currentClip == clip) return;
+            if (string.IsNullOrEmpty(clip)) return;
+            if (currentClip == clip && bodyAnimation != null && bodyAnimation.IsPlaying(clip)) return;
             PlayActionInternal(clip, WrapMode.Loop, moveCrossFadeTime, false);
         }
 
@@ -269,7 +295,8 @@ namespace TopDownGame
         {
             if (isLocked) return;
             string clip = ResolveClipName(CLIP_WALK) ?? ResolveClipName(CLIP_RUN);
-            if (string.IsNullOrEmpty(clip) || currentClip == clip) return;
+            if (string.IsNullOrEmpty(clip)) return;
+            if (currentClip == clip && bodyAnimation != null && bodyAnimation.IsPlaying(clip)) return;
             PlayActionInternal(clip, WrapMode.Loop, moveCrossFadeTime, false);
         }
 
@@ -705,9 +732,7 @@ namespace TopDownGame.Audio
         {
             Clear();
 
-            string nSoundPath = Path.Combine(Application.dataPath, "Settings", "N", "Sound.csv");
-            string legacySoundPath = Path.Combine(Application.dataPath, "Settings", "Sound.csv");
-            string targetPath = File.Exists(nSoundPath) ? nSoundPath : (File.Exists(legacySoundPath) ? legacySoundPath : "");
+            string targetPath = GameDataPaths.SoundCsv;
 
             string csvContent = "";
             if (!string.IsNullOrEmpty(targetPath))
@@ -1607,6 +1632,19 @@ namespace TopDownGame.Combat
     }
 
     /// <summary>
+    /// Thuật toán ưu tiên chọn mục tiêu AI theo DATA_CONVENTIONS_V2.md (Mục 21)
+    /// </summary>
+    public enum AiTargetSelectType
+    {
+        StrikeBack = 0, // Ưu tiên đánh trả kẻ vừa đánh mình
+        Nearest = 1,    // Ưu tiên mục tiêu gần nhất
+        Poorest = 2,    // Ưu tiên mục tiêu ít máu nhất (% hoặc HP)
+        Richest = 3,    // Ưu tiên mục tiêu nhiều máu nhất
+        Random = 4,     // Chọn ngẫu nhiên trong tầm nhìn
+        Player = 5      // Ưu tiên người chơi hơn pet/phân thân
+    }
+
+    /// <summary>
     /// Struct phân tích chuỗi Gia Tốc / Lướt / Khinh Công theo DATA_CONVENTIONS_V2.md (Mục 3 & 18)
     /// </summary>
     [System.Serializable]
@@ -1826,6 +1864,7 @@ namespace TopDownGame.Combat
 
 using System.Collections;
 using UnityEngine;
+using TopDownGame.UI;
 
 namespace TopDownGame.Combat
 {
@@ -1862,7 +1901,8 @@ namespace TopDownGame.Combat
         {
             currentHealth = Mathf.Max(0f, currentHealth - amount);
 
-            // Debug.Log($"💥 <color=orange>[HIT]</color> {gameObject.name} bị chém -{amount} Máu! (Còn lại: {currentHealth}/{maxHealth})");
+            Vector3 spawnPos = (hitPoint != Vector3.zero) ? hitPoint : (transform.position + Vector3.up * 1.5f);
+            FloatingTextManager.Instance.SpawnDamage(amount, spawnPos, false);
 
             if (meshRenderer != null)
             {
@@ -2574,6 +2614,12 @@ namespace TopDownGame.Data
             return int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out int val) ? val : defaultVal;
         }
 
+        public static long ParseLong(string s, long defaultVal = 0L)
+        {
+            if (string.IsNullOrEmpty(s)) return defaultVal;
+            return long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out long val) ? val : defaultVal;
+        }
+
         public static float ParseFloat(string s, float defaultVal = 0f)
         {
             if (string.IsNullOrEmpty(s)) return defaultVal;
@@ -2591,7 +2637,7 @@ namespace TopDownGame.Data
 
         /// <summary>
         /// Bóc tách giá trị chỉ số theo Level từ chuỗi có format: "{1,188},{10,255},{20,439}" hoặc số đơn giản "30".
-        /// Mặc định lấy level 1 theo yêu cầu dự án.
+        /// Hỗ trợ nội suy tuyến tính (Linear Interpolation) giữa các mốc cấp độ.
         /// </summary>
         public static float ParseLevelValue(string raw, int targetLevel = 1, float defaultVal = 0f)
         {
@@ -2610,34 +2656,51 @@ namespace TopDownGame.Data
             MatchCollection matches = LevelPairRegex.Matches(raw);
             if (matches.Count > 0)
             {
-                float firstFoundVal = defaultVal;
-                bool hasFirst = false;
+                List<KeyValuePair<int, float>> points = new List<KeyValuePair<int, float>>(matches.Count);
 
                 foreach (Match m in matches)
                 {
                     if (m.Groups.Count >= 3)
                     {
-                        if (int.TryParse(m.Groups[1].Value, out int lv) && float.TryParse(m.Groups[2].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out float val))
+                        if (int.TryParse(m.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int lv) &&
+                            float.TryParse(m.Groups[2].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out float val))
                         {
-                            if (!hasFirst)
-                            {
-                                firstFoundVal = val;
-                                hasFirst = true;
-                            }
-
-                            if (lv == targetLevel)
-                            {
-                                return val; // Tìm thấy chính xác level yêu cầu
-                            }
+                            points.Add(new KeyValuePair<int, float>(lv, val));
                         }
                     }
                 }
 
-                // Nếu không có chính xác level yêu cầu, trả về giá trị của mốc đầu tiên
-                if (hasFirst)
+                if (points.Count == 0) return defaultVal;
+                if (points.Count == 1) return points[0].Value;
+
+                points.Sort((a, b) => a.Key.CompareTo(b.Key));
+
+                if (targetLevel <= points[0].Key)
                 {
-                    return firstFoundVal;
+                    return points[0].Value;
                 }
+
+                if (targetLevel >= points[points.Count - 1].Key)
+                {
+                    return points[points.Count - 1].Value;
+                }
+
+                for (int i = 0; i < points.Count - 1; i++)
+                {
+                    var p1 = points[i];
+                    var p2 = points[i + 1];
+
+                    if (targetLevel == p1.Key) return p1.Value;
+                    if (targetLevel == p2.Key) return p2.Value;
+
+                    if (targetLevel > p1.Key && targetLevel < p2.Key)
+                    {
+                        float t = (float)(targetLevel - p1.Key) / (p2.Key - p1.Key);
+                        return p1.Value + (p2.Value - p1.Value) * t;
+                    }
+                }
+
+                return points[points.Count - 1].Value;
             }
 
             return defaultVal;
@@ -2718,7 +2781,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "EffectRes.csv");
+            string filePath = GameDataPaths.EffectResCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[EffectDatabase] ⚠️ Không tìm thấy file tại: {filePath}");
@@ -2831,6 +2894,144 @@ namespace TopDownGame.Data
 
 
 ==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Data\ExpRuleDatabase.cs
+==================================================
+
+using System;
+using System.IO;
+using UnityEngine;
+
+namespace TopDownGame.Data
+{
+    public class ExpRuleDatabase : ICsvTable
+    {
+        private static ExpRuleDatabase instance;
+        public static ExpRuleDatabase Instance => instance ?? (instance = new ExpRuleDatabase());
+
+        // Ma trận tỉ lệ: matrix[playerLevel, monsterLevel] -> int % (ví dụ: 100)
+        private int[,] expMatrix;
+        private int maxPlayerLevel = 0;
+        private int maxMonsterLevel = 0;
+
+        public bool IsLoaded { get; private set; }
+
+        public void EnsureLoaded()
+        {
+            if (!IsLoaded || expMatrix == null)
+            {
+                Load();
+            }
+        }
+
+        public void LoadDatabase() => Load();
+
+        public void Clear()
+        {
+            expMatrix = null;
+            maxPlayerLevel = 0;
+            maxMonsterLevel = 0;
+            IsLoaded = false;
+        }
+
+        public void Load()
+        {
+            Clear();
+
+            string filePath = GameDataPaths.ExpRuleCsv;
+            if (!File.Exists(filePath))
+            {
+                Debug.LogWarning($"[ExpRuleDatabase] ⚠️ Không tìm thấy file: {filePath}");
+                return;
+            }
+
+            try
+            {
+                string[] lines = File.ReadAllLines(filePath, System.Text.Encoding.UTF8);
+                if (lines.Length < 2) return;
+
+                // Header chứa các monster level (cột 0 là header của player level, các cột sau 1..N là monster level 0..400)
+                string[] headerTokens = CsvParserHelper.SplitCsvLine(lines[0]);
+                int columnCount = headerTokens.Length;
+
+                // Dự trù kích thước ma trận an toàn (500x500)
+                const int MAX_DIM = 500;
+                expMatrix = new int[MAX_DIM, MAX_DIM];
+
+                int loadedRows = 0;
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    string line = lines[i];
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    string[] tokens = CsvParserHelper.SplitCsvLine(line);
+                    if (tokens.Length < 2) continue;
+
+                    int playerLvl = CsvParserHelper.ParseInt(tokens[0]);
+                    if (playerLvl < 0 || playerLvl >= MAX_DIM) continue;
+
+                    if (playerLvl > maxPlayerLevel) maxPlayerLevel = playerLvl;
+
+                    for (int col = 1; col < tokens.Length && col < columnCount; col++)
+                    {
+                        int monsterLvl = CsvParserHelper.ParseInt(headerTokens[col]);
+                        if (monsterLvl < 0 || monsterLvl >= MAX_DIM) continue;
+
+                        int percent = CsvParserHelper.ParseInt(tokens[col], 100);
+                        expMatrix[playerLvl, monsterLvl] = percent;
+
+                        if (monsterLvl > maxMonsterLevel) maxMonsterLevel = monsterLvl;
+                    }
+
+                    loadedRows++;
+                }
+
+                IsLoaded = true;
+                Debug.Log($"[ExpRuleDatabase] ✅ Đã nạp ma trận ExpRule ({loadedRows} hàng Player Lv, Max Monster Lv: {maxMonsterLevel}).");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ExpRuleDatabase] ❌ Lỗi nạp {filePath}: {ex.Message}");
+            }
+        }
+
+        public int GetExpPercent(int playerLevel, int monsterLevel)
+        {
+            EnsureLoaded();
+            if (expMatrix == null) return 100;
+
+            int clampedPlayer = Mathf.Clamp(playerLevel, 1, maxPlayerLevel > 0 ? maxPlayerLevel : 400);
+            int clampedMonster = Mathf.Clamp(monsterLevel, 0, maxMonsterLevel > 0 ? maxMonsterLevel : 400);
+
+            if (clampedPlayer < expMatrix.GetLength(0) && clampedMonster < expMatrix.GetLength(1))
+            {
+                int val = expMatrix[clampedPlayer, clampedMonster];
+                return val > 0 ? val : 100;
+            }
+
+            return 100;
+        }
+
+        /// <summary>
+        /// Tính toán EXP thực nhận khi người chơi hạ gục quái theo chuẩn game:
+        /// EXP = Player.BaseAwardExp * (ExpRule[PlayerLevel, MonsterLevel] / 100)
+        /// BaseAwardExp được lấy theo cấp độ của người chơi (PlayerLevel) từ PlayerLevel.csv
+        /// </summary>
+        public long CalculateExpReward(int playerLevel, int monsterLevel)
+        {
+            // Lấy BaseAwardExp theo cấp độ của Người chơi (PlayerLevel)
+            var playerLevelData = PlayerLevelDatabase.Instance.Get(playerLevel);
+            int baseAward = playerLevelData != null && playerLevelData.BaseAwardExp > 0 ? playerLevelData.BaseAwardExp : 1000;
+            
+            // Lấy tỉ lệ hưởng % dựa trên chênh lệch cấp độ giữa Player và Quái
+            int percent = GetExpPercent(playerLevel, monsterLevel);
+
+            return (long)Mathf.RoundToInt(baseAward * (percent / 100.0f));
+        }
+    }
+}
+
+
+==================================================
 // FILE: D:\Unity Project\test1\Assets\Scripts\Data\FactionSkillDatabase.cs
 ==================================================
 
@@ -2886,7 +3087,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "FactionSkill.csv");
+            string filePath = GameDataPaths.FactionSkillCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[FactionSkillDatabase] ⚠️ Không tìm thấy file tại: {filePath}");
@@ -2966,6 +3167,404 @@ namespace TopDownGame.Data
 
 
 ==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Data\FlyCharData.cs
+==================================================
+
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace TopDownGame.Data
+{
+    /// <summary>
+    /// Các loại chữ/số nhảy chiến đấu chuẩn Kingsoft / JX
+    /// </summary>
+    public enum FlyCharType
+    {
+        None = 0,
+        HitNormal = 1,          // HIT_NORMAL: Đòn thường gây lên quái/địch (Số trắng/vàng nhạt)
+        HitDeadly = 2,          // HIT_DEADLY: Bạo kích gây lên quái/địch (Số vàng kim to + hiệu ứng nảy)
+        HitMiss = 3,            // HIT_MISS: Đánh trượt mục tiêu (MISS)
+        HurtNormal = 4,         // HURT_NORMAL: Người chơi bị đánh trúng (Số đỏ cam)
+        HurtDeadly = 5,         // HURT_DEADLY: Người chơi bị bạo kích (Số đỏ thẫm/tím)
+        HurtMiss = 6,           // HURT_MISS: Người chơi né đòn thành công (DODGE / NÉ ĐÒN)
+        Treatment = 7,          // TREATMENT: Hồi phục sinh lực (+HP xanh lá)
+        AddExp = 8,             // ADD_EXP: Nhận kinh nghiệm (+EXP vàng cam)
+        Vitality = 9,           // VITALITY: Tăng thể chất
+        Strength = 10,          // STRENGTH: Tăng sức mạnh
+        Dexterity = 11,         // DEXTERITY: Tăng thân pháp
+        Energy = 12,            // ENERGY: Tăng linh hoạt
+        HitMissIgnore = 13,     // HIT_MISS_IGNORE: Mục tiêu miễn nhiễm
+        HurtMissIgnore = 14     // HURT_MISS_IGNORE: Bản thân miễn nhiễm
+    }
+
+    /// <summary>
+    /// DTO chứa cấu hình đường cong chuyển động, tỉ lệ co giãn, mờ dần và màu sắc TextMeshPro
+    /// </summary>
+    [Serializable]
+    public class FlyCharResData
+    {
+        public FlyCharType type;
+        public string typeName = "None";
+
+        // Hoạt ảnh đường cong nạp từ FlyChar.csv
+        public AnimationCurve scaleCurve = new AnimationCurve();
+        public AnimationCurve alphaCurve = new AnimationCurve();
+        public AnimationCurve offsetCurve = new AnimationCurve();
+        public List<Vector2> angleList = new List<Vector2>();
+        public List<Vector2> offsetList = new List<Vector2>();
+
+        // Thời gian tồn tại tối đa (tính theo keyframe cuối cùng)
+        public float duration = 1.0f;
+
+        // Cấu hình hiển thị TextMeshPro
+        public float fontSize = 3.8f;
+        public Color color = Color.white;
+        public Color outlineColor = Color.black;
+        public float outlineWidth = 0.22f;
+        public bool isBold = true;
+        public string prefix = "";
+        public string suffix = "";
+
+        // Chuyển đổi pixel 2D trong CSV sang không gian thế giới 3D
+        public float pixelToWorldScale = 0.012f;
+        public float randomJitter = 0.25f;
+    }
+}
+
+
+==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Data\FlyCharDatabase.cs
+==================================================
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
+
+namespace TopDownGame.Data
+{
+    /// <summary>
+    /// Database nạp cấu hình đường cong chuyển động chữ/số nhảy từ FlyChar.csv
+    /// </summary>
+    public class FlyCharDatabase : ICsvTable
+    {
+        private static FlyCharDatabase instance;
+        public static FlyCharDatabase Instance => instance ?? (instance = new FlyCharDatabase());
+
+        private readonly Dictionary<FlyCharType, FlyCharResData> itemsByType = new Dictionary<FlyCharType, FlyCharResData>();
+        private readonly Dictionary<string, FlyCharResData> itemsByName = new Dictionary<string, FlyCharResData>(StringComparer.OrdinalIgnoreCase);
+        private FlyCharResData fallbackData;
+
+        public bool IsLoaded { get; private set; }
+
+        public void EnsureLoaded()
+        {
+            if (!IsLoaded || itemsByType.Count == 0)
+            {
+                Load();
+            }
+        }
+
+        public static void EnsureLoadedStatic() => Instance.EnsureLoaded();
+        public void LoadDatabase() => Load();
+
+        public void Clear()
+        {
+            itemsByType.Clear();
+            itemsByName.Clear();
+            IsLoaded = false;
+        }
+
+        public void Load()
+        {
+            Clear();
+            CreateFallbackData();
+
+            string filePath = GameDataPaths.FlyCharCsv;
+            if (!File.Exists(filePath))
+            {
+                Debug.LogWarning($"[FlyCharDatabase] ⚠️ Không tìm thấy file tại: {filePath}. Sử dụng fallback.");
+                IsLoaded = true;
+                return;
+            }
+
+            try
+            {
+                using (var reader = new StreamReader(filePath, System.Text.Encoding.UTF8))
+                {
+                    string headerLine = reader.ReadLine(); // Type,Scale,Alpha,Offset,Angle
+                    if (string.IsNullOrEmpty(headerLine)) return;
+
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        string[] row = CsvParserHelper.SplitCsvLine(line);
+                        if (row.Length < 5) continue;
+
+                        string typeStr = row[0].Trim();
+                        string scaleStr = row[1].Trim();
+                        string alphaStr = row[2].Trim();
+                        string offsetStr = row[3].Trim();
+                        string angleStr = row[4].Trim();
+
+                        FlyCharType charType = ParseType(typeStr);
+
+                        FlyCharResData data = new FlyCharResData
+                        {
+                            type = charType,
+                            typeName = typeStr,
+                            scaleCurve = ParseAnimationCurve(scaleStr),
+                            alphaCurve = ParseAnimationCurve(alphaStr),
+                            offsetCurve = ParseAnimationCurve(offsetStr),
+                            angleList = ParseVectorList(angleStr),
+                            offsetList = ParseVectorList(offsetStr)
+                        };
+
+                        // Tính thời lượng tồn tại theo keyframe lớn nhất
+                        float maxDur = 0.8f;
+                        if (data.scaleCurve.length > 0)
+                            maxDur = Mathf.Max(maxDur, data.scaleCurve.keys[data.scaleCurve.length - 1].time);
+                        if (data.alphaCurve.length > 0)
+                            maxDur = Mathf.Max(maxDur, data.alphaCurve.keys[data.alphaCurve.length - 1].time);
+                        if (data.offsetCurve.length > 0)
+                            maxDur = Mathf.Max(maxDur, data.offsetCurve.keys[data.offsetCurve.length - 1].time);
+
+                        data.duration = maxDur;
+
+                        // Áp dụng Visual Style mặc định theo từng loại
+                        ApplyVisualStyle(data);
+
+                        // Ghi đè chỉ số từ các cột mở rộng trong CSV (nếu có)
+                        if (row.Length > 5 && !string.IsNullOrEmpty(row[5]) && ColorUtility.TryParseHtmlString(row[5].Trim(), out Color c))
+                        {
+                            data.color = c;
+                        }
+                        if (row.Length > 6 && !string.IsNullOrEmpty(row[6]) && ColorUtility.TryParseHtmlString(row[6].Trim(), out Color oc))
+                        {
+                            data.outlineColor = oc;
+                        }
+                        if (row.Length > 7 && float.TryParse(row[7].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float ow))
+                        {
+                            data.outlineWidth = ow;
+                        }
+                        if (row.Length > 8 && float.TryParse(row[8].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fs))
+                        {
+                            data.fontSize = fs;
+                        }
+                        if (row.Length > 9 && !string.IsNullOrEmpty(row[9]))
+                        {
+                            data.prefix = row[9];
+                        }
+                        if (row.Length > 10 && !string.IsNullOrEmpty(row[10]))
+                        {
+                            data.suffix = row[10];
+                        }
+
+                        itemsByType[charType] = data;
+                        itemsByName[typeStr] = data;
+                    }
+                }
+
+                IsLoaded = true;
+                Debug.Log($"[FlyCharDatabase] ✅ Đã nạp thành công {itemsByType.Count} cấu hình FlyChar từ CSV.");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[FlyCharDatabase] ❌ Lỗi khi đọc file {filePath}: {ex.Message}");
+                IsLoaded = true;
+            }
+        }
+
+        private static FlyCharType ParseType(string typeStr)
+        {
+            if (string.Equals(typeStr, "HIT_NORMAL", StringComparison.OrdinalIgnoreCase)) return FlyCharType.HitNormal;
+            if (string.Equals(typeStr, "HIT_DEADLY", StringComparison.OrdinalIgnoreCase)) return FlyCharType.HitDeadly;
+            if (string.Equals(typeStr, "HIT_MISS", StringComparison.OrdinalIgnoreCase)) return FlyCharType.HitMiss;
+            if (string.Equals(typeStr, "HURT_NORMAL", StringComparison.OrdinalIgnoreCase)) return FlyCharType.HurtNormal;
+            if (string.Equals(typeStr, "HURT_DEADLY", StringComparison.OrdinalIgnoreCase)) return FlyCharType.HurtDeadly;
+            if (string.Equals(typeStr, "HURT_MISS", StringComparison.OrdinalIgnoreCase)) return FlyCharType.HurtMiss;
+            if (string.Equals(typeStr, "TREATMENT", StringComparison.OrdinalIgnoreCase) || string.Equals(typeStr, "CURE", StringComparison.OrdinalIgnoreCase)) return FlyCharType.Treatment;
+            if (string.Equals(typeStr, "ADD_EXP", StringComparison.OrdinalIgnoreCase)) return FlyCharType.AddExp;
+            if (string.Equals(typeStr, "VITALITY", StringComparison.OrdinalIgnoreCase)) return FlyCharType.Vitality;
+            if (string.Equals(typeStr, "STRENGTH", StringComparison.OrdinalIgnoreCase)) return FlyCharType.Strength;
+            if (string.Equals(typeStr, "DEXTERITY", StringComparison.OrdinalIgnoreCase)) return FlyCharType.Dexterity;
+            if (string.Equals(typeStr, "ENERGY", StringComparison.OrdinalIgnoreCase)) return FlyCharType.Energy;
+            if (string.Equals(typeStr, "HIT_MISS_IGNORE", StringComparison.OrdinalIgnoreCase)) return FlyCharType.HitMissIgnore;
+            if (string.Equals(typeStr, "HURT_MISS_IGNORE", StringComparison.OrdinalIgnoreCase)) return FlyCharType.HurtMissIgnore;
+
+            return FlyCharType.None;
+        }
+
+        private static void ApplyVisualStyle(FlyCharResData data)
+        {
+            switch (data.type)
+            {
+                case FlyCharType.HitNormal:
+                    data.color = new Color(1.0f, 1.0f, 1.0f, 1.0f); // Trắng thuần sắc nét chuẩn ARPG
+                    data.outlineColor = new Color(0.02f, 0.02f, 0.04f, 1.0f); // Viền đen tuyền
+                    data.outlineWidth = 0.26f;
+                    data.fontSize = 3.8f;
+                    data.prefix = "";
+                    break;
+
+                case FlyCharType.HitDeadly:
+                    data.color = new Color(1.0f, 0.80f, 0.0f, 1.0f); // Vàng kim hổ phách bạo kích sang trọng
+                    data.outlineColor = new Color(0.20f, 0.04f, 0.0f, 1.0f); // Viền nâu đỏ cháy sẫm
+                    data.outlineWidth = 0.32f;
+                    data.fontSize = 4.6f;
+                    data.prefix = "";
+                    break;
+
+                case FlyCharType.HitMiss:
+                    data.color = new Color(0.72f, 0.77f, 0.84f, 1.0f); // Bạc thép khói mờ
+                    data.outlineColor = new Color(0.08f, 0.10f, 0.14f, 1.0f);
+                    data.outlineWidth = 0.22f;
+                    data.fontSize = 3.2f;
+                    data.prefix = "";
+                    break;
+
+                case FlyCharType.HurtNormal:
+                    data.color = new Color(1.0f, 0.18f, 0.18f, 1.0f); // Đỏ thẫm máu cảnh báo nguy hiểm
+                    data.outlineColor = new Color(0.22f, 0.0f, 0.0f, 1.0f); // Viền đỏ đen sẫm
+                    data.outlineWidth = 0.26f;
+                    data.fontSize = 3.8f;
+                    data.prefix = "-";
+                    break;
+
+                case FlyCharType.HurtDeadly:
+                    data.color = new Color(1.0f, 0.05f, 0.28f, 1.0f); // Đỏ thẫm bạo kích
+                    data.outlineColor = new Color(0.18f, 0.0f, 0.05f, 1.0f);
+                    data.outlineWidth = 0.32f;
+                    data.fontSize = 4.6f;
+                    data.prefix = "CRIT -";
+                    break;
+
+                case FlyCharType.HurtMiss:
+                    data.color = new Color(0.25f, 0.82f, 1.0f, 1.0f); // Lam thiên thanh (Né đòn huyền ảo)
+                    data.outlineColor = new Color(0.0f, 0.12f, 0.24f, 1.0f);
+                    data.outlineWidth = 0.26f;
+                    data.fontSize = 3.4f;
+                    data.prefix = "";
+                    break;
+
+                case FlyCharType.Treatment:
+                    data.color = new Color(0.18f, 0.95f, 0.45f, 1.0f); // Xanh ngọc lục bảo hồi máu phát sáng
+                    data.outlineColor = new Color(0.0f, 0.20f, 0.08f, 1.0f);
+                    data.outlineWidth = 0.26f;
+                    data.fontSize = 4.0f;
+                    data.prefix = "+";
+                    break;
+
+                case FlyCharType.AddExp:
+                    data.color = new Color(1.0f, 0.74f, 0.05f, 1.0f); // Vàng kim EXP
+                    data.outlineColor = new Color(0.24f, 0.12f, 0.0f, 1.0f);
+                    data.outlineWidth = 0.26f;
+                    data.fontSize = 3.6f;
+                    data.prefix = "+EXP ";
+                    break;
+
+                case FlyCharType.Vitality:
+                case FlyCharType.Strength:
+                case FlyCharType.Dexterity:
+                case FlyCharType.Energy:
+                    data.color = new Color(0.72f, 0.35f, 1.0f, 1.0f); // Tím ma pháp thuộc tính
+                    data.outlineColor = new Color(0.14f, 0.0f, 0.24f, 1.0f);
+                    data.outlineWidth = 0.24f;
+                    data.fontSize = 3.4f;
+                    break;
+
+                case FlyCharType.HitMissIgnore:
+                case FlyCharType.HurtMissIgnore:
+                    data.color = new Color(0.88f, 0.91f, 0.96f, 1.0f); // Bạch kim miễn nhiễm
+                    data.outlineColor = new Color(0.10f, 0.13f, 0.18f, 1.0f);
+                    data.outlineWidth = 0.24f;
+                    data.fontSize = 3.2f;
+                    break;
+
+                default:
+                    data.color = Color.white;
+                    data.outlineColor = Color.black;
+                    data.outlineWidth = 0.24f;
+                    data.fontSize = 3.6f;
+                    break;
+            }
+        }
+
+        private static AnimationCurve ParseAnimationCurve(string text)
+        {
+            AnimationCurve curve = new AnimationCurve();
+            if (string.IsNullOrEmpty(text)) return curve;
+
+            string[] pairs = text.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string pair in pairs)
+            {
+                string[] parts = pair.Split(',');
+                if (parts.Length >= 2 &&
+                    float.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float time) &&
+                    float.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float value))
+                {
+                    curve.AddKey(time, value);
+                }
+            }
+            return curve;
+        }
+
+        private static List<Vector2> ParseVectorList(string text)
+        {
+            List<Vector2> list = new List<Vector2>();
+            if (string.IsNullOrEmpty(text)) return list;
+
+            string[] pairs = text.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string pair in pairs)
+            {
+                string[] parts = pair.Split(',');
+                if (parts.Length >= 2 &&
+                    float.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float x) &&
+                    float.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float y))
+                {
+                    list.Add(new Vector2(x, y));
+                }
+            }
+            return list;
+        }
+
+        private void CreateFallbackData()
+        {
+            fallbackData = new FlyCharResData
+            {
+                type = FlyCharType.HitNormal,
+                typeName = "HIT_NORMAL",
+                scaleCurve = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(0.1f, 1.5f), new Keyframe(0.2f, 1.5f), new Keyframe(0.8f, 1f), new Keyframe(1f, 1f)),
+                alphaCurve = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(0.4f, 1f), new Keyframe(0.8f, 0f)),
+                offsetCurve = new AnimationCurve(new Keyframe(0f, 10f), new Keyframe(0.1f, 80f), new Keyframe(0.3f, 80f), new Keyframe(0.8f, 190f)),
+                angleList = new List<Vector2> { new Vector2(0f, 90f), new Vector2(1f, 90f), new Vector2(2f, 90f) },
+                offsetList = new List<Vector2> { new Vector2(0f, 10f), new Vector2(0.1f, 80f), new Vector2(0.3f, 80f), new Vector2(0.8f, 190f) },
+                duration = 0.85f
+            };
+            ApplyVisualStyle(fallbackData);
+        }
+
+        public FlyCharResData Get(FlyCharType type)
+        {
+            EnsureLoaded();
+            if (itemsByType.TryGetValue(type, out var data)) return data;
+            return fallbackData;
+        }
+
+        public FlyCharResData Get(string typeName)
+        {
+            EnsureLoaded();
+            if (!string.IsNullOrEmpty(typeName) && itemsByName.TryGetValue(typeName, out var data)) return data;
+            return fallbackData;
+        }
+    }
+}
+
+
+==================================================
 // FILE: D:\Unity Project\test1\Assets\Scripts\Data\GameDatabase.cs
 ==================================================
 
@@ -2989,6 +3588,10 @@ namespace TopDownGame.Data
         public static NpcTemplateDatabase NpcTemplates => NpcTemplateDatabase.Instance;
         public static SkillDatabase Skills => SkillDatabase.Instance;
         public static SoundDatabase Sounds => SoundDatabase.Instance;
+        public static FlyCharDatabase FlyChars => FlyCharDatabase.Instance;
+        public static PlayerLevelDatabase PlayerLevels => PlayerLevelDatabase.Instance;
+        public static ExpRuleDatabase ExpRules => ExpRuleDatabase.Instance;
+        public static NpcAiDatabase NpcAi => NpcAiDatabase.Instance;
 
         private static bool isInitialized = false;
 
@@ -3002,14 +3605,22 @@ namespace TopDownGame.Data
             StateEffects.IsLoaded &&
             NpcTemplates.IsLoaded &&
             Skills.IsLoaded &&
-            Sounds.IsLoaded;
+            Sounds.IsLoaded &&
+            FlyChars.IsLoaded &&
+            PlayerLevels.IsLoaded &&
+            ExpRules.IsLoaded &&
+            NpcAi.IsLoaded;
 
         public static void EnsureLoaded()
         {
             if (isInitialized) return;
 
             // Nạp theo đúng thứ tự phụ thuộc (Dependency Order)
+            NpcAi.EnsureLoaded();
             Sounds.EnsureLoaded();
+            FlyChars.EnsureLoaded();
+            PlayerLevels.EnsureLoaded();
+            ExpRules.EnsureLoaded();
             Effects.EnsureLoaded();
             Missiles.EnsureLoaded();
             StateEffects.EnsureLoaded();
@@ -3027,7 +3638,11 @@ namespace TopDownGame.Data
         {
             isInitialized = false;
 
+            NpcAi.Clear();
             Sounds.Clear();
+            FlyChars.Clear();
+            PlayerLevels.Clear();
+            ExpRules.Clear();
             Effects.Clear();
             Missiles.Clear();
             StateEffects.Clear();
@@ -3046,6 +3661,88 @@ namespace TopDownGame.Data
         {
             ReloadAll();
         }
+    }
+}
+
+
+==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Data\GameDataPaths.cs
+==================================================
+
+using System.IO;
+using UnityEngine;
+
+namespace TopDownGame.Data
+{
+    /// <summary>
+    /// Centralized path resolver for all Game Data files (CSV, INI, etc.).
+    /// Single Source of Truth for data directories with fallback mechanism.
+    /// </summary>
+    public static class GameDataPaths
+    {
+        public static readonly string RootDir = Path.Combine(Application.dataPath, "Settings", "GameData");
+        public static readonly string LegacyRootDir = Path.Combine(Application.dataPath, "Settings", "N");
+
+        // Subdirectories
+        public static readonly string AiDir = Path.Combine(RootDir, "AI");
+        public static readonly string CombatDir = Path.Combine(RootDir, "Combat");
+        public static readonly string NpcDir = Path.Combine(RootDir, "NPC");
+        public static readonly string ProgressionDir = Path.Combine(RootDir, "Progression");
+        public static readonly string VfxSlotsDir = Path.Combine(RootDir, "VFX_Slots");
+        public static readonly string FeedbackDir = Path.Combine(RootDir, "Feedback");
+        public static readonly string DocsDir = Path.Combine(RootDir, "Docs");
+
+        // Specific File Paths with fallback check
+        public static string GetFilePath(string subDir, string fileName)
+        {
+            string primaryPath = Path.Combine(RootDir, subDir, fileName);
+            if (File.Exists(primaryPath)) return primaryPath;
+
+            // Fallback 1: Root GameData
+            string rootPath = Path.Combine(RootDir, fileName);
+            if (File.Exists(rootPath)) return rootPath;
+
+            // Fallback 2: Legacy Settings/N subfolder or root
+            string legacySubPath = Path.Combine(LegacyRootDir, subDir, fileName);
+            if (File.Exists(legacySubPath)) return legacySubPath;
+
+            string legacyPath = Path.Combine(LegacyRootDir, fileName);
+            if (File.Exists(legacyPath)) return legacyPath;
+
+            return primaryPath; // Return standard path if not found
+        }
+
+        // Quick Accessors
+        public static string SkillCsv => GetFilePath("Combat", "Skill.csv");
+        public static string ActionEventCsv => GetFilePath("Combat", "ActionEvent.csv");
+        public static string ActionNameCsv => GetFilePath("Combat", "ActionName.csv");
+        public static string MissileCsv => GetFilePath("Combat", "Missile.csv");
+        public static string FactionSkillCsv => GetFilePath("Combat", "FactionSkill.csv");
+
+        public static string NpcTemplateCsv => GetFilePath("NPC", "NpcTemplate.csv");
+        public static string CharacterCsv => GetFilePath("NPC", "Character.csv");
+        public static string NpcAttributeCsv => GetFilePath("NPC", "NpcAttribute.csv");
+        public static string NpcResCsv => GetFilePath("NPC", "NpcRes.csv");
+        public static string FieldHeaderBossCsv => GetFilePath("NPC", "Field_HeaderBoss.csv");
+
+        public static string AutoAiSkillCsv => GetFilePath("AI", "AutoAiSkill.csv");
+        public static string GetAiIniDirectory()
+        {
+            if (Directory.Exists(AiDir)) return AiDir;
+            string legacyAi = Path.Combine(LegacyRootDir, "AI");
+            if (Directory.Exists(legacyAi)) return legacyAi;
+            return AiDir;
+        }
+
+        public static string PlayerLevelCsv => GetFilePath("Progression", "PlayerLevel.csv");
+        public static string ExpRuleCsv => GetFilePath("Progression", "ExpRule.csv");
+
+        public static string EffectResCsv => GetFilePath("VFX_Slots", "EffectRes.csv");
+        public static string StateEffectCsv => GetFilePath("VFX_Slots", "StateEffect.csv");
+        public static string PartSlotCsv => GetFilePath("VFX_Slots", "PartSlot.csv");
+
+        public static string SoundCsv => GetFilePath("Feedback", "Sound.csv");
+        public static string FlyCharCsv => GetFilePath("Combat", "FlyChar.csv");
     }
 }
 
@@ -3146,7 +3843,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "Missile.csv");
+            string filePath = GameDataPaths.MissileCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[MissileDatabase] ⚠️ Không tìm thấy file tại: {filePath}");
@@ -3260,6 +3957,263 @@ namespace TopDownGame.Data
 
 
 ==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Data\NpcAiData.cs
+==================================================
+
+using System;
+using TopDownGame.Combat;
+
+namespace TopDownGame.Data
+{
+    [Serializable]
+    public class NpcAiData
+    {
+        public string fileName = "CommonActive";
+        public bool isAggressive = true;             // Attack == 1
+        public bool canStrikeBack = true;            // StrikeBack == 1
+        public int wanderChance = 0;                 // RandmonMove (%)
+        public float fleeHpPercent = 0f;             // FleeHpPrecent (%)
+        public float fleeNearRate = 0f;              // FleeNearRate (%)
+        public float breathTimeSec = 1.0f;           // AiBreathTime / 15.0f
+        public AiTargetSelectType selectTarget = AiTargetSelectType.StrikeBack;
+        public float lockDuration = 4.0f;            // ChangeTargetTime / 15.0f
+
+        public static NpcAiData CreateDefaultActive()
+        {
+            return new NpcAiData
+            {
+                fileName = "CommonActive",
+                isAggressive = true,
+                canStrikeBack = true,
+                wanderChance = 0,
+                fleeHpPercent = 0f,
+                fleeNearRate = 0f,
+                breathTimeSec = 1.0f,
+                selectTarget = AiTargetSelectType.StrikeBack,
+                lockDuration = 4.0f
+            };
+        }
+
+        public static NpcAiData CreateDefaultPassive()
+        {
+            return new NpcAiData
+            {
+                fileName = "CommonPassive",
+                isAggressive = false,
+                canStrikeBack = true,
+                wanderChance = 10,
+                fleeHpPercent = 0f,
+                fleeNearRate = 0f,
+                breathTimeSec = 2.0f,
+                selectTarget = AiTargetSelectType.StrikeBack,
+                lockDuration = 4.0f
+            };
+        }
+    }
+}
+
+
+==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Data\NpcAiDatabase.cs
+==================================================
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
+using TopDownGame.Combat;
+
+namespace TopDownGame.Data
+{
+    public class NpcAiDatabase : ICsvTable
+    {
+        private static NpcAiDatabase instance;
+        public static NpcAiDatabase Instance => instance ?? (instance = new NpcAiDatabase());
+
+        private readonly Dictionary<string, NpcAiData> aiProfiles = new Dictionary<string, NpcAiData>(StringComparer.OrdinalIgnoreCase);
+
+        public bool IsLoaded { get; private set; }
+
+        public void EnsureLoaded()
+        {
+            if (!IsLoaded || aiProfiles.Count == 0)
+            {
+                Load();
+            }
+        }
+
+        public void LoadDatabase() => Load();
+
+        public void Clear()
+        {
+            aiProfiles.Clear();
+            IsLoaded = false;
+        }
+
+        public void Load()
+        {
+            Clear();
+
+            // Đăng ký profile fallback mặc định
+            aiProfiles["commonactive"] = NpcAiData.CreateDefaultActive();
+            aiProfiles["commonpassive"] = NpcAiData.CreateDefaultPassive();
+
+            string dirPath = GameDataPaths.GetAiIniDirectory();
+            if (!Directory.Exists(dirPath))
+            {
+                Debug.LogWarning($"[NpcAiDatabase] ⚠️ Không tìm thấy thư mục: {dirPath}");
+                IsLoaded = true;
+                return;
+            }
+
+            try
+            {
+                string[] files = Directory.GetFiles(dirPath, "*.ini", SearchOption.AllDirectories);
+                foreach (string file in files)
+                {
+                    ParseIniFile(file);
+                }
+
+                IsLoaded = true;
+                Debug.Log($"[NpcAiDatabase] ✅ Đã nạp {aiProfiles.Count} cấu hình AI từ: {dirPath}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[NpcAiDatabase] ❌ Lỗi khi đọc file AI INI: {ex.Message}");
+            }
+        }
+
+        private void ParseIniFile(string filePath)
+        {
+            try
+            {
+                string fileNameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
+                string fileName = Path.GetFileName(filePath);
+
+                var data = new NpcAiData
+                {
+                    fileName = fileNameWithoutExt
+                };
+
+                string[] lines = File.ReadAllLines(filePath, System.Text.Encoding.UTF8);
+                bool inBaseSection = false;
+
+                foreach (string rawLine in lines)
+                {
+                    string line = rawLine.Trim();
+                    if (string.IsNullOrEmpty(line) || line.StartsWith(";") || line.StartsWith("#")) continue;
+
+                    if (line.StartsWith("[") && line.EndsWith("]"))
+                    {
+                        string section = line.Substring(1, line.Length - 2).Trim();
+                        inBaseSection = string.Equals(section, "Base", StringComparison.OrdinalIgnoreCase);
+                        continue;
+                    }
+
+                    if (!inBaseSection) continue;
+
+                    int eqIdx = line.IndexOf('=');
+                    if (eqIdx <= 0) continue;
+
+                    string key = line.Substring(0, eqIdx).Trim().ToLowerInvariant();
+                    string val = line.Substring(eqIdx + 1).Trim();
+
+                    switch (key)
+                    {
+                        case "attack":
+                            data.isAggressive = CsvParserHelper.ParseInt(val, 1) == 1;
+                            break;
+                        case "strikeback":
+                            data.canStrikeBack = CsvParserHelper.ParseInt(val, 1) == 1;
+                            break;
+                        case "randmonmove":
+                        case "randommove":
+                            data.wanderChance = CsvParserHelper.ParseInt(val, 0);
+                            break;
+                        case "fleehpprecent":
+                        case "fleehpprecentage":
+                        case "fleehppercent":
+                            data.fleeHpPercent = CsvParserHelper.ParseFloat(val, 0f);
+                            break;
+                        case "fleenearrate":
+                            data.fleeNearRate = CsvParserHelper.ParseFloat(val, 0f);
+                            break;
+                        case "aibreathtime":
+                            int breathFrames = CsvParserHelper.ParseInt(val, 15);
+                            data.breathTimeSec = Mathf.Max(0.1f, breathFrames / 15.0f);
+                            break;
+                        case "changetargettime":
+                            int lockFrames = CsvParserHelper.ParseInt(val, 60);
+                            data.lockDuration = Mathf.Max(0.5f, lockFrames / 15.0f);
+                            break;
+                        case "selecttarget":
+                            data.selectTarget = ParseSelectTarget(val);
+                            break;
+                    }
+                }
+
+                aiProfiles[fileNameWithoutExt] = data;
+                aiProfiles[fileName] = data;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[NpcAiDatabase] ❌ Lỗi đọc file INI {filePath}: {ex.Message}");
+            }
+        }
+
+        private static AiTargetSelectType ParseSelectTarget(string val)
+        {
+            if (string.IsNullOrEmpty(val)) return AiTargetSelectType.StrikeBack;
+            val = val.Trim().ToLowerInvariant();
+
+            switch (val)
+            {
+                case "strikeback":
+                    return AiTargetSelectType.StrikeBack;
+                case "nearest":
+                    return AiTargetSelectType.Nearest;
+                case "poorest":
+                    return AiTargetSelectType.Poorest;
+                case "richest":
+                    return AiTargetSelectType.Richest;
+                case "random":
+                    return AiTargetSelectType.Random;
+                case "player":
+                    return AiTargetSelectType.Player;
+                default:
+                    return AiTargetSelectType.StrikeBack;
+            }
+        }
+
+        public static NpcAiData GetAi(string aiKey)
+        {
+            Instance.EnsureLoaded();
+
+            if (string.IsNullOrWhiteSpace(aiKey))
+            {
+                return Instance.aiProfiles.TryGetValue("commonactive", out var def) ? def : NpcAiData.CreateDefaultActive();
+            }
+
+            // Chuẩn hóa đường dẫn: Setting/Npc/Ai/CommonActive.ini -> CommonActive
+            string cleanKey = Path.GetFileNameWithoutExtension(aiKey).Trim();
+            if (Instance.aiProfiles.TryGetValue(cleanKey, out var data))
+            {
+                return data;
+            }
+
+            string cleanKeyWithExt = Path.GetFileName(aiKey).Trim();
+            if (Instance.aiProfiles.TryGetValue(cleanKeyWithExt, out data))
+            {
+                return data;
+            }
+
+            return Instance.aiProfiles.TryGetValue("commonactive", out var fallback) ? fallback : NpcAiData.CreateDefaultActive();
+        }
+    }
+}
+
+
+==================================================
 // FILE: D:\Unity Project\test1\Assets\Scripts\Data\NpcAttributeDatabase.cs
 ==================================================
 
@@ -3291,6 +4245,34 @@ namespace TopDownGame.Data
         public float waterResist;
         public float fireResist;
         public float earthResist;
+
+        public string rawMaxLife;
+        public string rawMinBaseAttack;
+        public string rawMaxBaseAttack;
+        public string rawWoodDamage;
+        public string rawWaterDamage;
+        public string rawFireDamage;
+        public string rawEarthDamage;
+        public string rawMetalDamage;
+
+        public float GetMaxLife(int level) => CsvParserHelper.ParseLevelValue(rawMaxLife, level, maxLife);
+        public float GetMinAttack(int level) => CsvParserHelper.ParseLevelValue(rawMinBaseAttack, level, minBaseAttack);
+        public float GetMaxAttack(int level) => CsvParserHelper.ParseLevelValue(rawMaxBaseAttack, level, maxBaseAttack);
+        public float GetAverageAttack(int level)
+        {
+            float min = GetMinAttack(level);
+            float max = GetMaxAttack(level);
+            return max > min ? (min + max) * 0.5f : (min > 0f ? min : max);
+        }
+        public float GetTotalMagicDamage(int level)
+        {
+            float w = CsvParserHelper.ParseLevelValue(rawWoodDamage, level, woodDamage);
+            float wa = CsvParserHelper.ParseLevelValue(rawWaterDamage, level, waterDamage);
+            float f = CsvParserHelper.ParseLevelValue(rawFireDamage, level, fireDamage);
+            float e = CsvParserHelper.ParseLevelValue(rawEarthDamage, level, earthDamage);
+            float m = CsvParserHelper.ParseLevelValue(rawMetalDamage, level, metalDamage);
+            return w + wa + f + e + m;
+        }
 
         public float AverageAttack => maxBaseAttack > minBaseAttack 
             ? (minBaseAttack + maxBaseAttack) * 0.5f 
@@ -3326,7 +4308,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "NpcAttribute.csv");
+            string filePath = GameDataPaths.NpcAttributeCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[NpcAttributeDatabase] ⚠️ Không tìm thấy file tại: {filePath}");
@@ -3362,9 +4344,18 @@ namespace TopDownGame.Data
                         string name = GetColString(tokens, colMap, "name", 1);
                         float attackSpeed = GetColFloat(tokens, colMap, "attackspeed", 3, 15f);
 
-                        float maxLife = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "maxlife", 4), 1, 100f);
-                        float minAttack = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "minbaseattack", 9), 1, 20f);
-                        float maxAttack = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "maxbaseattack", 10), 1, minAttack);
+                        string rawMaxLife = GetColRaw(tokens, colMap, "maxlife", 4);
+                        string rawMinBaseAttack = GetColRaw(tokens, colMap, "minbaseattack", 9);
+                        string rawMaxBaseAttack = GetColRaw(tokens, colMap, "maxbaseattack", 10);
+                        string rawWood = GetColRaw(tokens, colMap, "wooddamage", 11);
+                        string rawWater = GetColRaw(tokens, colMap, "waterdamage", 12);
+                        string rawFire = GetColRaw(tokens, colMap, "firedamage", 13);
+                        string rawEarth = GetColRaw(tokens, colMap, "earthdamage", 14);
+                        string rawMetal = GetColRaw(tokens, colMap, "metaldamage", 21);
+
+                        float maxLife = CsvParserHelper.ParseLevelValue(rawMaxLife, 1, 100f);
+                        float minAttack = CsvParserHelper.ParseLevelValue(rawMinBaseAttack, 1, 20f);
+                        float maxAttack = CsvParserHelper.ParseLevelValue(rawMaxBaseAttack, 1, minAttack);
 
                         NpcAttributeData data = new NpcAttributeData
                         {
@@ -3374,16 +4365,24 @@ namespace TopDownGame.Data
                             maxLife = Mathf.Max(1f, maxLife),
                             minBaseAttack = minAttack,
                             maxBaseAttack = maxAttack,
-                            woodDamage = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "wooddamage", 11), 1, 0f),
-                            waterDamage = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "waterdamage", 12), 1, 0f),
-                            fireDamage = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "firedamage", 13), 1, 0f),
-                            earthDamage = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "earthdamage", 14), 1, 0f),
-                            metalDamage = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "metaldamage", 21), 1, 0f),
+                            woodDamage = CsvParserHelper.ParseLevelValue(rawWood, 1, 0f),
+                            waterDamage = CsvParserHelper.ParseLevelValue(rawWater, 1, 0f),
+                            fireDamage = CsvParserHelper.ParseLevelValue(rawFire, 1, 0f),
+                            earthDamage = CsvParserHelper.ParseLevelValue(rawEarth, 1, 0f),
+                            metalDamage = CsvParserHelper.ParseLevelValue(rawMetal, 1, 0f),
                             metalResist = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "metalresist", 15), 1, 0f),
                             woodResist = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "woodresist", 16), 1, 0f),
                             waterResist = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "waterresist", 17), 1, 0f),
                             fireResist = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "fireresist", 18), 1, 0f),
-                            earthResist = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "earthresist", 19), 1, 0f)
+                            earthResist = CsvParserHelper.ParseLevelValue(GetColRaw(tokens, colMap, "earthresist", 19), 1, 0f),
+                            rawMaxLife = rawMaxLife,
+                            rawMinBaseAttack = rawMinBaseAttack,
+                            rawMaxBaseAttack = rawMaxBaseAttack,
+                            rawWoodDamage = rawWood,
+                            rawWaterDamage = rawWater,
+                            rawFireDamage = rawFire,
+                            rawEarthDamage = rawEarth,
+                            rawMetalDamage = rawMetal
                         };
 
                         attributes[attribId] = data;
@@ -3518,7 +4517,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "NpcRes.csv");
+            string filePath = GameDataPaths.NpcResCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[NpcResDatabase] ⚠️ Không tìm thấy file tại: {filePath}");
@@ -3794,7 +4793,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "PartSlot.csv");
+            string filePath = GameDataPaths.PartSlotCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[PartSlotDatabase] ⚠️ Không tìm thấy file tại: {filePath}");
@@ -3945,6 +4944,139 @@ namespace TopDownGame.Data
 
 
 ==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Data\PlayerLevelData.cs
+==================================================
+
+using System;
+using UnityEngine;
+
+namespace TopDownGame.Data
+{
+    [Serializable]
+    public class PlayerLevelData
+    {
+        public int Level;
+        public long ExpUpGrade;
+        public int BaseAwardExp;
+        public int RunSpeed;
+        public int AttackSpeed;
+        public int FightPower;
+        public int AttackSeriesResist;
+    }
+}
+
+
+==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Data\PlayerLevelDatabase.cs
+==================================================
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
+
+namespace TopDownGame.Data
+{
+    public class PlayerLevelDatabase : ICsvTable
+    {
+        private static PlayerLevelDatabase instance;
+        public static PlayerLevelDatabase Instance => instance ?? (instance = new PlayerLevelDatabase());
+
+        private readonly Dictionary<int, PlayerLevelData> levels = new Dictionary<int, PlayerLevelData>();
+        private int maxLevel = 1;
+
+        public bool IsLoaded { get; private set; }
+        public int MaxLevel => maxLevel;
+
+        public void EnsureLoaded()
+        {
+            if (!IsLoaded || levels.Count == 0)
+            {
+                Load();
+            }
+        }
+
+        public void LoadDatabase() => Load();
+
+        public void Clear()
+        {
+            levels.Clear();
+            maxLevel = 1;
+            IsLoaded = false;
+        }
+
+        public void Load()
+        {
+            Clear();
+
+            string filePath = GameDataPaths.PlayerLevelCsv;
+            if (!File.Exists(filePath))
+            {
+                Debug.LogWarning($"[PlayerLevelDatabase] ⚠️ Không tìm thấy file: {filePath}");
+                return;
+            }
+
+            try
+            {
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var reader = new StreamReader(fs, System.Text.Encoding.UTF8))
+                {
+                    string headerLine = reader.ReadLine();
+                    if (string.IsNullOrEmpty(headerLine)) return;
+
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+                        string[] tokens = CsvParserHelper.SplitCsvLine(line);
+                        if (tokens.Length < 3) continue;
+
+                        int lvl = CsvParserHelper.ParseInt(tokens[0]);
+                        if (lvl <= 0) continue;
+
+                        long expUpgrade = CsvParserHelper.ParseLong(CsvParserHelper.GetToken(tokens, 1));
+                        int baseAwardExp = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 2));
+                        int runSpeed = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 3));
+                        int attackSpeed = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 4));
+                        int fightPower = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 5));
+                        int resist = CsvParserHelper.ParseInt(CsvParserHelper.GetToken(tokens, 6));
+
+                        var data = new PlayerLevelData
+                        {
+                            Level = lvl,
+                            ExpUpGrade = expUpgrade,
+                            BaseAwardExp = baseAwardExp,
+                            RunSpeed = runSpeed,
+                            AttackSpeed = attackSpeed,
+                            FightPower = fightPower,
+                            AttackSeriesResist = resist
+                        };
+
+                        levels[lvl] = data;
+                        if (lvl > maxLevel) maxLevel = lvl;
+                    }
+                }
+
+                IsLoaded = true;
+                Debug.Log($"[PlayerLevelDatabase] ✅ Đã nạp {levels.Count} cấp độ nhân vật (Max Lv: {maxLevel}).");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[PlayerLevelDatabase] ❌ Lỗi nạp {filePath}: {ex.Message}");
+            }
+        }
+
+        public PlayerLevelData Get(int level)
+        {
+            EnsureLoaded();
+            if (levels.TryGetValue(level, out var data)) return data;
+            return null;
+        }
+    }
+}
+
+
+==================================================
 // FILE: D:\Unity Project\test1\Assets\Scripts\Data\StateEffectDatabase.cs
 ==================================================
 
@@ -4001,7 +5133,7 @@ namespace TopDownGame.Data
             Clear();
             EffectDatabase.Instance.EnsureLoaded();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "StateEffect.csv");
+            string filePath = GameDataPaths.StateEffectCsv;
             if (File.Exists(filePath))
             {
                 try
@@ -4235,6 +5367,122 @@ namespace TopDownGame.Editor
 
 
 ==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Editor\EnemySpawnPointEditor.cs
+==================================================
+
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEngine;
+using TopDownGame.Enemy;
+using TopDownGame.NPC;
+
+namespace TopDownGame.Editor
+{
+    [CustomEditor(typeof(EnemySpawnPoint))]
+    public class EnemySpawnPointEditor : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            serializedObject.Update();
+
+            EnemySpawnPoint spawner = (EnemySpawnPoint)target;
+
+            EditorGUILayout.LabelField("👾 Điểm Sinh Quái Vật (Spawn Point)", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Quản lý sinh quái và hồi sinh tự động dựa trên NpcTemplate.csv.", MessageType.Info);
+            EditorGUILayout.Space(5);
+
+            SerializedProperty npcIdProp = serializedObject.FindProperty("npcTemplateId");
+            SerializedProperty levelProp = serializedObject.FindProperty("monsterLevel");
+            SerializedProperty maxCountProp = serializedObject.FindProperty("maxMonsterCount");
+            SerializedProperty radiusProp = serializedObject.FindProperty("spawnRadius");
+            SerializedProperty respawnProp = serializedObject.FindProperty("respawnDelay");
+            SerializedProperty intervalProp = serializedObject.FindProperty("spawnInterval");
+            SerializedProperty autoSpawnProp = serializedObject.FindProperty("autoSpawnOnStart");
+            SerializedProperty snapGroundProp = serializedObject.FindProperty("snapToGround");
+            SerializedProperty showGizmosProp = serializedObject.FindProperty("showGizmos");
+            SerializedProperty gizmoColorProp = serializedObject.FindProperty("gizmoColor");
+
+            EditorGUILayout.PropertyField(npcIdProp, new GUIContent("NPC Template ID:"));
+            EditorGUILayout.PropertyField(levelProp, new GUIContent("Monster Level:"));
+
+            // Hiển thị thông tin quái từ Database
+            NpcTemplateDatabase.Instance.EnsureLoaded();
+            var template = NpcTemplateDatabase.GetTemplate(npcIdProp.intValue);
+            if (template != null)
+            {
+                var attrib = template.GetAttribute();
+                int lv = Mathf.Max(1, levelProp.intValue);
+                string hpText = attrib != null ? $"{attrib.GetMaxLife(lv):F0}" : "100";
+                string atkText = attrib != null ? $"{attrib.GetAverageAttack(lv):F0}" : "20";
+
+                EditorGUILayout.HelpBox(
+                    $"• Tên: {template.name}\n" +
+                    $"• Cấp độ: Lv.{lv} | Máu: {hpText} | Công: {atkText}\n" +
+                    $"• Tốc độ: {template.runSpeed:F1} m/s | Prefab: {template.prefab}",
+                    MessageType.None
+                );
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("⚠️ Không tìm thấy Template ID này trong NpcTemplate.csv!", MessageType.Warning);
+            }
+
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("⚙️ Cấu Hình Bãi Quái", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(maxCountProp, new GUIContent("Số Lượng Quái:"));
+            EditorGUILayout.PropertyField(radiusProp, new GUIContent("Bán Kính Spawn (m):"));
+            EditorGUILayout.PropertyField(respawnProp, new GUIContent("Thời Gian Hồi Sinh (s):"));
+            EditorGUILayout.PropertyField(intervalProp, new GUIContent("Khoảng Cách Spawn (s):"));
+            EditorGUILayout.PropertyField(autoSpawnProp, new GUIContent("Tự Sinh Khi Bắt Đầu:"));
+            EditorGUILayout.PropertyField(snapGroundProp, new GUIContent("Dò Mặt Đất (Snap):"));
+
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("🎨 Hiển Thị Gizmos", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(showGizmosProp, new GUIContent("Bật Gizmos:"));
+            EditorGUILayout.PropertyField(gizmoColorProp, new GUIContent("Màu Vòng Tròn:"));
+
+            serializedObject.ApplyModifiedProperties();
+
+            EditorGUILayout.Space(10);
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("🚀 Sinh Quái Ngay (Spawn)", GUILayout.Height(30)))
+            {
+                spawner.SpawnAllImmediate();
+            }
+            if (GUILayout.Button("🗑️ Xóa Toàn Bộ Quái (Clear)", GUILayout.Height(30)))
+            {
+                spawner.ClearAllSpawned();
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+
+        [MenuItem("GameObject/TopDown RPG/Enemy Spawn Point", false, 10)]
+        public static void CreateSpawnPointGameObject(MenuCommand menuCommand)
+        {
+            GameObject go = new GameObject("EnemySpawnPoint");
+            var spawner = go.AddComponent<EnemySpawnPoint>();
+            spawner.NpcTemplateId = 72; // Mặc định
+            spawner.MonsterLevel = 1;
+            spawner.MaxMonsterCount = 3;
+            spawner.SpawnRadius = 6.0f;
+
+            if (SceneView.lastActiveSceneView != null)
+            {
+                Vector3 spawnPos = SceneView.lastActiveSceneView.camera.transform.position + SceneView.lastActiveSceneView.camera.transform.forward * 5f;
+                spawnPos.y = 0f;
+                go.transform.position = spawnPos;
+            }
+
+            GameObjectUtility.SetParentAndAlign(go, menuCommand.context as GameObject);
+            Undo.RegisterCreatedObjectUndo(go, "Create Enemy Spawn Point");
+            Selection.activeObject = go;
+        }
+    }
+}
+#endif
+
+
+==================================================
 // FILE: D:\Unity Project\test1\Assets\Scripts\Editor\NpcSpawnerBuilder.cs
 ==================================================
 
@@ -4262,8 +5510,8 @@ namespace TopDownGame.Editor
 
         private void OnGUI()
         {
-            GUILayout.Label("👾 Tạo Quái / NPC từ Database Chuẩn (Settings/N)", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("Công cụ tự động nạp Template từ Settings/N/NpcTemplate.csv, liên kết NpcRes (Model, Kích thước) và NpcAttribute (Máu, Công Level 1).", MessageType.Info);
+            GUILayout.Label("👾 Tạo Quái / NPC từ Database Chuẩn (Settings/GameData)", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Công cụ tự động nạp Template từ Settings/GameData/NPC/NpcTemplate.csv, liên kết NpcRes (Model, Kích thước) và NpcAttribute (Máu, Công Level 1).", MessageType.Info);
 
             EditorGUILayout.Space(10);
             selectedNpcId = EditorGUILayout.IntField("Nhập NPC ID:", selectedNpcId);
@@ -4300,10 +5548,16 @@ namespace TopDownGame.Editor
 
             EditorGUILayout.Space(10);
 
-            if (GUILayout.Button("🚀 TẠO NPC VÀO SCENE", GUILayout.Height(35)))
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("🚀 TẠO 1 NPC ĐƠN LẺ", GUILayout.Height(35)))
             {
                 SpawnNpcInScene(selectedNpcId);
             }
+            if (GUILayout.Button("🎯 TẠO BÃI QUÁI (SPAWN POINT)", GUILayout.Height(35)))
+            {
+                CreateSpawnPointInScene(selectedNpcId);
+            }
+            EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(15);
             GUILayout.Label("Danh sách mẫu trong Database:", EditorStyles.boldLabel);
@@ -4436,6 +5690,36 @@ namespace TopDownGame.Editor
 
             Debug.Log($"✅ Đã tạo thành công NPC: <b>{rootName}</b> với model <i>{template.prefab}</i> | Máu: {(attrib != null ? attrib.maxLife : 100)} | Tốc độ: {defaultSpeed:F1} m/s | Layer: Enemy ({enemyLayer}) | Tag: Enemy!");
             return rootGO;
+        }
+
+        public static GameObject CreateSpawnPointInScene(int npcId, int level = 1, int maxCount = 3, float radius = 6.0f)
+        {
+            NpcTemplateDatabase.Instance.EnsureLoaded();
+            var template = NpcTemplateDatabase.GetTemplate(npcId);
+            string name = template != null ? template.name : $"NPC_{npcId}";
+
+            GameObject spGO = new GameObject($"SpawnPoint_{name}");
+            Undo.RegisterCreatedObjectUndo(spGO, "Create Spawn Point");
+
+            if (SceneView.lastActiveSceneView != null)
+            {
+                Vector3 spawnPos = SceneView.lastActiveSceneView.camera.transform.position + SceneView.lastActiveSceneView.camera.transform.forward * 5f;
+                spawnPos.y = 0f;
+                spGO.transform.position = spawnPos;
+            }
+
+            var spawner = spGO.AddComponent<EnemySpawnPoint>();
+            spawner.NpcTemplateId = npcId;
+            spawner.MonsterLevel = level;
+            spawner.MaxMonsterCount = maxCount;
+            spawner.SpawnRadius = radius;
+
+            EditorUtility.SetDirty(spGO);
+            Selection.activeGameObject = spGO;
+            EditorGUIUtility.PingObject(spGO);
+
+            Debug.Log($"🎯 Đã tạo thành công Bãi Quái: <b>{spGO.name}</b> (Template #{npcId}, Lv.{level}, Max: {maxCount}, Radius: {radius}m)!");
+            return spGO;
         }
 
         private static void SetTagAndLayerRecursively(GameObject obj, string tag, int layer)
@@ -4632,6 +5916,10 @@ namespace TopDownGame.Editor
         private static readonly Color MpBgColor = new Color(0.04f, 0.09f, 0.22f, 0.95f);
         private static readonly Color MpFillColor = new Color(0.15f, 0.60f, 1f, 1f); // Xanh lam sáng
 
+        private static readonly Color ExpBgColor = new Color(0.18f, 0.14f, 0.04f, 0.95f);
+        private static readonly Color ExpFillColor = new Color(1.0f, 0.72f, 0.12f, 1f); // Vàng cam sáng
+        private static readonly Color LevelBadgeBgColor = new Color(0.12f, 0.10f, 0.05f, 0.95f);
+
         private static readonly Color CooldownOverlayColor = new Color(0f, 0f, 0f, 0.75f);
         private static readonly Color GoldTextColor = new Color(1f, 0.88f, 0.45f, 1f);
 
@@ -4675,8 +5963,11 @@ namespace TopDownGame.Editor
             // Lấy hoặc tạo Sprite trắng phẳng (không bo cong) để hỗ trợ Image.Type.Filled
             Sprite flatSprite = GetOrCreateFlatWhiteSprite();
 
-            // 6. Tạo cụm Thanh Máu & Mana ở Góc trên bên Trái (Top-Left)
-            CreateStatusPanel(hudRoot.transform, flatSprite, out Image healthFill, out Image healthGhostFill, out TextMeshProUGUI healthText, out Image manaFill, out TextMeshProUGUI manaText);
+            // 6. Tạo cụm Thanh Máu, Mana, EXP & Level Badge ở Góc trên bên Trái (Top-Left)
+            CreateStatusPanel(hudRoot.transform, flatSprite, 
+                out Image healthFill, out Image healthGhostFill, out TextMeshProUGUI healthText, 
+                out Image manaFill, out TextMeshProUGUI manaText,
+                out Image expFill, out TextMeshProUGUI expText, out TextMeshProUGUI levelText);
 
             // 7. Tạo cụm 3 Ô Kỹ Năng ở Dưới cùng Chính giữa theo thứ tự Q - E - R
             CreateSkillPanel(hudRoot.transform, flatSprite, out SkillSlotUI slotQ, out SkillSlotUI slotE, out SkillSlotUI slotR);
@@ -4692,6 +5983,9 @@ namespace TopDownGame.Editor
             hudSO.FindProperty("healthText").objectReferenceValue = healthText;
             hudSO.FindProperty("manaFill").objectReferenceValue = manaFill;
             hudSO.FindProperty("manaText").objectReferenceValue = manaText;
+            hudSO.FindProperty("expFill").objectReferenceValue = expFill;
+            hudSO.FindProperty("expText").objectReferenceValue = expText;
+            hudSO.FindProperty("levelText").objectReferenceValue = levelText;
             hudSO.FindProperty("skillSlot_Q").objectReferenceValue = slotQ;
             hudSO.FindProperty("skillSlot_E").objectReferenceValue = slotE;
             hudSO.FindProperty("skillSlot_R").objectReferenceValue = slotR;
@@ -4703,7 +5997,7 @@ namespace TopDownGame.Editor
             EditorUtility.DisplayDialog(
                 "Thành Công!",
                 "Đã tạo giao diện HUD hoàn chỉnh:\n" +
-                "• Thanh Máu & Mana: Góc trên bên Trái (vạch phẳng, to rõ, có hiệu ứng vạch vàng tụt theo)\n" +
+                "• Cụm Status Góc trên Trái: Thanh Máu (HP), Mana (MP), Vạch EXP và Huy hiệu Cấp độ (Lv.1)\n" +
                 "• 3 Ô Kỹ năng: Dưới cùng Chính giữa (Thứ tự: Q - E - R)\n" +
                 "• Canvas đã được gắn khít vào Main Camera\n" +
                 (player != null ? "• Đã tự động liên kết với PlayerController và PlayerStats trong Scene!" : "• Lưu ý: Chưa tìm thấy PlayerController trong Scene."),
@@ -4789,9 +6083,12 @@ namespace TopDownGame.Editor
             }
         }
 
-        private static void CreateStatusPanel(Transform parent, Sprite flatSprite, out Image healthFill, out Image healthGhostFill, out TextMeshProUGUI healthText, out Image manaFill, out TextMeshProUGUI manaText)
+        private static void CreateStatusPanel(Transform parent, Sprite flatSprite, 
+            out Image healthFill, out Image healthGhostFill, out TextMeshProUGUI healthText, 
+            out Image manaFill, out TextMeshProUGUI manaText,
+            out Image expFill, out TextMeshProUGUI expText, out TextMeshProUGUI levelText)
         {
-            // Panel nền góc trên-trái (Thiết kế phẳng, vạch thẳng vuông vắn, to và rõ ràng)
+            // Panel nền góc trên-trái (Mở rộng chiều cao lên 136px để chứa gọn gàng thanh EXP và Level)
             GameObject panelGO = new GameObject("StatusPanel_TopLeft", typeof(RectTransform), typeof(Image));
             panelGO.transform.SetParent(parent, false);
 
@@ -4800,7 +6097,7 @@ namespace TopDownGame.Editor
             panelRect.anchorMax = new Vector2(0f, 1f);
             panelRect.pivot = new Vector2(0f, 1f);
             panelRect.anchoredPosition = new Vector2(30f, -30f);
-            panelRect.sizeDelta = new Vector2(440f, 110f);
+            panelRect.sizeDelta = new Vector2(440f, 136f);
 
             Image panelImg = panelGO.GetComponent<Image>();
             panelImg.sprite = flatSprite;
@@ -4813,15 +6110,15 @@ namespace TopDownGame.Editor
             hpBarRect.anchorMin = new Vector2(0f, 1f);
             hpBarRect.anchorMax = new Vector2(0f, 1f);
             hpBarRect.pivot = new Vector2(0f, 1f);
-            hpBarRect.anchoredPosition = new Vector2(62f, -16f);
-            hpBarRect.sizeDelta = new Vector2(360f, 34f);
+            hpBarRect.anchoredPosition = new Vector2(62f, -14f);
+            hpBarRect.sizeDelta = new Vector2(360f, 32f);
 
             Image hpBgImg = hpBarGO.GetComponent<Image>();
             hpBgImg.sprite = flatSprite;
             hpBgImg.color = HpBgColor;
 
             // Label "HP"
-            CreateBadgeText(panelGO.transform, "HP", new Vector2(16f, -16f), new Vector2(40f, 34f), 16, new Color(1f, 0.35f, 0.35f));
+            CreateBadgeText(panelGO.transform, "HP", new Vector2(16f, -14f), new Vector2(40f, 32f), 15, new Color(1f, 0.35f, 0.35f));
 
             // Vạch vàng Ghost tụt theo (Nằm ngay sau vạch đỏ, cần flatSprite để hoạt động Image.Type.Filled)
             GameObject ghostGO = new GameObject("GhostFill", typeof(RectTransform), typeof(Image));
@@ -4865,15 +6162,15 @@ namespace TopDownGame.Editor
             mpBarRect.anchorMin = new Vector2(0f, 1f);
             mpBarRect.anchorMax = new Vector2(0f, 1f);
             mpBarRect.pivot = new Vector2(0f, 1f);
-            mpBarRect.anchoredPosition = new Vector2(62f, -60f);
-            mpBarRect.sizeDelta = new Vector2(360f, 24f);
+            mpBarRect.anchoredPosition = new Vector2(62f, -54f);
+            mpBarRect.sizeDelta = new Vector2(360f, 22f);
 
             Image mpBgImg = mpBarGO.GetComponent<Image>();
             mpBgImg.sprite = flatSprite;
             mpBgImg.color = MpBgColor;
 
             // Label "MP"
-            CreateBadgeText(panelGO.transform, "MP", new Vector2(16f, -60f), new Vector2(40f, 24f), 14, new Color(0.35f, 0.75f, 1f));
+            CreateBadgeText(panelGO.transform, "MP", new Vector2(16f, -54f), new Vector2(40f, 22f), 13, new Color(0.35f, 0.75f, 1f));
 
             // Fill Mana xanh
             GameObject mpFillGO = new GameObject("Fill", typeof(RectTransform), typeof(Image));
@@ -4892,7 +6189,56 @@ namespace TopDownGame.Editor
             manaFill.color = MpFillColor;
 
             // Text số Mana
-            manaText = CreateValueText(mpBarGO.transform, "100 / 100", 12);
+            manaText = CreateValueText(mpBarGO.transform, "100 / 100", 11);
+
+            // 3. VẠCH LEVEL & KINH NGHIỆM (EXP BAR)
+            GameObject expBarGO = new GameObject("ExpBar", typeof(RectTransform), typeof(Image));
+            expBarGO.transform.SetParent(panelGO.transform, false);
+            RectTransform expBarRect = expBarGO.GetComponent<RectTransform>();
+            expBarRect.anchorMin = new Vector2(0f, 1f);
+            expBarRect.anchorMax = new Vector2(0f, 1f);
+            expBarRect.pivot = new Vector2(0f, 1f);
+            expBarRect.anchoredPosition = new Vector2(62f, -86f);
+            expBarRect.sizeDelta = new Vector2(360f, 14f);
+
+            Image expBgImg = expBarGO.GetComponent<Image>();
+            expBgImg.sprite = flatSprite;
+            expBgImg.color = ExpBgColor;
+
+            // Huy hiệu Level bên trái (Ví dụ: Lv.1)
+            GameObject levelBadgeGO = new GameObject("LevelBadge", typeof(RectTransform), typeof(Image));
+            levelBadgeGO.transform.SetParent(panelGO.transform, false);
+            RectTransform levelBadgeRect = levelBadgeGO.GetComponent<RectTransform>();
+            levelBadgeRect.anchorMin = new Vector2(0f, 1f);
+            levelBadgeRect.anchorMax = new Vector2(0f, 1f);
+            levelBadgeRect.pivot = new Vector2(0f, 1f);
+            levelBadgeRect.anchoredPosition = new Vector2(16f, -84f);
+            levelBadgeRect.sizeDelta = new Vector2(40f, 18f);
+
+            Image levelBadgeImg = levelBadgeGO.GetComponent<Image>();
+            levelBadgeImg.sprite = flatSprite;
+            levelBadgeImg.color = LevelBadgeBgColor;
+
+            levelText = CreateBadgeText(levelBadgeGO.transform, "Lv.1", Vector2.zero, Vector2.zero, 11, GoldTextColor, true);
+
+            // Fill EXP vàng cam sáng
+            GameObject expFillGO = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+            expFillGO.transform.SetParent(expBarGO.transform, false);
+            RectTransform expFillRect = expFillGO.GetComponent<RectTransform>();
+            expFillRect.anchorMin = Vector2.zero;
+            expFillRect.anchorMax = Vector2.one;
+            expFillRect.sizeDelta = Vector2.zero;
+
+            expFill = expFillGO.GetComponent<Image>();
+            expFill.sprite = flatSprite;
+            expFill.type = Image.Type.Filled;
+            expFill.fillMethod = Image.FillMethod.Horizontal;
+            expFill.fillOrigin = (int)Image.OriginHorizontal.Left;
+            expFill.fillAmount = 0f;
+            expFill.color = ExpFillColor;
+
+            // Text số EXP (Hiển thị phần trăm / số lượng)
+            expText = CreateValueText(expBarGO.transform, "0 / 28000", 9);
         }
 
         private static void CreateSkillPanel(Transform parent, Sprite flatSprite, out SkillSlotUI slotQ, out SkillSlotUI slotE, out SkillSlotUI slotR)
@@ -5039,17 +6385,26 @@ namespace TopDownGame.Editor
             return tmp;
         }
 
-        private static void CreateBadgeText(Transform parent, string text, Vector2 anchoredPos, Vector2 size, float fontSize, Color color)
+        private static TextMeshProUGUI CreateBadgeText(Transform parent, string text, Vector2 anchoredPos, Vector2 size, float fontSize, Color color, bool isStretch = false)
         {
             GameObject labelGO = new GameObject("Label_" + text, typeof(RectTransform), typeof(TextMeshProUGUI));
             labelGO.transform.SetParent(parent, false);
 
             RectTransform rect = labelGO.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = anchoredPos;
-            rect.sizeDelta = size;
+            if (isStretch)
+            {
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.sizeDelta = Vector2.zero;
+            }
+            else
+            {
+                rect.anchorMin = new Vector2(0f, 1f);
+                rect.anchorMax = new Vector2(0f, 1f);
+                rect.pivot = new Vector2(0f, 1f);
+                rect.anchoredPosition = anchoredPos;
+                rect.sizeDelta = size;
+            }
 
             TextMeshProUGUI tmp = labelGO.GetComponent<TextMeshProUGUI>();
             tmp.text = text;
@@ -5057,6 +6412,7 @@ namespace TopDownGame.Editor
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = color;
+            return tmp;
         }
     }
 }
@@ -5850,9 +7206,11 @@ namespace TopDownGame.Enemy
 // FILE: D:\Unity Project\test1\Assets\Scripts\Enemy\EnemyController.cs
 ==================================================
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Combat;
+using TopDownGame.Data;
 using TopDownGame.NPC;
 using TopDownGame.Skills;
 using TopDownGame.StateMachine;
@@ -5871,12 +7229,14 @@ namespace TopDownGame.Enemy
         [SerializeField] private float walkSpeed = 2.5f;
         [SerializeField] private float rotationSmoothTime = 0.1f;
         [SerializeField] private float gravity = -9.81f;
+        [SerializeField] private bool forbitMove = false;
         [SerializeField] private string currentStateDisplay;
 
         public TopDownGame.StateMachine.StateMachine StateMachine { get; private set; }
         public EnemyIdleState IdleState { get; private set; }
         public EnemyChaseState ChaseState { get; private set; }
         public EnemyAttackState AttackState { get; private set; }
+        public EnemyReturnState ReturnState { get; private set; }
         public EnemyHurtState HurtState { get; private set; }
         public EnemyDeadState DeadState { get; private set; }
 
@@ -5894,7 +7254,8 @@ namespace TopDownGame.Enemy
         public float DistanceFromSpawn => Perception != null ? Perception.GetDistanceToSpawn() : 0f;
         public float MoveSpeed => moveSpeed;
         public float WalkSpeed => walkSpeed;
-        public bool IsReturningToSpawn { get; set; }
+        public bool ForbitMove { get => forbitMove; set => forbitMove = value; }
+        public NpcAiData AiData => Perception != null ? Perception.AiData : null;
 
         public int NpcResId => (npcTemplateId > 0 && NpcTemplateDatabase.GetTemplate(npcTemplateId) != null) ? NpcTemplateDatabase.GetTemplate(npcTemplateId).npcResId : 0;
 
@@ -5910,6 +7271,7 @@ namespace TopDownGame.Enemy
 
             NpcTemplateDatabase.Instance.EnsureLoaded();
             SkillDatabase.Instance.EnsureLoaded();
+            NpcAiDatabase.Instance.EnsureLoaded();
             ApplyTemplateData();
             EnsureAnimationController();
 
@@ -5917,6 +7279,7 @@ namespace TopDownGame.Enemy
             IdleState = new EnemyIdleState(this, StateMachine);
             ChaseState = new EnemyChaseState(this, StateMachine);
             AttackState = new EnemyAttackState(this, StateMachine);
+            ReturnState = new EnemyReturnState(this, StateMachine);
             HurtState = new EnemyHurtState(this, StateMachine);
             DeadState = new EnemyDeadState(this, StateMachine);
         }
@@ -5961,7 +7324,7 @@ namespace TopDownGame.Enemy
 
         public void MoveTowardsTarget()
         {
-            if (Target == null || !CharacterController.enabled) return;
+            if (forbitMove || Target == null || !CharacterController.enabled) return;
             Vector3 dir = Target.position - transform.position;
             dir.y = 0f;
             if (dir.sqrMagnitude > 0.001f) moveDirection = dir.normalized;
@@ -5969,14 +7332,52 @@ namespace TopDownGame.Enemy
 
         public void MoveTowardsSpawn()
         {
-            if (CharacterController == null || !CharacterController.enabled) return;
+            if (forbitMove || CharacterController == null || !CharacterController.enabled) return;
             Vector3 dir = SpawnPosition - transform.position;
             dir.y = 0f;
             if (dir.sqrMagnitude > 0.01f) moveDirection = dir.normalized * (moveSpeed > 0f ? (walkSpeed / moveSpeed) : 0.5f);
         }
 
+        public void MoveTowardsPosition(Vector3 destination, float speed)
+        {
+            if (forbitMove || CharacterController == null || !CharacterController.enabled) return;
+            Vector3 dir = destination - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.01f)
+            {
+                float speedFactor = moveSpeed > 0f ? (speed / moveSpeed) : 1f;
+                moveDirection = dir.normalized * speedFactor;
+            }
+        }
+
         public void RotateTowardsTarget() => RotateTowards(Target != null ? Target.position - transform.position : Vector3.zero);
         public void RotateTowardsSpawn() => RotateTowards(SpawnPosition - transform.position);
+        public void RotateTowardsDirection(Vector3 dir) => RotateTowards(dir);
+
+        public void RotateTowardsTargetInstantly()
+        {
+            if (Target == null) return;
+            Vector3 dir = Target.position - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.001f)
+            {
+                transform.rotation = Quaternion.LookRotation(dir.normalized);
+                turnSmoothVelocity = 0f;
+            }
+        }
+
+        public void RotateTowardsTarget(float speedDegPerSec)
+        {
+            if (Target == null) return;
+            Vector3 dir = Target.position - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.001f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
+                float speed = speedDegPerSec > 0f ? speedDegPerSec : 720f;
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, speed * Time.deltaTime);
+            }
+        }
 
         private void RotateTowards(Vector3 dir)
         {
@@ -5994,8 +7395,16 @@ namespace TopDownGame.Enemy
         private void HandleDamaged(float amount, Vector3 hitPoint, Vector3 hitDirection)
         {
             if (Stats == null || Stats.IsDead || StateMachine.CurrentState == DeadState) return;
-            if (StateMachine.CurrentState == AttackState) return;
+
+            // Thông báo tới Perception để kích hoạt phản đòn (StrikeBack)
+            if (Perception != null && Stats.LastAttacker != null)
+            {
+                Perception.NotifyDamaged(Stats.LastAttacker);
+            }
+
+            if (StateMachine.CurrentState == AttackState || StateMachine.CurrentState == ReturnState) return;
             if (AnimationController == null || !AnimationController.HasClip(LegacyAnimationController.CLIP_HURT)) return;
+
             StateMachine.ChangeState(HurtState);
         }
 
@@ -6008,15 +7417,56 @@ namespace TopDownGame.Enemy
         public bool IsOnCooldown(int skillId) => Brain != null && Brain.IsOnCooldown(skillId);
         public void ExecuteSkillDamage(SkillData skill) => Brain?.ExecuteSkillDamage(skill, Target);
 
+        public void ResetToFull()
+        {
+            if (Stats != null)
+            {
+                Stats.ResetToFullHealth();
+                Stats.IsInvulnerable = false;
+            }
+            if (Perception != null)
+            {
+                Perception.ClearTarget();
+                Perception.ClearAttacker();
+            }
+        }
+
         public void EnsureAnimationController()
         {
-            if (AnimationController == null) AnimationController = GetComponentInChildren<LegacyAnimationController>();
+            if (AnimationController == null)
+            {
+                AnimationController = GetComponentInChildren<LegacyAnimationController>();
+            }
             if (AnimationController == null)
             {
                 Animation anim = GetComponentInChildren<Animation>();
                 AnimationController = anim != null ? anim.gameObject.AddComponent<LegacyAnimationController>() : gameObject.AddComponent<LegacyAnimationController>();
             }
-            if (AnimationController != null) AnimationController.AutoFindAnimationComponents();
+            if (AnimationController != null)
+            {
+                AnimationController.AutoFindAnimationComponents();
+                AnimationController.CacheReferences();
+            }
+        }
+
+        public void Initialize(int templateId, int level = 1, Vector3? spawnPosition = null)
+        {
+            npcTemplateId = templateId;
+            if (Stats != null)
+            {
+                Stats.MonsterLevel = level;
+            }
+            if (spawnPosition.HasValue && Perception != null)
+            {
+                Perception.SpawnPosition = spawnPosition.Value;
+            }
+            ApplyTemplateData();
+            EnsureAnimationController();
+            if (AnimationController != null)
+            {
+                AnimationController.AutoFindAnimationComponents();
+                AnimationController.PlayIdle();
+            }
         }
 
         [ContextMenu("Áp dụng NpcTemplate (Nạp Model & Skills)")]
@@ -6027,12 +7477,14 @@ namespace TopDownGame.Enemy
             NpcTemplateData template = NpcTemplateDatabase.GetTemplate(npcTemplateId);
             if (template == null) return;
 
+            int level = Stats != null ? Stats.MonsterLevel : 1;
             var attrib = template.GetAttribute();
             if (attrib != null && Stats != null)
             {
-                Stats.Health.SetMaxValue(attrib.maxLife, true);
-                Stats.SetPhysicalDamage(attrib.AverageAttack);
-                Stats.SetMagicDamage(attrib.woodDamage + attrib.waterDamage + attrib.fireDamage + attrib.earthDamage + attrib.metalDamage);
+                Stats.Health.SetMaxValue(attrib.GetMaxLife(level), true);
+                Stats.SetPhysicalDamage(attrib.GetAverageAttack(level));
+                Stats.SetMagicDamage(attrib.GetTotalMagicDamage(level));
+                Stats.SetAttackSpeed(attrib.attackSpeed > 0 ? attrib.attackSpeed : 15f);
             }
 
             var resData = template.GetRes();
@@ -6045,24 +7497,47 @@ namespace TopDownGame.Enemy
 
             moveSpeed = template.runSpeed > 0f ? template.runSpeed : 5.0f;
             walkSpeed = template.walkSpeed > 0f ? template.walkSpeed : (moveSpeed * 0.5f);
+            forbitMove = template.forbitMove;
+
+            var aiData = template.GetAi();
+            if (Perception != null)
+            {
+                Perception.SetAiData(aiData);
+                var skillListRef = template.GetSkillList();
+                float firstSkillRange = (skillListRef.Count > 0 && SkillDatabase.GetSkill(skillListRef[0]) != null) ? SkillDatabase.GetSkill(skillListRef[0]).range : 3f;
+                Perception.SetRanges(template.visionRadius, template.activeRadius, firstSkillRange);
+            }
 
             var skillList = template.GetSkillList();
-            float firstSkillRange = (skillList.Count > 0 && SkillDatabase.GetSkill(skillList[0]) != null) ? SkillDatabase.GetSkill(skillList[0]).range : 3f;
-            if (Perception != null) Perception.SetRanges(template.visionRadius, template.activeRadius, firstSkillRange);
             if (Brain != null && skillList.Count > 0) Brain.SetSkillList(skillList);
 
             if (!string.IsNullOrEmpty(template.prefab))
             {
-                bool hasChild = false;
-                foreach (Transform child in transform)
+                GameObject modelPrefab = NpcTemplateDatabase.LoadPrefab(template.prefab);
+                if (modelPrefab != null)
                 {
-                    if (child.GetComponentInChildren<LegacyAnimationController>() != null || child.GetComponentInChildren<Renderer>() != null) { hasChild = true; break; }
-                }
-                if (!hasChild)
-                {
-                    GameObject modelPrefab = NpcTemplateDatabase.LoadPrefab(template.prefab);
-                    if (modelPrefab != null)
+                    Transform existingModel = null;
+                    foreach (Transform child in transform)
                     {
+                        if (child.GetComponentInChildren<Renderer>() != null || child.GetComponentInChildren<Animation>() != null)
+                        {
+                            existingModel = child;
+                            break;
+                        }
+                    }
+
+                    if (existingModel == null)
+                    {
+                        GameObject modelInst = Instantiate(modelPrefab, transform);
+                        modelInst.name = modelPrefab.name;
+                        modelInst.transform.localPosition = Vector3.zero;
+                        modelInst.transform.localRotation = Quaternion.identity;
+                    }
+                    else if (!existingModel.name.StartsWith(modelPrefab.name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (Application.isPlaying) Destroy(existingModel.gameObject);
+                        else DestroyImmediate(existingModel.gameObject);
+
                         GameObject modelInst = Instantiate(modelPrefab, transform);
                         modelInst.name = modelPrefab.name;
                         modelInst.transform.localPosition = Vector3.zero;
@@ -6098,8 +7573,11 @@ namespace TopDownGame.Enemy
 // FILE: D:\Unity Project\test1\Assets\Scripts\Enemy\EnemyPerception.cs
 ==================================================
 
+using System.Collections.Generic;
 using UnityEngine;
 using TopDownGame.Combat;
+using TopDownGame.Data;
+using TopDownGame.Stats;
 
 namespace TopDownGame.Enemy
 {
@@ -6107,7 +7585,7 @@ namespace TopDownGame.Enemy
     public class EnemyPerception : MonoBehaviour
     {
         [Header("=== TARGET & RANGES ===")]
-        [Tooltip("Mục tiêu quái vật rượt đuổi (để trống sẽ tự động tìm Player theo Tag)")]
+        [Tooltip("Mục tiêu quái vật đang nhắm tới")]
         [SerializeField] private Transform target;
         [Tooltip("Bán kính phát hiện người chơi / VisionRadius")]
         [SerializeField] private float detectionRange = 10f;
@@ -6124,10 +7602,29 @@ namespace TopDownGame.Enemy
         public float ActiveRadius { get => activeRadius; set => activeRadius = value; }
         public float AttackRange { get => attackRange; set => attackRange = value; }
         public Vector3 SpawnPosition { get; set; }
+        public NpcAiData AiData { get; private set; }
+        public Transform Attacker { get; private set; }
+
+        private float breathTimer;
+        private float targetLockTimer;
+
+        private static readonly Collider[] scanBuffer = new Collider[32];
+        private static readonly List<Transform> candidateBuffer = new List<Transform>(16);
 
         private void Awake()
         {
             SpawnPosition = transform.position;
+            AiData = NpcAiData.CreateDefaultActive();
+            breathTimer = Random.Range(0f, AiData.breathTimeSec);
+        }
+
+        public void SetAiData(NpcAiData data)
+        {
+            if (data != null)
+            {
+                AiData = data;
+                breathTimer = Random.Range(0f, AiData.breathTimeSec);
+            }
         }
 
         public void SetRanges(float visionRadius, float leashRadius, float atkRange)
@@ -6137,14 +7634,255 @@ namespace TopDownGame.Enemy
             if (atkRange > 0f) attackRange = atkRange;
         }
 
+        public void NotifyDamaged(Transform attacker)
+        {
+            if (attacker == null || attacker == transform) return;
+            Attacker = attacker;
+
+            // Nếu quái có cơ chế phản đòn (StrikeBack) và chưa có mục tiêu hoặc hết thời gian khóa mục tiêu
+            if (AiData != null && AiData.canStrikeBack)
+            {
+                if (target == null || targetLockTimer <= 0f)
+                {
+                    target = attacker;
+                    targetLockTimer = AiData.lockDuration;
+                }
+            }
+        }
+
+        public void ClearTarget()
+        {
+            target = null;
+            targetLockTimer = 0f;
+        }
+
+        public void ClearAttacker()
+        {
+            Attacker = null;
+        }
+
+        /// <summary>
+        /// Cập nhật nhịp thở AI (Tick Rate) và đánh giá chọn mục tiêu theo DATA_CONVENTIONS_V2.md (Mục 21)
+        /// </summary>
+        public void TickPerception(float dt)
+        {
+            if (targetLockTimer > 0f)
+            {
+                targetLockTimer -= dt;
+            }
+
+            // Kiểm tra tính hợp lệ của mục tiêu hiện tại
+            if (target != null)
+            {
+                if (!IsTargetValid(target))
+                {
+                    ClearTarget();
+                }
+            }
+
+            breathTimer -= dt;
+            if (breathTimer <= 0f)
+            {
+                breathTimer = AiData != null ? AiData.breathTimeSec : 1.0f;
+                EvaluateTarget();
+            }
+        }
+
+        private bool IsTargetValid(Transform t)
+        {
+            if (t == null || !t.gameObject.activeInHierarchy) return false;
+
+            var stats = t.GetComponent<EntityStats>() ?? t.GetComponentInParent<EntityStats>();
+            if (stats != null && stats.IsDead) return false;
+
+            // Nếu khoảng cách đến Spawn hoặc cự ly vượt quá Leash Range (ActiveRadius)
+            float distToSpawn = GetDistanceToSpawn();
+            if (distToSpawn > activeRadius) return false;
+
+            float distToTarget = Vector3.Distance(transform.position, t.position);
+            if (distToTarget > activeRadius * 1.25f) return false;
+
+            return true;
+        }
+
+        private void EvaluateTarget()
+        {
+            // Nếu đang khóa mục tiêu và mục tiêu vẫn hợp lệ thì giữ nguyên
+            if (target != null && targetLockTimer > 0f && IsTargetValid(target))
+            {
+                return;
+            }
+
+            // 1. Nếu là quái bị động (Attack == 0), chỉ chọn mục tiêu khi bị đánh (StrikeBack)
+            if (AiData != null && !AiData.isAggressive)
+            {
+                if (AiData.canStrikeBack && Attacker != null && IsTargetValid(Attacker))
+                {
+                    target = Attacker;
+                    targetLockTimer = AiData.lockDuration;
+                }
+                else
+                {
+                    target = null;
+                }
+                return;
+            }
+
+            // 2. Quái chủ động (Attack == 1): Quét tìm mục tiêu trong VisionRadius
+            candidateBuffer.Clear();
+            int hitCount = Physics.OverlapSphereNonAlloc(transform.position + Vector3.up * 1.0f, detectionRange, scanBuffer);
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider col = scanBuffer[i];
+                if (col == null || col.transform == transform || col.transform.IsChildOf(transform)) continue;
+
+                // Chỉ nhắm vào kẻ địch đối địch (Player / LayerPlayer / TagPlayer)
+                if (col.CompareTag(CombatLayersAndTags.TagPlayer) || col.GetComponentInParent<TopDownGame.Player.PlayerController>() != null)
+                {
+                    Transform rootTransform = col.transform.root;
+                    if (!candidateBuffer.Contains(rootTransform) && IsTargetValid(rootTransform))
+                    {
+                        candidateBuffer.Add(rootTransform);
+                    }
+                }
+            }
+
+            if (candidateBuffer.Count == 0)
+            {
+                // Nếu không thấy ai trong tầm nhìn, nhưng có Attacker từ xa đánh trúng
+                if (AiData != null && AiData.canStrikeBack && Attacker != null && IsTargetValid(Attacker))
+                {
+                    target = Attacker;
+                    targetLockTimer = AiData.lockDuration;
+                }
+                else
+                {
+                    target = null;
+                }
+                return;
+            }
+
+            // 3. Lọc mục tiêu theo SelectTarget enum
+            AiTargetSelectType selectType = AiData != null ? AiData.selectTarget : AiTargetSelectType.StrikeBack;
+            Transform selected = null;
+
+            switch (selectType)
+            {
+                case AiTargetSelectType.StrikeBack:
+                    if (Attacker != null && candidateBuffer.Contains(Attacker))
+                    {
+                        selected = Attacker;
+                    }
+                    else
+                    {
+                        selected = GetNearestTarget(candidateBuffer);
+                    }
+                    break;
+
+                case AiTargetSelectType.Nearest:
+                    selected = GetNearestTarget(candidateBuffer);
+                    break;
+
+                case AiTargetSelectType.Poorest:
+                    selected = GetPoorestTarget(candidateBuffer);
+                    break;
+
+                case AiTargetSelectType.Richest:
+                    selected = GetRichestTarget(candidateBuffer);
+                    break;
+
+                case AiTargetSelectType.Random:
+                    selected = candidateBuffer[Random.Range(0, candidateBuffer.Count)];
+                    break;
+
+                case AiTargetSelectType.Player:
+                    selected = GetNearestTarget(candidateBuffer);
+                    break;
+
+                default:
+                    selected = GetNearestTarget(candidateBuffer);
+                    break;
+            }
+
+            if (selected != null)
+            {
+                target = selected;
+                targetLockTimer = AiData != null ? AiData.lockDuration : 4.0f;
+            }
+        }
+
+        private Transform GetNearestTarget(List<Transform> list)
+        {
+            Transform best = null;
+            float minDst = float.MaxValue;
+            Vector3 myPos = transform.position;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                Transform t = list[i];
+                if (t == null) continue;
+                Vector3 diff = t.position - myPos;
+                diff.y = 0f;
+                float d = diff.sqrMagnitude;
+                if (d < minDst)
+                {
+                    minDst = d;
+                    best = t;
+                }
+            }
+            return best;
+        }
+
+        private Transform GetPoorestTarget(List<Transform> list)
+        {
+            Transform best = null;
+            float minHpRatio = float.MaxValue;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                Transform t = list[i];
+                if (t == null) continue;
+                var s = t.GetComponent<EntityStats>() ?? t.GetComponentInParent<EntityStats>();
+                if (s != null && s.Health.MaxValue > 0)
+                {
+                    float ratio = s.Health.CurrentValue / s.Health.MaxValue;
+                    if (ratio < minHpRatio)
+                    {
+                        minHpRatio = ratio;
+                        best = t;
+                    }
+                }
+            }
+            return best ?? GetNearestTarget(list);
+        }
+
+        private Transform GetRichestTarget(List<Transform> list)
+        {
+            Transform best = null;
+            float maxHpRatio = -1f;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                Transform t = list[i];
+                if (t == null) continue;
+                var s = t.GetComponent<EntityStats>() ?? t.GetComponentInParent<EntityStats>();
+                if (s != null && s.Health.MaxValue > 0)
+                {
+                    float ratio = s.Health.CurrentValue / s.Health.MaxValue;
+                    if (ratio > maxHpRatio)
+                    {
+                        maxHpRatio = ratio;
+                        best = t;
+                    }
+                }
+            }
+            return best ?? GetNearestTarget(list);
+        }
+
         public void TryFindTarget()
         {
-            if (target != null) return;
-            GameObject playerObj = GameObject.FindGameObjectWithTag(CombatLayersAndTags.TagPlayer);
-            if (playerObj != null)
-            {
-                target = playerObj.transform;
-            }
+            EvaluateTarget();
         }
 
         /// <summary>
@@ -6190,11 +7928,357 @@ namespace TopDownGame.Enemy
 
 
 ==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Enemy\EnemySpawnPoint.cs
+==================================================
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using TopDownGame.Combat;
+using TopDownGame.Data;
+using TopDownGame.NPC;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+namespace TopDownGame.Enemy
+{
+    /// <summary>
+    /// Điểm sinh quái vật (Enemy Spawn Point) với cấu hình tham số hoàn chỉnh:
+    /// - ID quái vật (npcTemplateId)
+    /// - Cấp độ quái (monsterLevel)
+    /// - Số lượng quái tối đa (maxMonsterCount)
+    /// - Bán kính khu vực sinh quái (spawnRadius)
+    /// - Thời gian hồi sinh sau khi quái chết (respawnDelay)
+    /// - Tự động quản lý vòng đời quái, zero GC vòng lặp, gizmos trực quan.
+    /// </summary>
+    [SelectionBase]
+    public class EnemySpawnPoint : MonoBehaviour
+    {
+        [Header("=== CẤU HÌNH QUÁI VẬT ===")]
+        [Tooltip("ID mẫu NPC / Quái vật trong NpcTemplate.csv")]
+        [SerializeField] private int npcTemplateId = 72;
+
+        [Tooltip("Cấp độ của quái khi sinh ra")]
+        [Range(1, 200)]
+        [SerializeField] private int monsterLevel = 1;
+
+        [Header("=== CẤU HÌNH BÃI SPAWN ===")]
+        [Tooltip("Số lượng quái tối đa duy trì tại bãi này")]
+        [Range(1, 50)]
+        [SerializeField] private int maxMonsterCount = 3;
+
+        [Tooltip("Bán kính phạm vi sinh quái quanh tâm (mét)")]
+        [Range(0.5f, 50f)]
+        [SerializeField] private float spawnRadius = 6.0f;
+
+        [Tooltip("Thời gian hồi sinh từng con sau khi quái chết (giây)")]
+        [SerializeField] private float respawnDelay = 8.0f;
+
+        [Tooltip("Khoảng thời gian giãn cách giữa các lần sinh quái (giây)")]
+        [SerializeField] private float spawnInterval = 0.5f;
+
+        [Tooltip("Tự động kích hoạt sinh quái khi bắt đầu game")]
+        [SerializeField] private bool autoSpawnOnStart = true;
+
+        [Tooltip("Tự động bắn Raycast bám xuống mặt đất/Terrain")]
+        [SerializeField] private bool snapToGround = true;
+
+        [Header("=== GIZMOS & HIỂN THỊ ===")]
+        [SerializeField] private bool showGizmos = true;
+        [SerializeField] private Color gizmoColor = new Color(1f, 0.5f, 0f, 0.6f);
+
+        // Danh sách quản lý các con quái đang sống
+        private readonly List<EnemyController> activeEnemies = new List<EnemyController>();
+
+        // Hàng đợi đếm thời gian hồi sinh
+        private readonly List<float> respawnTimers = new List<float>();
+
+        public int NpcTemplateId { get => npcTemplateId; set => npcTemplateId = value; }
+        public int MonsterLevel { get => monsterLevel; set => monsterLevel = Mathf.Max(1, value); }
+        public int MaxMonsterCount { get => maxMonsterCount; set => maxMonsterCount = Mathf.Max(1, value); }
+        public float SpawnRadius { get => spawnRadius; set => spawnRadius = Mathf.Max(0.5f, value); }
+        public float RespawnDelay { get => respawnDelay; set => respawnDelay = Mathf.Max(0.5f, value); }
+        public int ActiveCount => activeEnemies.Count;
+
+        private void Start()
+        {
+            NpcTemplateDatabase.Instance.EnsureLoaded();
+            if (autoSpawnOnStart)
+            {
+                StartCoroutine(InitialSpawnRoutine());
+            }
+        }
+
+        private IEnumerator InitialSpawnRoutine()
+        {
+            for (int i = 0; i < maxMonsterCount; i++)
+            {
+                SpawnSingleEnemy();
+                if (spawnInterval > 0f)
+                {
+                    yield return new WaitForSeconds(spawnInterval);
+                }
+            }
+        }
+
+        private void Update()
+        {
+            // 1. Dọn dẹp quái đã chết hoặc bị Destroy
+            CleanupDeadEnemies();
+
+            // 2. Xử lý bộ đếm hồi sinh
+            HandleRespawnTimers();
+        }
+
+        private void CleanupDeadEnemies()
+        {
+            for (int i = activeEnemies.Count - 1; i >= 0; i--)
+            {
+                var enemy = activeEnemies[i];
+                if (enemy == null || (enemy.Stats != null && enemy.Stats.IsDead))
+                {
+                    activeEnemies.RemoveAt(i);
+                    respawnTimers.Add(respawnDelay);
+                }
+            }
+        }
+
+        private void HandleRespawnTimers()
+        {
+            if (respawnTimers.Count == 0) return;
+
+            while (activeEnemies.Count + respawnTimers.Count > maxMonsterCount && respawnTimers.Count > 0)
+            {
+                respawnTimers.RemoveAt(respawnTimers.Count - 1);
+            }
+
+            for (int i = respawnTimers.Count - 1; i >= 0; i--)
+            {
+                respawnTimers[i] -= Time.deltaTime;
+                if (respawnTimers[i] <= 0f)
+                {
+                    respawnTimers.RemoveAt(i);
+                    if (activeEnemies.Count < maxMonsterCount)
+                    {
+                        SpawnSingleEnemy();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sinh 1 con quái vật tại vị trí ngẫu nhiên trong bán kính SpawnRadius
+        /// </summary>
+        public EnemyController SpawnSingleEnemy()
+        {
+            if (activeEnemies.Count >= maxMonsterCount) return null;
+
+            Vector3 spawnPos = GetRandomSpawnPosition();
+            EnemyController enemy = CreateEnemyInstance(npcTemplateId, monsterLevel, spawnPos, transform);
+
+            if (enemy != null)
+            {
+                activeEnemies.Add(enemy);
+            }
+
+            return enemy;
+        }
+
+        /// <summary>
+        /// Lập tức sinh đủ số lượng quái
+        /// </summary>
+        [ContextMenu("Spawn Now")]
+        public void SpawnAllImmediate()
+        {
+            int need = maxMonsterCount - activeEnemies.Count;
+            for (int i = 0; i < need; i++)
+            {
+                SpawnSingleEnemy();
+            }
+        }
+
+        /// <summary>
+        /// Xóa toàn bộ quái hiện có của điểm spawn này
+        /// </summary>
+        [ContextMenu("Clear All Spawned")]
+        public void ClearAllSpawned()
+        {
+            for (int i = activeEnemies.Count - 1; i >= 0; i--)
+            {
+                if (activeEnemies[i] != null)
+                {
+                    if (Application.isPlaying)
+                        Destroy(activeEnemies[i].gameObject);
+                    else
+                        DestroyImmediate(activeEnemies[i].gameObject);
+                }
+            }
+            activeEnemies.Clear();
+            respawnTimers.Clear();
+        }
+
+        /// <summary>
+        /// Lấy tọa độ ngẫu nhiên phẳng trong bán kính spawn, có raycast mặt đất
+        /// </summary>
+        public Vector3 GetRandomSpawnPosition()
+        {
+            Vector2 randomCircle = UnityEngine.Random.insideUnitCircle * spawnRadius;
+            Vector3 targetPos = transform.position + new Vector3(randomCircle.x, 0f, randomCircle.y);
+
+            if (snapToGround)
+            {
+                Vector3 rayStart = targetPos + Vector3.up * 20f;
+                int enemyLayer = LayerMask.NameToLayer(CombatLayersAndTags.LayerEnemy);
+                int mask = enemyLayer >= 0 ? ~(1 << enemyLayer) : ~0;
+
+                if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 50f, mask))
+                {
+                    targetPos.y = hit.point.y;
+                }
+            }
+
+            return targetPos;
+        }
+
+        /// <summary>
+        /// Factory Method: Tạo và cấu hình hoàn chỉnh một GameObject Enemy từ NpcTemplateData
+        /// </summary>
+        public static EnemyController CreateEnemyInstance(int templateId, int level, Vector3 position, Transform parent = null)
+        {
+            NpcTemplateDatabase.Instance.EnsureLoaded();
+            NpcTemplateData template = NpcTemplateDatabase.GetTemplate(templateId);
+            if (template == null)
+            {
+                Debug.LogWarning($"[EnemySpawnPoint] ⚠️ Không tìm thấy NpcTemplate ID: {templateId}");
+                return null;
+            }
+
+            // 1. Root GameObject
+            string goName = $"[NPC_{template.id}] {template.name} (Lv.{level})";
+            GameObject enemyGO = new GameObject(goName);
+            enemyGO.transform.position = position;
+            if (parent != null)
+            {
+                enemyGO.transform.SetParent(parent);
+            }
+
+            // Layer & Tag
+            int enemyLayer = LayerMask.NameToLayer(CombatLayersAndTags.LayerEnemy);
+            if (enemyLayer == -1) enemyLayer = 6;
+
+            // 2. Nạp Model Prefab con trước để Animation Components sẵn sàng
+            if (!string.IsNullOrEmpty(template.prefab))
+            {
+                GameObject modelPrefab = NpcTemplateDatabase.LoadPrefab(template.prefab);
+                if (modelPrefab != null)
+                {
+                    GameObject modelInst = Instantiate(modelPrefab, enemyGO.transform);
+                    modelInst.name = modelPrefab.name;
+                    modelInst.transform.localPosition = Vector3.zero;
+                    modelInst.transform.localRotation = Quaternion.identity;
+                }
+            }
+
+            // 3. CharacterController
+            var resData = template.GetRes();
+            float height = (resData != null && resData.height > 0f) ? resData.height : 1.8f;
+            float radius = (resData != null && resData.width > 0f) ? resData.width : 0.5f;
+
+            CharacterController cc = enemyGO.AddComponent<CharacterController>();
+            cc.height = height;
+            cc.radius = radius;
+            cc.center = new Vector3(0f, height * 0.5f, 0f);
+
+            // 4. EnemyStats
+            EnemyStats stats = enemyGO.AddComponent<EnemyStats>();
+            stats.MonsterLevel = level;
+
+            // 5. EnemyPerception & Brain
+            EnemyPerception perception = enemyGO.AddComponent<EnemyPerception>();
+            perception.SpawnPosition = position;
+            perception.SetRanges(template.visionRadius, template.activeRadius, 3f);
+
+            EnemyBrain brain = enemyGO.AddComponent<EnemyBrain>();
+
+            // 6. EnemyController & Animation Controller
+            EnemyController enemyCtrl = enemyGO.AddComponent<EnemyController>();
+            enemyCtrl.Initialize(templateId, level, position);
+
+            // 7. Gán Tag & Layer đệ quy
+            SetTagAndLayerRecursively(enemyGO, CombatLayersAndTags.TagEnemy, enemyLayer);
+
+            return enemyCtrl;
+        }
+
+        private static void SetTagAndLayerRecursively(GameObject obj, string tag, int layer)
+        {
+            if (obj == null) return;
+            try { if (!string.IsNullOrEmpty(tag)) obj.tag = tag; } catch (Exception) { }
+            if (layer >= 0) obj.layer = layer;
+
+            foreach (Transform child in obj.transform)
+            {
+                SetTagAndLayerRecursively(child.gameObject, tag, layer);
+            }
+        }
+
+        private void OnDrawGizmos()
+        {
+            if (!showGizmos) return;
+
+            Gizmos.color = gizmoColor;
+            Gizmos.DrawWireSphere(transform.position, spawnRadius);
+
+            Gizmos.color = new Color(1f, 0.3f, 0f, 0.9f);
+            Gizmos.DrawSphere(transform.position, 0.35f);
+
+            if (Application.isPlaying && activeEnemies != null)
+            {
+                Gizmos.color = new Color(0.2f, 1f, 0.2f, 0.6f);
+                for (int i = 0; i < activeEnemies.Count; i++)
+                {
+                    if (activeEnemies[i] != null)
+                    {
+                        Gizmos.DrawLine(transform.position, activeEnemies[i].transform.position);
+                    }
+                }
+            }
+
+#if UNITY_EDITOR
+            NpcTemplateDatabase.Instance.EnsureLoaded();
+            var template = NpcTemplateDatabase.GetTemplate(npcTemplateId);
+            string templateName = template != null ? template.name : $"ID:{npcTemplateId}";
+            string info = $"[SPAWN POINT]\n{templateName} (Lv.{monsterLevel})\nSố lượng: {(Application.isPlaying ? activeEnemies.Count : 0)}/{maxMonsterCount}\nTầm: {spawnRadius:F1}m";
+            
+            GUIStyle labelStyle = new GUIStyle();
+            labelStyle.normal.textColor = Color.yellow;
+            labelStyle.alignment = TextAnchor.MiddleCenter;
+            labelStyle.fontSize = 11;
+            labelStyle.fontStyle = FontStyle.Bold;
+
+            Handles.Label(transform.position + Vector3.up * 1.5f, info, labelStyle);
+#endif
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.9f);
+            Gizmos.DrawWireSphere(transform.position, spawnRadius);
+        }
+    }
+}
+
+
+==================================================
 // FILE: D:\Unity Project\test1\Assets\Scripts\Enemy\EnemyStats.cs
 ==================================================
 
 using UnityEngine;
 using TopDownGame.Stats;
+using TopDownGame.UI;
 
 namespace TopDownGame.Enemy
 {
@@ -6205,8 +8289,8 @@ namespace TopDownGame.Enemy
     public class EnemyStats : EntityStats
     {
         [Header("Enemy Rewards & Settings")]
-        [Tooltip("Lượng kinh nghiệm rơi ra khi quái chết (mở rộng sau này)")]
-        [SerializeField] private int expReward = 20;
+        [Tooltip("Cấp độ quái vật (mặc định lv 1 theo quy ước hiện tại)")]
+        [SerializeField] private int monsterLevel = 1;
 
         [Tooltip("Thời gian xác quái biến mất sau khi chết (giây)")]
         [SerializeField] private float despawnDelay = 3.0f;
@@ -6216,13 +8300,35 @@ namespace TopDownGame.Enemy
         [SerializeField] private bool showHealthBar = true;
         [SerializeField] private float healthBarOffsetY = 2.0f;
 
-        public int ExpReward => expReward;
+        private bool hasAwardedExp = false;
+
+        public int MonsterLevel { get => monsterLevel; set => monsterLevel = Mathf.Max(1, value); }
         public float DespawnDelay => despawnDelay;
 
         protected override void Die()
         {
             base.Die();
-            // Có thể thêm hiệu ứng âm thanh quái chết, rơi đồ tại đây
+            AwardExpToPlayer();
+        }
+
+        private void AwardExpToPlayer()
+        {
+            if (hasAwardedExp) return;
+            hasAwardedExp = true;
+
+            var player = FindObjectOfType<TopDownGame.Player.PlayerController>();
+            if (player != null && player.Stats != null)
+            {
+                int pLevel = player.Stats.CurrentLevel;
+                long exp = TopDownGame.Data.ExpRuleDatabase.Instance.CalculateExpReward(pLevel, monsterLevel);
+
+                if (exp > 0)
+                {
+                    player.Stats.AddExp(exp);
+                    Vector3 textSpawnPos = transform.position + Vector3.up * 1.8f;
+                    FloatingTextManager.Instance.SpawnExp((int)exp, textSpawnPos);
+                }
+            }
         }
 
         private void OnGUI()
@@ -6298,7 +8404,7 @@ namespace TopDownGame.Enemy
             triggeredCastEvents.Clear();
 
             // Xoay dứt khoát về phía người chơi khi bắt đầu ra đòn
-            enemy.RotateTowardsTarget();
+            enemy.RotateTowardsTargetInstantly();
 
             // Kích hoạt Animation
             if (enemy.AnimationController != null)
@@ -6319,6 +8425,19 @@ namespace TopDownGame.Enemy
             if (currentSkill == null) return;
 
             timer += Time.deltaTime;
+
+            // 0. Xoay bám theo mục tiêu trong giai đoạn chuẩn bị xuất chiêu (trước mốc CastSkillTime)
+            if (timer <= currentSkill.CastSkillTime)
+            {
+                if (currentSkill.instantDirSpeed > 0f)
+                {
+                    enemy.RotateTowardsTarget(currentSkill.instantDirSpeed);
+                }
+                else
+                {
+                    enemy.RotateTowardsTarget();
+                }
+            }
 
             // 1. Nhích tiến nếu có MovePos
             if (currentSkill.movePosSpeed > 0f && currentSkill.movePosDistance > 0f)
@@ -6392,7 +8511,11 @@ namespace TopDownGame.Enemy
             {
                 enemy.StartCooldown(currentSkill.id, currentSkill.cooldown);
 
-                if (enemy.Target != null && enemy.GetDistanceToTarget() <= enemy.ActiveRadius && enemy.GetDistanceToSpawn() <= enemy.ActiveRadius)
+                if (enemy.GetDistanceToSpawn() > enemy.ActiveRadius)
+                {
+                    stateMachine.ChangeState(enemy.ReturnState);
+                }
+                else if (enemy.Target != null && enemy.GetDistanceToTarget() <= enemy.ActiveRadius)
                 {
                     stateMachine.ChangeState(enemy.ChaseState);
                 }
@@ -6459,7 +8582,6 @@ namespace TopDownGame.Enemy
         public override void Enter()
         {
             base.Enter();
-            enemy.IsReturningToSpawn = false;
             if (enemy.AnimationController != null)
             {
                 enemy.AnimationController.PlayRun();
@@ -6470,14 +8592,15 @@ namespace TopDownGame.Enemy
         {
             base.Update();
 
+            if (enemy.Perception != null)
+            {
+                enemy.Perception.TickPerception(Time.deltaTime);
+            }
+
             if (enemy.Target == null)
             {
-                enemy.TryFindTarget();
-                if (enemy.Target == null)
-                {
-                    stateMachine.ChangeState(enemy.IdleState);
-                    return;
-                }
+                stateMachine.ChangeState(enemy.IdleState);
+                return;
             }
 
             float distanceToTarget = enemy.GetDistanceToTarget();
@@ -6486,8 +8609,7 @@ namespace TopDownGame.Enemy
             // 1. Vượt quá tầm truy đuổi / Leash Range (ActiveRadius) tính từ điểm xuất phát hoặc khoảng cách mục tiêu
             if (distanceToTarget > enemy.ActiveRadius || distanceFromSpawn > enemy.ActiveRadius)
             {
-                enemy.IsReturningToSpawn = true;
-                stateMachine.ChangeState(enemy.IdleState);
+                stateMachine.ChangeState(enemy.ReturnState);
                 return;
             }
 
@@ -6500,7 +8622,18 @@ namespace TopDownGame.Enemy
                 return;
             }
 
-            // 3. Nếu chiêu đang hồi Cooldown:
+            // 3. Nếu là quái cọc gỗ / cố định (ForbitMove = true):
+            if (enemy.ForbitMove)
+            {
+                enemy.RotateTowardsTarget();
+                if (enemy.AnimationController != null)
+                {
+                    enemy.AnimationController.PlayBattleIdle();
+                }
+                return;
+            }
+
+            // 4. Nếu chiêu đang hồi Cooldown:
             // Chỉ dừng bước thủ thế nếu đã áp sát cận chiến (GetMinAttackRange)
             float minCombatRange = enemy.GetMinAttackRange();
             if (distanceToTarget <= minCombatRange)
@@ -6513,7 +8646,7 @@ namespace TopDownGame.Enemy
                 return;
             }
 
-            // 4. Chưa vào cự ly ra đòn -> Tiếp tục chạy thẳng tới mục tiêu
+            // 5. Chưa vào cự ly ra đòn -> Tiếp tục chạy thẳng tới mục tiêu
             if (enemy.AnimationController != null)
             {
                 enemy.AnimationController.PlayRun();
@@ -6657,12 +8790,20 @@ namespace TopDownGame.Enemy
 {
     public class EnemyIdleState : EnemyBaseState
     {
+        private float wanderWaitTimer;
+        private Vector3 wanderTargetPos;
+        private bool isWandering;
+        private float wanderTimeout;
+
         public EnemyIdleState(EnemyController enemy, TopDownGame.StateMachine.StateMachine stateMachine) 
             : base(enemy, stateMachine) { }
 
         public override void Enter()
         {
             base.Enter();
+            isWandering = false;
+            wanderWaitTimer = Random.Range(1.5f, 3.5f);
+
             if (enemy.AnimationController != null)
             {
                 enemy.AnimationController.PlayIdle();
@@ -6673,27 +8814,25 @@ namespace TopDownGame.Enemy
         {
             base.Update();
 
-            if (enemy.Target == null)
+            if (enemy.Perception != null)
             {
-                enemy.TryFindTarget();
+                enemy.Perception.TickPerception(Time.deltaTime);
             }
 
             float distanceToTarget = enemy.GetDistanceToTarget();
             float distanceFromSpawn = enemy.GetDistanceToSpawn();
 
-            // Nếu đang quay về điểm spawn (Leash Mode), chỉ cho phép rượt lại khi đã lùi an toàn vào trong hoặc Player áp sát cực gần
-            if (enemy.IsReturningToSpawn)
+            // 1. Kiểm tra nếu có mục tiêu hợp lệ
+            if (enemy.Target != null)
             {
-                if (distanceFromSpawn <= enemy.ActiveRadius * 0.75f || distanceToTarget <= enemy.GetMinAttackRange() || distanceFromSpawn <= 0.8f)
+                // Nếu khoảng cách vượt quá Leash Range (ActiveRadius) -> Quay về
+                if (distanceFromSpawn > enemy.ActiveRadius || distanceToTarget > enemy.ActiveRadius)
                 {
-                    enemy.IsReturningToSpawn = false;
+                    stateMachine.ChangeState(enemy.ReturnState);
+                    return;
                 }
-            }
 
-            // 1. Nếu không trong trạng thái trả quái về spawn, phát hiện người chơi trong tầm quan sát (VisionRadius) và trong vùng hoạt động hợp lệ (ActiveRadius)
-            if (!enemy.IsReturningToSpawn && enemy.Target != null && distanceToTarget <= enemy.DetectionRange && distanceFromSpawn <= enemy.ActiveRadius)
-            {
-                // Nếu đã ở ngay trong tầm đánh và có chiêu sẵn sàng -> Tấn công ngay
+                // Nếu có chiêu thức sẵn sàng và trong tầm đánh -> Tấn công ngay
                 var readyAttack = enemy.GetReadyAttack(distanceToTarget);
                 if (readyAttack != null)
                 {
@@ -6702,28 +8841,148 @@ namespace TopDownGame.Enemy
                     return;
                 }
 
-                // Nếu chưa vào tầm đánh hoặc chưa có chiêu -> Chuyển sang rượt đuổi
+                // Chưa vào tầm đánh -> Chuyển sang rượt đuổi (nếu được phép di chuyển) hoặc đứng ngắm
                 stateMachine.ChangeState(enemy.ChaseState);
                 return;
             }
 
-            // 2. Nếu quái đang ở xa điểm spawn (ví dụ sau khi kết thúc truy đuổi), tự động đi bộ quay về
-            if (distanceFromSpawn > 0.8f)
+            // 2. Không có mục tiêu: Kiểm tra nếu quái đang ở xa điểm Spawn -> Đi bộ về
+            if (distanceFromSpawn > 1.2f)
             {
+                isWandering = false;
                 if (enemy.AnimationController != null)
                 {
                     enemy.AnimationController.PlayWalk();
                 }
                 enemy.MoveTowardsSpawn();
                 enemy.RotateTowardsSpawn();
+                return;
             }
-            else
+
+            // 3. Cơ chế tản bộ ngẫu nhiên (RandmonMove %) theo DATA_CONVENTIONS_V2.md (Mục 21)
+            var aiData = enemy.AiData;
+            if (aiData != null && aiData.wanderChance > 0 && !enemy.ForbitMove)
             {
-                enemy.IsReturningToSpawn = false;
-                if (enemy.AnimationController != null)
+                if (isWandering)
                 {
-                    enemy.AnimationController.PlayIdle();
+                    wanderTimeout -= Time.deltaTime;
+                    Vector3 diff = wanderTargetPos - enemy.transform.position;
+                    diff.y = 0f;
+
+                    if (diff.sqrMagnitude <= 0.15f || wanderTimeout <= 0f)
+                    {
+                        isWandering = false;
+                        wanderWaitTimer = Random.Range(2.0f, 4.5f);
+                        if (enemy.AnimationController != null)
+                        {
+                            enemy.AnimationController.PlayIdle();
+                        }
+                    }
+                    else
+                    {
+                        if (enemy.AnimationController != null)
+                        {
+                            enemy.AnimationController.PlayWalk();
+                        }
+                        enemy.MoveTowardsPosition(wanderTargetPos, enemy.WalkSpeed);
+                        enemy.RotateTowardsDirection(diff);
+                    }
+                    return;
                 }
+                else
+                {
+                    wanderWaitTimer -= Time.deltaTime;
+                    if (wanderWaitTimer <= 0f)
+                    {
+                        wanderWaitTimer = Random.Range(2.0f, 4.0f);
+                        if (Random.Range(0, 100) < aiData.wanderChance)
+                        {
+                            Vector2 randCircle = Random.insideUnitCircle * Mathf.Min(3.0f, enemy.ActiveRadius * 0.4f);
+                            wanderTargetPos = enemy.SpawnPosition + new Vector3(randCircle.x, 0f, randCircle.y);
+                            isWandering = true;
+                            wanderTimeout = 3.5f;
+                        }
+                    }
+                }
+            }
+
+            if (enemy.AnimationController != null)
+            {
+                enemy.AnimationController.PlayIdle();
+            }
+        }
+    }
+}
+
+
+==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\Enemy\States\EnemyReturnState.cs
+==================================================
+
+using UnityEngine;
+
+namespace TopDownGame.Enemy
+{
+    public class EnemyReturnState : EnemyBaseState
+    {
+        public EnemyReturnState(EnemyController enemy, TopDownGame.StateMachine.StateMachine stateMachine) 
+            : base(enemy, stateMachine) { }
+
+        public override void Enter()
+        {
+            base.Enter();
+
+            if (enemy.Stats != null)
+            {
+                enemy.Stats.IsInvulnerable = true;
+            }
+
+            if (enemy.Perception != null)
+            {
+                enemy.Perception.ClearTarget();
+                enemy.Perception.ClearAttacker();
+            }
+
+            if (enemy.AnimationController != null)
+            {
+                enemy.AnimationController.PlayWalk();
+            }
+        }
+
+        public override void Update()
+        {
+            base.Update();
+
+            float distToSpawn = enemy.GetDistanceToSpawn();
+
+            if (distToSpawn <= 0.6f)
+            {
+                if (enemy.Stats != null)
+                {
+                    enemy.Stats.ResetToFullHealth();
+                    enemy.Stats.IsInvulnerable = false;
+                }
+
+                stateMachine.ChangeState(enemy.IdleState);
+                return;
+            }
+
+            if (enemy.AnimationController != null)
+            {
+                enemy.AnimationController.PlayWalk();
+            }
+
+            enemy.MoveTowardsSpawn();
+            enemy.RotateTowardsSpawn();
+        }
+
+        public override void Exit()
+        {
+            base.Exit();
+
+            if (enemy.Stats != null)
+            {
+                enemy.Stats.IsInvulnerable = false;
             }
         }
     }
@@ -6927,6 +9186,12 @@ namespace TopDownGame.NPC
                         float visionMeters = rawVision / 100f;
                         float activeMeters = rawActive / 100f;
 
+                        string aiFile = GetColString(tokens, colMap, "aifile", 21);
+                        if (string.IsNullOrWhiteSpace(aiFile)) aiFile = "CommonActive";
+
+                        int forbitMoveVal = GetColInt(tokens, colMap, "forbitmove", 27, 0);
+                        bool forbitMove = forbitMoveVal == 1;
+
                         float rawSpeed = GetColFloat(tokens, colMap, "runspeed", 25, 0f);
                         float runSpeed = rawSpeed > 0f ? (rawSpeed * 15.0f / 100.0f) : 5.0f;
 
@@ -6954,6 +9219,8 @@ namespace TopDownGame.NPC
                             skill3 = skill3,
                             visionRadius = visionMeters,
                             activeRadius = activeMeters,
+                            aiFile = aiFile,
+                            forbitMove = forbitMove,
                             runSpeed = runSpeed,
                             walkSpeed = walkSpeed,
                             prefab = prefab
@@ -7103,6 +9370,10 @@ namespace TopDownGame.NPC
         public float runSpeed = 5.0f;
         public float walkSpeed = 2.5f;
 
+        // Cấu hình AI & Di chuyển theo DATA_CONVENTIONS_V2.md (Mục 21)
+        public string aiFile = "CommonActive";
+        public bool forbitMove = false;
+
         // Đường dẫn Prefab Model (tự động đồng bộ từ NpcRes.csv)
         public string prefab;
 
@@ -7112,6 +9383,14 @@ namespace TopDownGame.NPC
         public NpcResData GetRes()
         {
             return NpcResDatabase.GetRes(npcResId);
+        }
+
+        /// <summary>
+        /// Lấy cấu hình AI từ NpcAiDatabase
+        /// </summary>
+        public NpcAiData GetAi()
+        {
+            return NpcAiDatabase.GetAi(aiFile);
         }
 
         /// <summary>
@@ -7187,8 +9466,8 @@ namespace TopDownGame.NPC
             NpcResDatabase.Instance.EnsureLoaded();
             NpcAttributeDatabase.Instance.EnsureLoaded();
 
-            string nTemplatePath = Path.Combine(Application.dataPath, "Settings", "N", "NpcTemplate.csv");
-            string nCharacterPath = Path.Combine(Application.dataPath, "Settings", "N", "Character.csv");
+            string nTemplatePath = GameDataPaths.NpcTemplateCsv;
+            string nCharacterPath = GameDataPaths.CharacterCsv;
 
             if (File.Exists(nTemplatePath))
             {
@@ -10826,7 +13105,14 @@ namespace TopDownGame.Skills
                 if (!filter.Contains(damageable))
                 {
                     filter.Add(damageable);
-                    damageable.TakeDamage(damage, hitPoint, hitDirection);
+                    if (damageable is EntityStats entityStats)
+                    {
+                        entityStats.TakeDamage(damage, hitPoint, hitDirection, caster);
+                    }
+                    else
+                    {
+                        damageable.TakeDamage(damage, hitPoint, hitDirection);
+                    }
                     return true;
                 }
             }
@@ -10856,7 +13142,14 @@ namespace TopDownGame.Skills
                     hitTracker[damageable] = Time.time;
                 }
 
-                damageable.TakeDamage(damage, hitPoint, hitDirection);
+                if (damageable is EntityStats entityStats)
+                {
+                    entityStats.TakeDamage(damage, hitPoint, hitDirection, caster);
+                }
+                else
+                {
+                    damageable.TakeDamage(damage, hitPoint, hitDirection);
+                }
                 return true;
             }
             return false;
@@ -11275,8 +13568,8 @@ namespace TopDownGame.Skills
             StateEffectDatabase.Instance.EnsureLoaded();
             MissileDatabase.Instance.EnsureLoaded();
 
-            string nSkillPath = Path.Combine(Application.dataPath, "Settings", "N", "Skill.csv");
-            string nActionEventPath = Path.Combine(Application.dataPath, "Settings", "N", "ActionEvent.csv");
+            string nSkillPath = GameDataPaths.SkillCsv;
+            string nActionEventPath = GameDataPaths.ActionEventCsv;
 
             if (File.Exists(nSkillPath) && File.Exists(nActionEventPath))
             {
@@ -11420,6 +13713,7 @@ namespace TopDownGame.StateMachine
 using System;
 using UnityEngine;
 using TopDownGame.Combat;
+using TopDownGame.UI;
 
 namespace TopDownGame.Stats
 {
@@ -11446,6 +13740,8 @@ namespace TopDownGame.Stats
         public float MagicDamage => magicDamage;
         public float AttackSpeed => attackSpeed;
         public bool IsDead { get; protected set; }
+        public bool IsInvulnerable { get; set; }
+        public Transform LastAttacker { get; protected set; }
 
         public void SetPhysicalDamage(float value) => physicalDamage = Mathf.Max(0f, value);
         public void SetMagicDamage(float value) => magicDamage = Mathf.Max(0f, value);
@@ -11467,10 +13763,23 @@ namespace TopDownGame.Stats
 
         public virtual void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitDirection)
         {
-            if (IsDead || amount <= 0f) return;
+            TakeDamage(amount, hitPoint, hitDirection, null);
+        }
+
+        public virtual void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitDirection, Transform attacker)
+        {
+            if (IsDead || IsInvulnerable || amount <= 0f) return;
+
+            if (attacker != null)
+            {
+                LastAttacker = attacker;
+            }
 
             health.Modify(-amount);
             OnDamaged?.Invoke(amount, hitPoint, hitDirection);
+
+            Vector3 spawnPos = (hitPoint != Vector3.zero) ? hitPoint : (transform.position + Vector3.up * 1.5f);
+            FloatingTextManager.Instance.SpawnDamage(amount, spawnPos, this is PlayerStats);
 
             if (health.CurrentValue <= 0f)
             {
@@ -11478,10 +13787,17 @@ namespace TopDownGame.Stats
             }
         }
 
+        public virtual void ResetToFullHealth()
+        {
+            if (IsDead) return;
+            health.ResetToMax();
+        }
+
         public virtual void Heal(float amount)
         {
             if (IsDead || amount <= 0f) return;
             health.Modify(amount);
+            FloatingTextManager.Instance.SpawnHeal(amount, transform.position + Vector3.up * 1.5f);
         }
 
         public virtual void Revive(float healthPercentage = 1.0f)
@@ -11509,6 +13825,7 @@ namespace TopDownGame.Stats
 ==================================================
 
 using UnityEngine;
+using TopDownGame.UI;
 
 namespace TopDownGame.Stats
 {
@@ -11548,6 +13865,55 @@ namespace TopDownGame.Stats
         public void RestoreMana(float amount)
         {
             mana.Modify(amount);
+        }
+
+        [Header("Level & Experience")]
+        [SerializeField] private int currentLevel = 1;
+        [SerializeField] private long currentExp = 0;
+
+        public int CurrentLevel => currentLevel;
+        public long CurrentExp => currentExp;
+
+        public event System.Action<int, long, long> OnExpChanged; // currentLevel, currentExp, maxExp
+        public event System.Action<int> OnLevelUp; // newLevel
+
+        public long GetExpUpgradeForCurrentLevel()
+        {
+            var levelData = TopDownGame.Data.PlayerLevelDatabase.Instance.Get(currentLevel);
+            return levelData != null && levelData.ExpUpGrade > 0 ? levelData.ExpUpGrade : 28000;
+        }
+
+        public void AddExp(long amount)
+        {
+            if (amount <= 0 || IsDead) return;
+
+            currentExp += amount;
+            long requiredExp = GetExpUpgradeForCurrentLevel();
+
+            int maxLevel = TopDownGame.Data.PlayerLevelDatabase.Instance.MaxLevel;
+            if (maxLevel <= 0) maxLevel = 400;
+
+            bool leveledUp = false;
+            while (currentLevel < maxLevel && currentExp >= requiredExp)
+            {
+                currentExp -= requiredExp;
+                currentLevel++;
+                leveledUp = true;
+                requiredExp = GetExpUpgradeForCurrentLevel();
+                OnLevelUp?.Invoke(currentLevel);
+            }
+
+            if (currentLevel >= maxLevel)
+            {
+                currentExp = System.Math.Min(currentExp, requiredExp);
+            }
+
+            OnExpChanged?.Invoke(currentLevel, currentExp, requiredExp);
+
+            if (leveledUp)
+            {
+                FloatingTextManager.Instance.SpawnLevelUp(transform.position + Vector3.up * 2.2f);
+            }
         }
 
         public override void Revive(float healthPercentage = 1.0f)
@@ -11632,9 +13998,483 @@ namespace TopDownGame.Stats
             OnValueChanged?.Invoke(currentValue, maxValue);
         }
 
+        public void SetCurrentValue(float value)
+        {
+            float previous = currentValue;
+            currentValue = Mathf.Clamp(value, 0f, maxValue);
+            if (!Mathf.Approximately(previous, currentValue))
+            {
+                OnValueChanged?.Invoke(currentValue, maxValue);
+            }
+        }
+
+        public void ResetToMax()
+        {
+            Initialize();
+        }
+
         public void SetRegenRate(float newRate)
         {
             regenRate = Mathf.Max(0f, newRate);
+        }
+    }
+}
+
+
+==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\UI\FloatingTextItem.cs
+==================================================
+
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using TMPro;
+using TopDownGame.Data;
+
+namespace TopDownGame.UI
+{
+    /// <summary>
+    /// Item hiển thị chữ/số nảy 3D Billboard sử dụng TextMeshPro.
+    /// Tích hợp thuật toán chuyển động vector theo đường cong chuẩn Kingsoft FlyChar.csv.
+    /// Tái sử dụng 100% trong FloatingTextManager Pool, Zero-GC.
+    /// </summary>
+    public class FloatingTextItem : MonoBehaviour
+    {
+        [SerializeField] private TextMeshPro tmpText;
+
+        private FlyCharResData config;
+        private Vector3 startPosition;
+        private Color baseColor;
+        private Color baseOutlineColor;
+        private float timer;
+        private bool isPlaying;
+        private Transform cameraTransform;
+        private Action<FloatingTextItem> onCompleteCallback;
+        private float horizontalSign = 1.0f; // Đảo chiều ngẫu nhiên (-1 hoặc 1) cho các hiệu ứng bay dạt góc
+
+        private void Awake()
+        {
+            EnsureComponents();
+        }
+
+        private void EnsureComponents()
+        {
+            if (tmpText == null)
+            {
+                tmpText = GetComponent<TextMeshPro>();
+                if (tmpText == null)
+                {
+                    tmpText = gameObject.AddComponent<TextMeshPro>();
+                }
+                tmpText.alignment = TextAlignmentOptions.Center;
+                tmpText.enableWordWrapping = false;
+                tmpText.sortingOrder = 100;
+            }
+        }
+
+        public void Initialize(FlyCharResData configData, string content, Vector3 position, Transform camTransform, Action<FloatingTextItem> onComplete)
+        {
+            EnsureComponents();
+            config = configData;
+            cameraTransform = camTransform;
+            onCompleteCallback = onComplete;
+
+            // Đảo chiều trái/phải ngẫu nhiên cho các góc văng
+            horizontalSign = UnityEngine.Random.value > 0.5f ? 1.0f : -1.0f;
+
+            // Độ lệch vị trí xuất phát ngẫu nhiên
+            Vector3 jitter = Vector3.zero;
+            if (config.randomJitter > 0f)
+            {
+                jitter = new Vector3(
+                    UnityEngine.Random.Range(-config.randomJitter, config.randomJitter),
+                    UnityEngine.Random.Range(-config.randomJitter * 0.3f, config.randomJitter * 0.5f),
+                    UnityEngine.Random.Range(-config.randomJitter * 0.3f, config.randomJitter * 0.3f)
+                );
+            }
+
+            startPosition = position + jitter;
+            transform.position = startPosition;
+
+            if (cameraTransform != null)
+            {
+                transform.rotation = cameraTransform.rotation;
+            }
+
+            // Gán nội dung TextMeshPro và Style
+            tmpText.text = $"{config.prefix}{content}{config.suffix}";
+            tmpText.fontSize = config.fontSize;
+            tmpText.fontStyle = config.isBold ? FontStyles.Bold : FontStyles.Normal;
+
+            baseColor = config.color;
+            baseOutlineColor = config.outlineColor;
+
+            tmpText.color = baseColor;
+            tmpText.outlineColor = baseOutlineColor;
+            tmpText.outlineWidth = config.outlineWidth;
+
+            transform.localScale = Vector3.one * Mathf.Max(0.001f, config.scaleCurve.Evaluate(0f));
+
+            timer = 0f;
+            isPlaying = true;
+            gameObject.SetActive(true);
+        }
+
+        private void Update()
+        {
+            if (!isPlaying) return;
+
+            // Billboard: Luôn hướng mặt chữ theo Camera
+            if (cameraTransform != null)
+            {
+                transform.rotation = cameraTransform.rotation;
+            }
+
+            timer += Time.deltaTime;
+            float duration = Mathf.Max(0.05f, config.duration);
+
+            if (timer >= duration)
+            {
+                isPlaying = false;
+                onCompleteCallback?.Invoke(this);
+                return;
+            }
+
+            // 1. Tính toán quỹ đạo chuyển động vector theo FlyChar.csv
+            Vector2 movement = CalcMovement(timer, config.offsetList, config.angleList);
+
+            Vector3 camRight = (cameraTransform != null) ? cameraTransform.right : Vector3.right;
+            Vector3 camUp = (cameraTransform != null) ? cameraTransform.up : Vector3.up;
+
+            Vector3 offsetWorld = (camRight * (movement.x * horizontalSign) + camUp * movement.y) * config.pixelToWorldScale;
+            transform.position = startPosition + offsetWorld;
+
+            // 2. Co giãn Scale theo đường cong AnimationCurve
+            float scale = Mathf.Max(0.001f, config.scaleCurve.Evaluate(timer));
+            transform.localScale = Vector3.one * scale;
+
+            // 3. Mờ dần Alpha cho cả chữ và viền Outline
+            float alpha = Mathf.Clamp01(config.alphaCurve.Evaluate(timer));
+
+            Color c = baseColor;
+            c.a = baseColor.a * alpha;
+            tmpText.color = c;
+
+            Color oc = baseOutlineColor;
+            oc.a = baseOutlineColor.a * alpha;
+            tmpText.outlineColor = oc;
+        }
+
+        private static float CalcDistance(List<Vector2> offsetList, float nTime)
+        {
+            if (offsetList == null || offsetList.Count == 0)
+            {
+                return 0f;
+            }
+
+            for (int i = 0; i < offsetList.Count - 1; i++)
+            {
+                float t0 = offsetList[i].x;
+                float t1 = offsetList[i + 1].x;
+                if (nTime >= t0 && nTime < t1)
+                {
+                    float v0 = offsetList[i].y;
+                    float v1 = offsetList[i + 1].y;
+                    float span = Mathf.Max(0.0001f, t1 - t0);
+                    return v0 + ((nTime - t0) / span) * (v1 - v0);
+                }
+            }
+
+            return offsetList[offsetList.Count - 1].y;
+        }
+
+        private static Vector2 CalcMovement(float currentTime, List<Vector2> offsetList, List<Vector2> angleList)
+        {
+            Vector2 vector = Vector2.zero;
+            if (angleList == null || angleList.Count == 0 || offsetList == null || offsetList.Count == 0)
+            {
+                return vector;
+            }
+
+            for (int i = 0; i < angleList.Count; i++)
+            {
+                float t0 = angleList[i].x;
+                float angle = angleList[i].y;
+
+                if (currentTime - t0 <= 0f)
+                {
+                    return vector;
+                }
+
+                if (i < angleList.Count - 1)
+                {
+                    float dist0 = CalcDistance(offsetList, angleList[i].x);
+                    float nextTime = (currentTime - angleList[i + 1].x > 0f) ? angleList[i + 1].x : currentTime;
+                    float dist1 = CalcDistance(offsetList, nextTime);
+
+                    float rad = (angle * Mathf.PI) / 180f;
+                    float cos = Mathf.Cos(rad);
+                    float sin = Mathf.Sin(rad);
+                    float delta = dist1 - dist0;
+
+                    // Tọa độ cực: 90 độ là hướng lên trên (+Y), 120 độ là chếch sang trái (+X âm)
+                    vector.x += delta * cos;
+                    vector.y += delta * sin;
+                }
+                else
+                {
+                    // Phân đoạn cuối cùng
+                    float dist0 = CalcDistance(offsetList, angleList[i].x);
+                    float dist1 = CalcDistance(offsetList, currentTime);
+
+                    float rad = (angle * Mathf.PI) / 180f;
+                    float cos = Mathf.Cos(rad);
+                    float sin = Mathf.Sin(rad);
+                    float delta = dist1 - dist0;
+
+                    vector.x += delta * cos;
+                    vector.y += delta * sin;
+                }
+            }
+
+            return vector;
+        }
+    }
+}
+
+
+==================================================
+// FILE: D:\Unity Project\test1\Assets\Scripts\UI\FloatingTextManager.cs
+==================================================
+
+using System.Collections.Generic;
+using UnityEngine;
+using TopDownGame.Data;
+
+namespace TopDownGame.UI
+{
+    /// <summary>
+    /// Trình quản lý Floating Text / Số nhảy sát thương và hiệu ứng chiến đấu trung tâm.
+    /// Sử dụng Object Pool tái sử dụng 100%, tuân thủ nguyên tắc Zero-GC trong combat loop.
+    /// </summary>
+    public class FloatingTextManager : MonoBehaviour
+    {
+        private static FloatingTextManager instance;
+        public static FloatingTextManager Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = FindObjectOfType<FloatingTextManager>();
+                    if (instance == null)
+                    {
+                        GameObject go = new GameObject("[FloatingTextManager]");
+                        instance = go.AddComponent<FloatingTextManager>();
+                        if (Application.isPlaying)
+                        {
+                            DontDestroyOnLoad(go);
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+
+        public static bool HasInstance => instance != null;
+
+        [Header("Pool Configuration")]
+        [SerializeField] private int initialPoolSize = 32;
+
+        private readonly Queue<FloatingTextItem> availablePool = new Queue<FloatingTextItem>();
+        private Transform poolContainer;
+        private Transform cachedCameraTransform;
+
+        private void Awake()
+        {
+            if (instance == null)
+            {
+                instance = this;
+                if (Application.isPlaying)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
+                InitializePool();
+            }
+            else if (instance != this)
+            {
+                Destroy(gameObject);
+            }
+        }
+
+        private void InitializePool()
+        {
+            if (poolContainer == null)
+            {
+                GameObject containerGo = new GameObject("PoolContainer");
+                containerGo.transform.SetParent(transform);
+                poolContainer = containerGo.transform;
+            }
+
+            for (int i = 0; i < initialPoolSize; i++)
+            {
+                CreateNewItem();
+            }
+        }
+
+        private FloatingTextItem CreateNewItem()
+        {
+            GameObject itemGo = new GameObject($"FloatingTextItem_{availablePool.Count + 1}");
+            itemGo.transform.SetParent(poolContainer);
+            FloatingTextItem item = itemGo.AddComponent<FloatingTextItem>();
+            itemGo.SetActive(false);
+
+            availablePool.Enqueue(item);
+            return item;
+        }
+
+        private Transform GetCameraTransform()
+        {
+            if (cachedCameraTransform == null)
+            {
+                UnityEngine.Camera mainCam = UnityEngine.Camera.main;
+                if (mainCam != null)
+                {
+                    cachedCameraTransform = mainCam.transform;
+                }
+            }
+            return cachedCameraTransform;
+        }
+
+        public void Recycle(FloatingTextItem item)
+        {
+            if (item == null) return;
+            item.gameObject.SetActive(false);
+            item.transform.SetParent(poolContainer);
+            availablePool.Enqueue(item);
+        }
+
+        // ==================== CÁC HÀM SPAWN TIỆN ÍCH ====================
+
+        /// <summary>
+        /// Spawn một số nảy sát thương (Đòn thường hoặc Bạo kích hoặc Bị đánh)
+        /// </summary>
+        public void SpawnDamage(float amount, Vector3 worldPosition, bool isPlayer = false, bool isCrit = false)
+        {
+            if (amount <= 0f) return;
+
+            FlyCharType type;
+            if (isPlayer)
+            {
+                type = isCrit ? FlyCharType.HurtDeadly : FlyCharType.HurtNormal;
+            }
+            else
+            {
+                type = isCrit ? FlyCharType.HitDeadly : FlyCharType.HitNormal;
+            }
+
+            int rounded = Mathf.RoundToInt(amount);
+            Spawn(type, rounded.ToString(), worldPosition);
+        }
+
+        /// <summary>
+        /// Spawn số nhảy hồi phục (+HP)
+        /// </summary>
+        public void SpawnHeal(float amount, Vector3 worldPosition)
+        {
+            if (amount <= 0f) return;
+            int rounded = Mathf.RoundToInt(amount);
+            Spawn(FlyCharType.Treatment, rounded.ToString(), worldPosition);
+        }
+
+        /// <summary>
+        /// Spawn số nhảy hồi năng lượng (+MP)
+        /// </summary>
+        public void SpawnMana(float amount, Vector3 worldPosition)
+        {
+            if (amount <= 0f) return;
+            int rounded = Mathf.RoundToInt(amount);
+            Spawn(FlyCharType.Treatment, rounded.ToString(), worldPosition);
+        }
+
+        /// <summary>
+        /// Spawn chữ Đánh trượt / Né đòn
+        /// </summary>
+        public void SpawnMiss(Vector3 worldPosition, bool isPlayer = false)
+        {
+            if (isPlayer)
+            {
+                Spawn(FlyCharType.HurtMiss, "NÉ ĐÒN", worldPosition);
+            }
+            else
+            {
+                Spawn(FlyCharType.HitMiss, "MISS", worldPosition);
+            }
+        }
+
+        /// <summary>
+        /// Spawn chữ Né đòn
+        /// </summary>
+        public void SpawnDodge(Vector3 worldPosition)
+        {
+            Spawn(FlyCharType.HurtMiss, "NÉ ĐÒN", worldPosition);
+        }
+
+        /// <summary>
+        /// Spawn điểm kinh nghiệm (+EXP)
+        /// </summary>
+        public void SpawnExp(int amount, Vector3 worldPosition)
+        {
+            if (amount <= 0) return;
+            Spawn(FlyCharType.AddExp, amount.ToString(), worldPosition);
+        }
+
+        /// <summary>
+        /// Spawn hiệu ứng LEVEL UP!
+        /// </summary>
+        public void SpawnLevelUp(Vector3 worldPosition)
+        {
+            Spawn(FlyCharType.AddExp, "LEVEL UP!", worldPosition);
+        }
+
+        /// <summary>
+        /// Spawn theo enum FlyCharType
+        /// </summary>
+        public void Spawn(FlyCharType type, string content, Vector3 worldPosition)
+        {
+            FlyCharResData config = GameDatabase.FlyChars.Get(type);
+            SpawnInternal(config, content, worldPosition);
+        }
+
+        /// <summary>
+        /// Spawn theo tên định danh typeName từ CSV
+        /// </summary>
+        public void Spawn(string typeName, string content, Vector3 worldPosition)
+        {
+            FlyCharResData config = GameDatabase.FlyChars.Get(typeName);
+            SpawnInternal(config, content, worldPosition);
+        }
+
+        private void SpawnInternal(FlyCharResData config, string content, Vector3 worldPosition)
+        {
+            if (config == null)
+            {
+                config = GameDatabase.FlyChars.Get(FlyCharType.HitNormal);
+            }
+
+            FloatingTextItem item;
+            if (availablePool.Count > 0)
+            {
+                item = availablePool.Dequeue();
+            }
+            else
+            {
+                item = CreateNewItem();
+                availablePool.Dequeue();
+            }
+
+            item.transform.SetParent(null);
+            item.Initialize(config, content, worldPosition, GetCameraTransform(), Recycle);
         }
     }
 }
@@ -11674,6 +14514,12 @@ namespace TopDownGame.UI
         [SerializeField] private TextMeshProUGUI manaText;
         [SerializeField] private float manaLerpSpeed = 10f;
 
+        [Header("Level & Exp Bar (Tùy chọn)")]
+        [SerializeField] private Image expFill;
+        [SerializeField] private TextMeshProUGUI expText;
+        [SerializeField] private TextMeshProUGUI levelText;
+        [SerializeField] private float expLerpSpeed = 10f;
+
         [Header("Skill Slots (Hiển thị theo thứ tự Q - E - R)")]
         [SerializeField] private SkillSlotUI skillSlot_Q;
         [SerializeField] private SkillSlotUI skillSlot_E;
@@ -11681,6 +14527,7 @@ namespace TopDownGame.UI
 
         private float targetHealthFill = 1f;
         private float targetManaFill = 1f;
+        private float targetExpFill = 0f;
         private float ghostTimer;
 
         private void Start()
@@ -11707,14 +14554,18 @@ namespace TopDownGame.UI
             {
                 stats.Health.OnValueChanged += HandleHealthChanged;
                 stats.Mana.OnValueChanged += HandleManaChanged;
+                stats.OnExpChanged += HandleExpChanged;
+                stats.OnLevelUp += HandleLevelUp;
 
                 // Cập nhật giá trị khởi điểm ngay lập tức
                 HandleHealthChanged(stats.Health.CurrentValue, stats.Health.MaxValue);
                 HandleManaChanged(stats.Mana.CurrentValue, stats.Mana.MaxValue);
+                HandleExpChanged(stats.CurrentLevel, stats.CurrentExp, stats.GetExpUpgradeForCurrentLevel());
 
                 if (healthFill != null) healthFill.fillAmount = targetHealthFill;
                 if (healthGhostFill != null) healthGhostFill.fillAmount = targetHealthFill;
                 if (manaFill != null) manaFill.fillAmount = targetManaFill;
+                if (expFill != null) expFill.fillAmount = targetExpFill;
             }
 
             // 2. Thiết lập 3 ô kỹ năng theo thứ tự Q - E - R từ Database
@@ -11729,7 +14580,21 @@ namespace TopDownGame.UI
             {
                 player.Stats.Health.OnValueChanged -= HandleHealthChanged;
                 player.Stats.Mana.OnValueChanged -= HandleManaChanged;
+                player.Stats.OnExpChanged -= HandleExpChanged;
+                player.Stats.OnLevelUp -= HandleLevelUp;
             }
+        }
+
+        private void HandleExpChanged(int level, long exp, long maxExp)
+        {
+            if (levelText != null) levelText.text = $"Lv.{level}";
+            targetExpFill = maxExp > 0 ? Mathf.Clamp01((float)exp / maxExp) : 1f;
+            if (expText != null) expText.text = $"{exp} / {maxExp}";
+        }
+
+        private void HandleLevelUp(int newLevel)
+        {
+            if (levelText != null) levelText.text = $"Lv.{newLevel}";
         }
 
         private void Update()
@@ -11782,6 +14647,16 @@ namespace TopDownGame.UI
                 if (Mathf.Abs(manaFill.fillAmount - targetManaFill) < 0.001f)
                 {
                     manaFill.fillAmount = targetManaFill;
+                }
+            }
+
+            // 4. Thanh EXP vàng cam
+            if (expFill != null)
+            {
+                expFill.fillAmount = Mathf.Lerp(expFill.fillAmount, targetExpFill, Time.deltaTime * expLerpSpeed);
+                if (Mathf.Abs(expFill.fillAmount - targetExpFill) < 0.001f)
+                {
+                    expFill.fillAmount = targetExpFill;
                 }
             }
         }

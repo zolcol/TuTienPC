@@ -95,41 +95,41 @@ namespace TopDownGame.Skills
 
         static CastActionHelper()
         {
-            Register(CastActionID.st, "st");
-            Register(CastActionID.run, "run");
-            Register(CastActionID.die, "die");
-            Register(CastActionID.jt, "jt");
-            Register(CastActionID.bat_pull, "bat");
-            Register(CastActionID.qg, "qg");
-            Register(CastActionID.sta, "sta");
-            Register(CastActionID.bat, "bat");
-            Register(CastActionID.wlk, "wlk");
-            Register(CastActionID.zx, "zx");
-            Register(CastActionID.zst, "zst");
-            Register(CastActionID.st01, "st01");
-            Register(CastActionID.st02, "st02");
+            Register(CastActionID.st, GameConstants.AnimClips.Stand);
+            Register(CastActionID.run, GameConstants.AnimClips.Run);
+            Register(CastActionID.die, GameConstants.AnimClips.Die);
+            Register(CastActionID.jt, GameConstants.AnimClips.HurtAlt);
+            Register(CastActionID.bat_pull, GameConstants.AnimClips.Hurt);
+            Register(CastActionID.qg, GameConstants.AnimClips.Qg);
+            Register(CastActionID.sta, GameConstants.AnimClips.BattleStand);
+            Register(CastActionID.bat, GameConstants.AnimClips.Hurt);
+            Register(CastActionID.wlk, GameConstants.AnimClips.Walk);
+            Register(CastActionID.zx, GameConstants.AnimClips.Zx);
+            Register(CastActionID.zst, GameConstants.AnimClips.Zst);
+            Register(CastActionID.st01, GameConstants.AnimClips.St01);
+            Register(CastActionID.st02, GameConstants.AnimClips.St02);
 
-            Register(CastActionID.at, "at");
-            Register(CastActionID.at01, "at01");
-            Register(CastActionID.at02, "at02");
-            Register(CastActionID.at03, "at03");
-            Register(CastActionID.at04, "at04");
-            Register(CastActionID.jfd, "jfd");
+            Register(CastActionID.at, GameConstants.AnimClips.At);
+            Register(CastActionID.at01, GameConstants.AnimClips.At01);
+            Register(CastActionID.at02, GameConstants.AnimClips.At02);
+            Register(CastActionID.at03, GameConstants.AnimClips.At03);
+            Register(CastActionID.at04, GameConstants.AnimClips.At04);
+            Register(CastActionID.jfd, GameConstants.AnimClips.DieAlt);
 
-            Register(CastActionID.jn01, "jn01");
-            Register(CastActionID.jn02, "jn02");
-            Register(CastActionID.jn03, "jn03");
-            Register(CastActionID.jn04, "jn04");
-            Register(CastActionID.jn05, "jn05");
-            Register(CastActionID.jf, "jf");
-            Register(CastActionID.jn02b, "jn02b");
-            Register(CastActionID.jn02a, "jn02a");
-            Register(CastActionID.jn01a, "jn01a");
-            Register(CastActionID.jn06, "jn06");
+            Register(CastActionID.jn01, GameConstants.AnimClips.Jn01);
+            Register(CastActionID.jn02, GameConstants.AnimClips.Jn02);
+            Register(CastActionID.jn03, GameConstants.AnimClips.Jn03);
+            Register(CastActionID.jn04, GameConstants.AnimClips.Jn04);
+            Register(CastActionID.jn05, GameConstants.AnimClips.Jn05);
+            Register(CastActionID.jf, GameConstants.AnimClips.Jf);
+            Register(CastActionID.jn02b, GameConstants.AnimClips.Jn02b);
+            Register(CastActionID.jn02a, GameConstants.AnimClips.Jn02a);
+            Register(CastActionID.jn01a, GameConstants.AnimClips.Jn01a);
+            Register(CastActionID.jn06, GameConstants.AnimClips.Jn06);
 
-            Register(CastActionID.qg01, "qg01");
+            Register(CastActionID.qg01, GameConstants.AnimClips.Qg01);
             Register(CastActionID.qg02, "qg02");
-            Register(CastActionID.jsrun, "jsrun");
+            Register(CastActionID.jsrun, GameConstants.AnimClips.FastRun);
             Register(CastActionID.qg03, "qg03");
             Register(CastActionID.qg04, "qg04");
             Register(CastActionID.qg05, "qg05");

@@ -58,7 +58,7 @@ namespace TopDownGame.Audio
             }
             else
             {
-                TextAsset resCsv = Resources.Load<TextAsset>("Sound");
+                TextAsset resCsv = Resources.Load<TextAsset>(GameConstants.ResourcePaths.SoundCsv);
                 if (resCsv != null)
                 {
                     csvContent = resCsv.text;

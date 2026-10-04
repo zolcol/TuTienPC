@@ -13,12 +13,12 @@ namespace TopDownGame
     /// </summary>
     public class LegacyAnimationController : MonoBehaviour
     {
-        public const string CLIP_STAND = "st";          // Đứng chờ phi chiến đấu (Normal Stand / Idle)
-        public const string CLIP_BATTLE_STAND = "sta";   // Đứng thủ thế chiến đấu (Battle Idle / Combat Ready)
-        public const string CLIP_RUN = "run";            // Chạy bộ (Run)
-        public const string CLIP_WALK = "wlk";           // Đi bộ / Tản bộ (Walk)
-        public const string CLIP_DIE = "die";            // Tử vong / Gục ngã (Die)
-        public const string CLIP_HURT = "bat";          // Bị thương / Giật mình tại chỗ (Hit Flinch - ActId 9)
+        public const string CLIP_STAND = GameConstants.AnimClips.Stand;          // Đứng chờ phi chiến đấu (Normal Stand / Idle)
+        public const string CLIP_BATTLE_STAND = GameConstants.AnimClips.BattleStand;   // Đứng thủ thế chiến đấu (Battle Idle / Combat Ready)
+        public const string CLIP_RUN = GameConstants.AnimClips.Run;            // Chạy bộ (Run)
+        public const string CLIP_WALK = GameConstants.AnimClips.Walk;           // Đi bộ / Tản bộ (Walk)
+        public const string CLIP_DIE = GameConstants.AnimClips.Die;            // Tử vong / Gục ngã (Die)
+        public const string CLIP_HURT = GameConstants.AnimClips.Hurt;          // Bị thương / Giật mình tại chỗ (Hit Flinch - ActId 9)
 
         [Header("Animation Components (Đầu & Thân)")]
         [Tooltip("Component Animation gắn trên GameObject Thân (tự tìm nếu để trống)")]
@@ -172,16 +172,16 @@ namespace TopDownGame
 
             // Fallback thông minh theo chuẩn quy ước CastActionID
             string lower = targetClip.ToLowerInvariant();
-            if (lower == "st") found = FindDirectClip("sta");
-            else if (lower == "sta") found = FindDirectClip("st");
-            else if (lower.StartsWith("at0") || lower.StartsWith("at1")) found = FindDirectClip("at");
-            else if (lower == "at") found = FindDirectClip("at01") ?? FindDirectClip("at02");
-            else if (lower == "run") found = FindDirectClip("wlk") ?? FindDirectClip("jsrun");
-            else if (lower == "wlk") found = FindDirectClip("run");
-            else if (lower == "die") found = FindDirectClip("jfd");
-            else if (lower == "jfd") found = FindDirectClip("die");
-            else if (lower == "bat") found = FindDirectClip("jt");
-            else if (lower == "jt") found = FindDirectClip("bat");
+            if (lower == GameConstants.AnimClips.Stand) found = FindDirectClip(GameConstants.AnimClips.BattleStand);
+            else if (lower == GameConstants.AnimClips.BattleStand) found = FindDirectClip(GameConstants.AnimClips.Stand);
+            else if (lower.StartsWith("at0") || lower.StartsWith("at1")) found = FindDirectClip(GameConstants.AnimClips.At);
+            else if (lower == GameConstants.AnimClips.At) found = FindDirectClip(GameConstants.AnimClips.At01) ?? FindDirectClip(GameConstants.AnimClips.At02);
+            else if (lower == GameConstants.AnimClips.Run) found = FindDirectClip(GameConstants.AnimClips.Walk) ?? FindDirectClip(GameConstants.AnimClips.FastRun);
+            else if (lower == GameConstants.AnimClips.Walk) found = FindDirectClip(GameConstants.AnimClips.Run);
+            else if (lower == GameConstants.AnimClips.Die) found = FindDirectClip(GameConstants.AnimClips.DieAlt);
+            else if (lower == GameConstants.AnimClips.DieAlt) found = FindDirectClip(GameConstants.AnimClips.Die);
+            else if (lower == GameConstants.AnimClips.Hurt) found = FindDirectClip(GameConstants.AnimClips.HurtAlt);
+            else if (lower == GameConstants.AnimClips.HurtAlt) found = FindDirectClip(GameConstants.AnimClips.Hurt);
 
             return found;
         }

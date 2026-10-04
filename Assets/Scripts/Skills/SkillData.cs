@@ -224,10 +224,10 @@ namespace TopDownGame.Skills
             if (!string.IsNullOrEmpty(iconName))
             {
                 string name = iconName.Trim();
-                cachedIcon = Resources.Load<Sprite>($"UI/Atlas/SkillIcon/{name}");
+                cachedIcon = Resources.Load<Sprite>($"{GameConstants.ResourcePaths.SkillIconAtlasFolder}{name}");
                 if (cachedIcon != null) return cachedIcon;
 
-                cachedIcon = Resources.Load<Sprite>($"UI/SkillIcon/{name}");
+                cachedIcon = Resources.Load<Sprite>($"{GameConstants.ResourcePaths.SkillIconFolder}{name}");
                 if (cachedIcon != null) return cachedIcon;
 
                 cachedIcon = Resources.Load<Sprite>(name);

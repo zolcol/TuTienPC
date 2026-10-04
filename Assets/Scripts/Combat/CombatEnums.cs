@@ -184,14 +184,14 @@ namespace TopDownGame.Combat
     }
 
     /// <summary>
-    /// Hằng số định danh Layer và Tag chuẩn cho toàn bộ hệ thống Combat
+    /// Hằng số định danh Layer và Tag chuẩn cho toàn bộ hệ thống Combat (Ánh xạ từ GameConstants)
     /// </summary>
     public static class CombatLayersAndTags
     {
-        public const string TagPlayer = "Player";
-        public const string TagEnemy = "Enemy";
-        public const string LayerPlayer = "Player";
-        public const string LayerEnemy = "Enemy";
+        public const string TagPlayer = TopDownGame.GameConstants.Tags.Player;
+        public const string TagEnemy = TopDownGame.GameConstants.Tags.Enemy;
+        public const string LayerPlayer = TopDownGame.GameConstants.Layers.Player;
+        public const string LayerEnemy = TopDownGame.GameConstants.Layers.Enemy;
     }
 
     /// <summary>
