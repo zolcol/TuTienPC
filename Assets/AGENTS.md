@@ -27,6 +27,7 @@
    * **KHÔNG DÙNG** Animator Controller / Mecanim State Machine. Mọi chuyển động điều khiển qua `LegacyAnimationController.cs` và mã `CastActionID`.
 3. **Data-Driven (CSV Source of Truth):**
    * Mọi thông số đọc từ `Assets/Settings/GameData/**/*.csv` qua `GameDataPaths.cs`. Không hardcode chỉ số kỹ năng, quái vật hay bán kính va chạm vào MonoBehaviour.
+   * **Quy ước cấu trúc dữ liệu chuẩn:** Xem [DATA_CONVENTIONS_V2.md](file:///D:/Unity%20Project/test1/Assets/Settings/GameData/Docs/DATA_CONVENTIONS_V2.md) (Master Hub) và các module chuyên sâu tại [Settings/GameData/Docs/Conventions/](file:///D:/Unity%20Project/test1/Assets/Settings/GameData/Docs/Conventions/) (`01_CORE_STANDARDS.md` -> `06_LEVEL_AND_EXP.md`) khi cần tra cứu schema/cột CSV/công thức toán chi tiết.
 4. **VFX & Quản lý Khớp Xương (Bone Slots):**
    * Quản lý qua `PartSlotDatabase` và `VfxLockRotation` với 4 chế độ xoay:
      * `FollowBoneFull` (vũ khí/cánh - xoay $100\%$ theo xương)
@@ -61,6 +62,7 @@ Assets/Scripts/
 │   ├── CombatFormula.cs               # STATIC PURE MATH: Đổi Frame sang Giây, tính Tốc Đánh, Damage, Heal
 │   ├── DummyTarget.cs                 # Bia tập bắn / Bao cát test dame có thanh máu OnGUI
 │   ├── EffectManager.cs               # VFX POOLING: SpawnEffect, SpawnEffectAtSlot, RecycleEffect
+│   ├── GameConstants.cs               # Hằng số tập trung: Tags, Layers, LayerMasks, Animation Clips, Resource Paths
 │   ├── IDamageable.cs                 # Interface nhận sát thương: TakeDamage(...)
 │   └── VfxLockRotation.cs             # Khóa trục xoay VFX theo 4 chế độ (FlatGround, UprightBody, ...)
 │
@@ -71,6 +73,7 @@ Assets/Scripts/
 │   ├── FactionSkillDatabase.cs        # Nạp FactionSkill.csv (tra cứu icon, atlas và thông tin môn phái)
 │   ├── FlyCharData.cs / FlyCharDatabase.cs # Nạp FlyChar.csv (cấu hình đường cong chuyển động, Scale/Alpha/Offset/Angle vector chuẩn JX)
 │   ├── GameDatabase.cs                # Entry-point nạp toàn bộ CSV theo đúng Dependency Order
+│   ├── GameDataPaths.cs               # Hằng số đường dẫn tương đối tới các file CSV/INI trong GameData
 │   ├── ICsvTable.cs                   # Interface nạp/xóa bảng dữ liệu
 │   ├── MissileDatabase.cs             # Nạp Missile.csv (tốc độ đạn, tầm nổ, hitbox shape, vfx fly/hit)
 │   ├── NpcAiData.cs / NpcAiDatabase.cs# Nạp AI INI profiles (CommonActive, CommonPassive, BreathTick, StrikeBack)
@@ -178,6 +181,7 @@ Assets/Scripts/
 | **Sửa Số nhảy Sát thương / Floating Text (Dame, Heal, Exp, Miss)** | `UI/FloatingTextManager.cs`<br>`UI/FloatingTextItem.cs`<br>`Data/FlyCharDatabase.cs` | `Data/FlyCharData.cs`<br>`Settings/GameData/Combat/FlyChar.csv` |
 | **Sửa Âm thanh / Tiếng chém trúng / Voice** | `Audio/SoundManager.cs`<br>`Audio/SoundDatabase.cs` | `Audio/SoundData.cs` |
 | **Tạo Tool Editor mới hoặc chỉnh sửa Spawner** | `Enemy/EnemySpawnPoint.cs`<br>`Editor/EnemySpawnPointEditor.cs`<br>`Editor/NpcSpawnerBuilder.cs` | `Enemy/EnemyController.cs`<br>`NPC/NpcTemplateDatabase.cs` |
+| **Tra cứu Quy chuẩn Dữ liệu / Schema CSV / Toán Game** | `Settings/GameData/Docs/DATA_CONVENTIONS_V2.md` | `Settings/GameData/Docs/Conventions/` (`01` -> `06`) |
 
 ---
 
