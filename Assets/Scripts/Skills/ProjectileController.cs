@@ -15,6 +15,15 @@ namespace TopDownGame.Skills
     {
         private static readonly RaycastHit[] raycastBuffer = new RaycastHit[16];
         private static readonly Collider[] overlapBuffer = new Collider[32];
+        private static readonly Collider[] bounceBuffer = new Collider[32];
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticData()
+        {
+            System.Array.Clear(raycastBuffer, 0, raycastBuffer.Length);
+            System.Array.Clear(overlapBuffer, 0, overlapBuffer.Length);
+            System.Array.Clear(bounceBuffer, 0, bounceBuffer.Length);
+        }
 
         [Header("Runtime Info")]
         [SerializeField] private int skillId;
@@ -66,7 +75,6 @@ namespace TopDownGame.Skills
             this.skillData = skill;
             this.missileData = missile;
             this.targetLayer = targetLayer;
-            this.homingTarget = explicitTarget;
 
             this.skillId = skill != null ? skill.id : 0;
             this.missileId = missile != null ? missile.missileId : 0;
@@ -74,25 +82,38 @@ namespace TopDownGame.Skills
                 ? skill.CalculateHeal(casterStats) 
                 : (skill != null ? skill.CalculateDamage(casterStats) : 20f);
 
-            this.moveDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : caster.forward;
+            this.moveDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : (caster != null ? caster.forward : Vector3.forward);
             this.speed = missile != null ? missile.SpeedInUnitsPerSec : 10f;
             this.collisionRadius = missile != null ? missile.CollisionRadius : 0.6f;
-            this.maxDistance = skill != null && skill.range > 0f 
-                ? skill.range 
-                : (missile != null && missile.dmgRange > 0f ? (missile.dmgRange / 10f) : 15f);
             this.lifeTimer = missile != null ? missile.LifeTimeInSeconds : 2.5f;
+            this.maxDistance = (skill != null && skill.range > 0f) 
+                ? skill.range 
+                : (this.speed > 0f ? (this.speed * this.lifeTimer) : 15f);
             this.distanceTraveled = 0f;
             this.flyTimer = 0f;
 
-            // Thiết lập nảy bật liên hoàn (MissileForm = 4)
+            // Reset lịch sử va chạm cho lượt bắn mới
+            this.lastHitTimes.Clear();
+            this.targetHitCounts.Clear();
+
+            // Xác định chế độ bám mục tiêu (Homing / Bounce)
             bool isBounceMissile = skill != null && skill.missileForm == 4;
+            bool isHomingMissile = (missile != null && (missile.moveKind == MissileMoveKind.HomingTracking || (int)missile.moveKind == 2 || missile.isFollowTarget));
+            this.homingTarget = (isBounceMissile || isHomingMissile) ? explicitTarget : null;
+
+            // Thiết lập nảy bật liên hoàn (MissileForm = 4)
             this.bouncesRemaining = (isBounceMissile && skill.skillParam1 > 0) ? (int)skill.skillParam1 : 0;
             this.bounceRadius = (isBounceMissile && skill.skillParam3 > 0) ? (skill.skillParam3 / 100f) : 10f;
             this.maxHitsPerTarget = (isBounceMissile && skill.skillParam4 > 0) ? (int)skill.skillParam4 : 0;
             this.lastHitEntity = null;
 
             transform.position = startPos;
-            transform.rotation = Quaternion.LookRotation(this.moveDirection);
+            if (this.moveDirection.sqrMagnitude > 0.001f)
+            {
+                this.moveDirection.y = 0f;
+                this.moveDirection.Normalize();
+                transform.rotation = Quaternion.LookRotation(this.moveDirection);
+            }
 
             // Nạp hiệu ứng và âm thanh bay
             string flyEffect = missile != null ? missile.FlyEffectPath : "";
@@ -151,6 +172,21 @@ namespace TopDownGame.Skills
             }
         }
 
+        private void OnDisable()
+        {
+            StopAllCoroutines();
+            if (flyingEffectInstance != null)
+            {
+                if (EffectManager.Instance != null)
+                {
+                    EffectManager.Instance.RecycleEffect(flyingEffectInstance);
+                }
+                flyingEffectInstance = null;
+            }
+            isInitialized = false;
+            isDestroying = false;
+        }
+
         #endregion
 
         #region Trajectory & Movement
@@ -164,28 +200,41 @@ namespace TopDownGame.Skills
             if (isHoming && homingTarget != null)
             {
                 var targetStats = homingTarget.GetComponentInParent<EntityStats>();
-                if (targetStats != null && targetStats.IsDead && skillData != null && skillData.missileForm == 4)
+                if (targetStats != null && targetStats.IsDead)
                 {
-                    // Mục tiêu đang bay tới đã chết -> Tìm ngay mục tiêu kế tiếp hoặc nổ
-                    Transform newTarget = FindNextBounceTarget(transform.position, lastHitEntity, null);
-                    if (newTarget != null)
+                    if (skillData != null && skillData.missileForm == 4)
                     {
-                        homingTarget = newTarget;
+                        // Mục tiêu đang bay tới đã chết -> Tìm ngay mục tiêu kế tiếp hoặc nổ
+                        Transform newTarget = FindNextBounceTarget(transform.position, lastHitEntity, null);
+                        if (newTarget != null)
+                        {
+                            homingTarget = newTarget;
+                        }
+                        else
+                        {
+                            ExplodeAndDestroy(transform.position, false);
+                            return;
+                        }
                     }
                     else
                     {
-                        ExplodeAndDestroy(transform.position, false);
-                        return;
+                        // Đạn Homing thường: Mục tiêu đã chết -> Bỏ khóa mục tiêu, bay tiếp thẳng theo quán tính
+                        homingTarget = null;
                     }
                 }
-
-                Vector3 toTarget = homingTarget.position - transform.position;
-                toTarget.y = 0f;
-                if (toTarget.sqrMagnitude > 0.001f)
+                else
                 {
-                    float turnSpeed = (skillData != null && skillData.missileForm == 4) ? 25f : 8f;
-                    moveDirection = Vector3.RotateTowards(moveDirection, toTarget.normalized, turnSpeed * dt, 0f);
-                    transform.rotation = Quaternion.LookRotation(moveDirection);
+                    Vector3 toTarget = homingTarget.position - transform.position;
+                    toTarget.y = 0f;
+                    if (toTarget.sqrMagnitude > 0.001f)
+                    {
+                        float turnSpeed = (skillData != null && skillData.missileForm == 4) ? 25f : 8f;
+                        moveDirection = Vector3.RotateTowards(moveDirection, toTarget.normalized, turnSpeed * dt, 0f);
+                        if (moveDirection.sqrMagnitude > 0.001f)
+                        {
+                            transform.rotation = Quaternion.LookRotation(moveDirection);
+                        }
+                    }
                 }
             }
 
@@ -236,8 +285,8 @@ namespace TopDownGame.Skills
 
         private bool CheckCollision(Vector3 fromPos, Vector3 toPos, float stepDistance)
         {
-            Vector3 castOrigin = fromPos + Vector3.up * HitHeightOffset;
-            Vector3 targetCenter = toPos + Vector3.up * HitHeightOffset;
+            Vector3 castOrigin = fromPos;
+            Vector3 targetCenter = toPos;
 
             // 1. Quét hình cầu dọc đường bay (SphereCast)
             if (stepDistance > 0.001f)
@@ -284,8 +333,10 @@ namespace TopDownGame.Skills
         {
             if (col == null || (caster != null && (col.gameObject == caster.gameObject || col.transform.IsChildOf(caster)))) return false;
 
-            // Nếu đã khóa mục tiêu cụ thể (Homing / Bounce Target), chỉ nhận va chạm đúng mục tiêu đó
-            if (homingTarget != null && !IsMatchingHomingTarget(col))
+            // Nếu là đạn Homing/Bounce và đã khóa mục tiêu cụ thể, chỉ nhận va chạm đúng mục tiêu đó
+            bool isHomingMode = (missileData != null && (missileData.moveKind == MissileMoveKind.HomingTracking || (int)missileData.moveKind == 2 || missileData.isFollowTarget))
+                || (skillData != null && skillData.missileForm == 4);
+            if (isHomingMode && homingTarget != null && !IsMatchingHomingTarget(col))
             {
                 return false;
             }
@@ -319,7 +370,7 @@ namespace TopDownGame.Skills
             {
                 if (bouncesRemaining > 0)
                 {
-                    Transform nextTarget = FindNextBounceTarget(hitPoint, hitDmg, col);
+                    Transform nextTarget = FindNextBounceTarget(transform.position, hitDmg, col);
                     if (nextTarget != null)
                     {
                         bouncesRemaining--;
@@ -409,7 +460,7 @@ namespace TopDownGame.Skills
 
         private Transform FindNextBounceTarget(Vector3 origin, IDamageable currentHitDamageable, Collider currentHitCol)
         {
-            int count = Physics.OverlapSphereNonAlloc(origin, bounceRadius, overlapBuffer, targetLayer);
+            int count = Physics.OverlapSphereNonAlloc(origin, bounceRadius, bounceBuffer, targetLayer);
             Transform best = null;
             int bestHitCount = int.MaxValue;
             float closestDist = float.MaxValue;
@@ -418,7 +469,7 @@ namespace TopDownGame.Skills
 
             for (int i = 0; i < count; i++)
             {
-                Collider col = overlapBuffer[i];
+                Collider col = bounceBuffer[i];
                 if (col == null || col == currentHitCol) continue;
                 if (caster != null && (col.gameObject == caster.gameObject || col.transform.IsChildOf(caster))) continue;
 
@@ -594,7 +645,7 @@ namespace TopDownGame.Skills
         {
             if (!isInitialized) return;
             Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.8f);
-            Vector3 center = transform.position + Vector3.up * HitHeightOffset;
+            Vector3 center = transform.position;
             Gizmos.DrawWireSphere(center, collisionRadius);
             Gizmos.DrawLine(center, center + moveDirection * 1.5f);
         }
