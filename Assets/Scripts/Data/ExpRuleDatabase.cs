@@ -38,7 +38,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "ExpRule.csv");
+            string filePath = GameDataPaths.ExpRuleCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[ExpRuleDatabase] ⚠️ Không tìm thấy file: {filePath}");

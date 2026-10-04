@@ -34,7 +34,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "NpcRes.csv");
+            string filePath = GameDataPaths.NpcResCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[NpcResDatabase] ⚠️ Không tìm thấy file tại: {filePath}");

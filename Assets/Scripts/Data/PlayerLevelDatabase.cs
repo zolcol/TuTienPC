@@ -37,7 +37,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "PlayerLevel.csv");
+            string filePath = GameDataPaths.PlayerLevelCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[PlayerLevelDatabase] ⚠️ Không tìm thấy file: {filePath}");

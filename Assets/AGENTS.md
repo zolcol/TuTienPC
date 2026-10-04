@@ -26,7 +26,7 @@
    * Model phân tách 2 GameObject con: `Body` và `Head`, đều gắn component `UnityEngine.Animation`.
    * **KHÔNG DÙNG** Animator Controller / Mecanim State Machine. Mọi chuyển động điều khiển qua `LegacyAnimationController.cs` và mã `CastActionID`.
 3. **Data-Driven (CSV Source of Truth):**
-   * Mọi thông số đọc từ `Assets/Settings/N/*.csv`. Không hardcode chỉ số kỹ năng, quái vật hay bán kính va chạm vào MonoBehaviour.
+   * Mọi thông số đọc từ `Assets/Settings/GameData/**/*.csv` qua `GameDataPaths.cs`. Không hardcode chỉ số kỹ năng, quái vật hay bán kính va chạm vào MonoBehaviour.
 4. **VFX & Quản lý Khớp Xương (Bone Slots):**
    * Quản lý qua `PartSlotDatabase` và `VfxLockRotation` với 4 chế độ xoay:
      * `FollowBoneFull` (vũ khí/cánh - xoay $100\%$ theo xương)
@@ -168,7 +168,7 @@ Assets/Scripts/
 | **Sửa Hoạt ảnh / Khớp xương / Đồng bộ Body & Head** | `LegacyAnimationController.cs`<br>`Combat/VfxLockRotation.cs`<br>`Data/PartSlotDatabase.cs` | `Skills/CastActionID.cs` |
 | **Sửa Chỉ số Máu, Mana, Cấp độ, Kinh nghiệm, Tốc đánh** | `Stats/EntityStats.cs`<br>`Stats/PlayerStats.cs`<br>`Data/PlayerLevelDatabase.cs`<br>`Data/ExpRuleDatabase.cs`<br>`Data/NpcAttributeDatabase.cs`<br>`Data/CsvParserHelper.cs` | `Stats/ResourceStat.cs`<br>`Combat/CombatFormula.cs` |
 | **Sửa Giao diện / HUD / Hiệu ứng Cooldown** | `UI/PlayerHUD.cs`<br>`UI/SkillSlotUI.cs` | `Editor/PlayerHUDBuilder.cs` |
-| **Sửa Số nhảy Sát thương / Floating Text (Dame, Heal, Exp, Miss)** | `UI/FloatingTextManager.cs`<br>`UI/FloatingTextItem.cs`<br>`Data/FloatingTextDatabase.cs` | `Data/FloatingTextData.cs`<br>`Settings/N/FloatingText.csv` |
+| **Sửa Số nhảy Sát thương / Floating Text (Dame, Heal, Exp, Miss)** | `UI/FloatingTextManager.cs`<br>`UI/FloatingTextItem.cs`<br>`Data/FloatingTextDatabase.cs` | `Data/FloatingTextData.cs`<br>`Settings/GameData/Feedback/FloatingText.csv` |
 | **Sửa Âm thanh / Tiếng chém trúng / Voice** | `Audio/SoundManager.cs`<br>`Audio/SoundDatabase.cs` | `Audio/SoundData.cs` |
 | **Tạo Tool Editor mới hoặc chỉnh sửa Spawner** | `Enemy/EnemySpawnPoint.cs`<br>`Editor/EnemySpawnPointEditor.cs`<br>`Editor/NpcSpawnerBuilder.cs` | `Enemy/EnemyController.cs`<br>`NPC/NpcTemplateDatabase.cs` |
 
@@ -226,20 +226,20 @@ graph TD
 
 ### 5.3. Thứ tự nạp dữ liệu (Dependency Loading Order)
 Khi gọi `GameDatabase.EnsureLoaded()`, dữ liệu **phải** được nạp theo đúng trình tự sau để tránh `NullReferenceException`:
-1. `NpcAi` (`Settings/N/AI/*.ini`)
-2. `Sounds` (`Sound.csv`)
-3. `FloatingTexts` (`FloatingText.csv`)
-4. `PlayerLevels` (`PlayerLevel.csv`)
-5. `ExpRules` (`ExpRule.csv`)
-6. `Effects` (`EffectRes.csv`)
-7. `Missiles` (`Missile.csv`) $\rightarrow$ cần `EffectDatabase` để lấy đường dẫn VFX bay/nổ.
-8. `StateEffects` (`StateEffect.csv`) $\rightarrow$ cần `EffectDatabase`.
-9. `PartSlots` (`PartSlot.csv`)
-10. `FactionSkills` (`FactionSkill.csv`)
-11. `NpcRes` (`NpcRes.csv`)
-12. `NpcAttributes` (`NpcAttribute.csv`)
-13. `NpcTemplates` (`NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes`, `NpcAttribute` & `NpcAi`.
-14. `Skills` (`Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
+1. `NpcAi` (`Settings/GameData/AI/*.ini`)
+2. `Sounds` (`Settings/GameData/Feedback/Sound.csv`)
+3. `FloatingTexts` (`Settings/GameData/Feedback/FloatingText.csv`)
+4. `PlayerLevels` (`Settings/GameData/Progression/PlayerLevel.csv`)
+5. `ExpRules` (`Settings/GameData/Progression/ExpRule.csv`)
+6. `Effects` (`Settings/GameData/VFX_Slots/EffectRes.csv`)
+7. `Missiles` (`Settings/GameData/Combat/Missile.csv`) $\rightarrow$ cần `EffectDatabase` để lấy đường dẫn VFX bay/nổ.
+8. `StateEffects` (`Settings/GameData/VFX_Slots/StateEffect.csv`) $\rightarrow$ cần `EffectDatabase`.
+9. `PartSlots` (`Settings/GameData/VFX_Slots/PartSlot.csv`)
+10. `FactionSkills` (`Settings/GameData/Combat/FactionSkill.csv`)
+11. `NpcRes` (`Settings/GameData/NPC/NpcRes.csv`)
+12. `NpcAttributes` (`Settings/GameData/NPC/NpcAttribute.csv`)
+13. `NpcTemplates` (`Settings/GameData/NPC/NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes`, `NpcAttribute` & `NpcAi`.
+14. `Skills` (`Settings/GameData/Combat/Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
 
 ---
 

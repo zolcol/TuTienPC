@@ -40,8 +40,8 @@ namespace TopDownGame.Skills
             StateEffectDatabase.Instance.EnsureLoaded();
             MissileDatabase.Instance.EnsureLoaded();
 
-            string nSkillPath = Path.Combine(Application.dataPath, "Settings", "N", "Skill.csv");
-            string nActionEventPath = Path.Combine(Application.dataPath, "Settings", "N", "ActionEvent.csv");
+            string nSkillPath = GameDataPaths.SkillCsv;
+            string nActionEventPath = GameDataPaths.ActionEventCsv;
 
             if (File.Exists(nSkillPath) && File.Exists(nActionEventPath))
             {

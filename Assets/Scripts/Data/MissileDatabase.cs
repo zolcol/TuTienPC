@@ -75,7 +75,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "Missile.csv");
+            string filePath = GameDataPaths.MissileCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[MissileDatabase] ⚠️ Không tìm thấy file tại: {filePath}");

@@ -41,7 +41,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "FloatingText.csv");
+            string filePath = GameDataPaths.FloatingTextCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[FloatingTextDatabase] ⚠️ Không tìm thấy file tại: {filePath}. Tạo fallback data mặc định.");

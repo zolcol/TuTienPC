@@ -22,8 +22,8 @@ namespace TopDownGame.Editor
 
         private void OnGUI()
         {
-            GUILayout.Label("👾 Tạo Quái / NPC từ Database Chuẩn (Settings/N)", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("Công cụ tự động nạp Template từ Settings/N/NpcTemplate.csv, liên kết NpcRes (Model, Kích thước) và NpcAttribute (Máu, Công Level 1).", MessageType.Info);
+            GUILayout.Label("👾 Tạo Quái / NPC từ Database Chuẩn (Settings/GameData)", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Công cụ tự động nạp Template từ Settings/GameData/NPC/NpcTemplate.csv, liên kết NpcRes (Model, Kích thước) và NpcAttribute (Máu, Công Level 1).", MessageType.Info);
 
             EditorGUILayout.Space(10);
             selectedNpcId = EditorGUILayout.IntField("Nhập NPC ID:", selectedNpcId);

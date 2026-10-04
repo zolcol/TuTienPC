@@ -38,7 +38,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "PartSlot.csv");
+            string filePath = GameDataPaths.PartSlotCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[PartSlotDatabase] ⚠️ Không tìm thấy file tại: {filePath}");

@@ -89,7 +89,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "NpcAttribute.csv");
+            string filePath = GameDataPaths.NpcAttributeCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[NpcAttributeDatabase] ⚠️ Không tìm thấy file tại: {filePath}");

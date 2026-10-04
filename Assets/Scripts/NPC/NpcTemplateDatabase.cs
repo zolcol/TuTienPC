@@ -38,8 +38,8 @@ namespace TopDownGame.NPC
             NpcResDatabase.Instance.EnsureLoaded();
             NpcAttributeDatabase.Instance.EnsureLoaded();
 
-            string nTemplatePath = Path.Combine(Application.dataPath, "Settings", "N", "NpcTemplate.csv");
-            string nCharacterPath = Path.Combine(Application.dataPath, "Settings", "N", "Character.csv");
+            string nTemplatePath = GameDataPaths.NpcTemplateCsv;
+            string nCharacterPath = GameDataPaths.CharacterCsv;
 
             if (File.Exists(nTemplatePath))
             {

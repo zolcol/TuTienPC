@@ -66,7 +66,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "EffectRes.csv");
+            string filePath = GameDataPaths.EffectResCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[EffectDatabase] ⚠️ Không tìm thấy file tại: {filePath}");

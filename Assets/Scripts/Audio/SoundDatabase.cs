@@ -38,9 +38,7 @@ namespace TopDownGame.Audio
         {
             Clear();
 
-            string nSoundPath = Path.Combine(Application.dataPath, "Settings", "N", "Sound.csv");
-            string legacySoundPath = Path.Combine(Application.dataPath, "Settings", "Sound.csv");
-            string targetPath = File.Exists(nSoundPath) ? nSoundPath : (File.Exists(legacySoundPath) ? legacySoundPath : "");
+            string targetPath = GameDataPaths.SoundCsv;
 
             string csvContent = "";
             if (!string.IsNullOrEmpty(targetPath))

@@ -50,7 +50,7 @@ namespace TopDownGame.Data
         {
             Clear();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "FactionSkill.csv");
+            string filePath = GameDataPaths.FactionSkillCsv;
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning($"[FactionSkillDatabase] ⚠️ Không tìm thấy file tại: {filePath}");

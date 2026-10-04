@@ -51,7 +51,7 @@ namespace TopDownGame.Data
             Clear();
             EffectDatabase.Instance.EnsureLoaded();
 
-            string filePath = Path.Combine(Application.dataPath, "Settings", "N", "StateEffect.csv");
+            string filePath = GameDataPaths.StateEffectCsv;
             if (File.Exists(filePath))
             {
                 try

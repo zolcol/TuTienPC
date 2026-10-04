@@ -39,7 +39,7 @@ namespace TopDownGame.Data
             aiProfiles["commonactive"] = NpcAiData.CreateDefaultActive();
             aiProfiles["commonpassive"] = NpcAiData.CreateDefaultPassive();
 
-            string dirPath = Path.Combine(Application.dataPath, "Settings", "N", "AI");
+            string dirPath = GameDataPaths.GetAiIniDirectory();
             if (!Directory.Exists(dirPath))
             {
                 Debug.LogWarning($"[NpcAiDatabase] ⚠️ Không tìm thấy thư mục: {dirPath}");
