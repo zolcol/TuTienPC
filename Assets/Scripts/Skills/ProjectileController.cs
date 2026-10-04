@@ -179,7 +179,14 @@ namespace TopDownGame.Skills
             {
                 if (EffectManager.Instance != null)
                 {
-                    EffectManager.Instance.RecycleEffect(flyingEffectInstance);
+                    if (flyingEffectInstance.transform.parent != transform)
+                    {
+                        EffectManager.Instance.RecycleEffect(flyingEffectInstance);
+                    }
+                    else
+                    {
+                        flyingEffectInstance.SetActive(false);
+                    }
                 }
                 flyingEffectInstance = null;
             }
@@ -586,20 +593,23 @@ namespace TopDownGame.Skills
                 EffectManager.Instance.SpawnEffect(missileData.VanishEffectPath, explosionPos, Quaternion.identity, null, 1.5f);
             }
 
+            // Tách flying effect khỏi missile để hạt vfx tự tan mà không bị ảnh hưởng bởi missile disable
+            if (flyingEffectInstance != null)
+            {
+                flyingEffectInstance.transform.SetParent(null);
+                var particles = flyingEffectInstance.GetComponentsInChildren<ParticleSystem>();
+                for (int i = 0; i < particles.Length; i++)
+                {
+                    particles[i].Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                }
+            }
+
             float delaySec = (missileData != null && missileData.delayDeleteFrame > 0f)
                 ? (missileData.delayDeleteFrame / 15.0f)
                 : 0f;
 
             if (delaySec > 0.01f)
             {
-                if (flyingEffectInstance != null)
-                {
-                    var particles = flyingEffectInstance.GetComponentsInChildren<ParticleSystem>();
-                    for (int i = 0; i < particles.Length; i++)
-                    {
-                        particles[i].Stop(true, ParticleSystemStopBehavior.StopEmitting);
-                    }
-                }
                 StartCoroutine(RecycleAfterDelay(delaySec));
             }
             else

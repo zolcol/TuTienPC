@@ -369,7 +369,17 @@ namespace TopDownGame.Combat
 
                 pooled.StopEffects();
 
-                effectInstance.transform.SetParent(transform);
+                if (effectInstance.transform.parent != transform)
+                {
+                    try
+                    {
+                        effectInstance.transform.SetParent(transform);
+                    }
+                    catch (System.Exception)
+                    {
+                        // Bỏ qua nếu parent đang trong chu trình active/deactive của Unity
+                    }
+                }
                 effectInstance.SetActive(false);
 
                 if (!string.IsNullOrEmpty(pooled.PoolKey))
