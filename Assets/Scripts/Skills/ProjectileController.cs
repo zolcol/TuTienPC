@@ -25,6 +25,7 @@ namespace TopDownGame.Skills
 
         public float Speed => speed;
         public float CollisionRadius => collisionRadius;
+        public float HitHeightOffset => collisionRadius > 0f ? collisionRadius : 0.6f;
 
         private Transform caster;
         private EntityStats casterStats;
@@ -39,11 +40,13 @@ namespace TopDownGame.Skills
         private float lifeTimer;
         private float flyTimer;
         private bool isInitialized = false;
+        private bool isDestroying = false;
         private GameObject flyingEffectInstance;
         private readonly Dictionary<IDamageable, float> lastHitTimes = new Dictionary<IDamageable, float>();
         private int bouncesRemaining = 0;
         private float bounceRadius = 10f;
-        private bool isDestroying = false;
+
+        #region Lifecycle & Initialization
 
         public void Launch(
             Transform caster,
@@ -64,37 +67,41 @@ namespace TopDownGame.Skills
 
             this.skillId = skill != null ? skill.id : 0;
             this.missileId = missile != null ? missile.missileId : 0;
-            this.damage = (skill != null && skill.IsHeal) ? skill.CalculateHeal(casterStats) : (skill != null ? skill.CalculateDamage(casterStats) : 20f);
+            this.damage = (skill != null && skill.IsHeal) 
+                ? skill.CalculateHeal(casterStats) 
+                : (skill != null ? skill.CalculateDamage(casterStats) : 20f);
 
             this.moveDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : caster.forward;
             this.speed = missile != null ? missile.SpeedInUnitsPerSec : 10f;
             this.collisionRadius = missile != null ? missile.CollisionRadius : 0.6f;
-            this.maxDistance = skill != null && skill.range > 0f ? skill.range : (missile != null && missile.dmgRange > 0f ? (missile.dmgRange / 10f) : 15f);
+            this.maxDistance = skill != null && skill.range > 0f 
+                ? skill.range 
+                : (missile != null && missile.dmgRange > 0f ? (missile.dmgRange / 10f) : 15f);
             this.lifeTimer = missile != null ? missile.LifeTimeInSeconds : 2.5f;
             this.distanceTraveled = 0f;
             this.flyTimer = 0f;
 
-            // Thiết lập nảy bật liên hoàn (MissileForm = 4 theo DATA_CONVENTIONS.md Mục 2)
+            // Thiết lập nảy bật liên hoàn (MissileForm = 4)
             this.bouncesRemaining = (skill != null && skill.missileForm == 4 && skill.skillParam1 > 0) ? (int)skill.skillParam1 : 0;
             this.bounceRadius = (skill != null && skill.skillParam3 > 0) ? (skill.skillParam3 / 100f) : 10f;
 
             transform.position = startPos;
             transform.rotation = Quaternion.LookRotation(this.moveDirection);
 
-            // Nạp và gắn hiệu ứng đạn bay (MissileResID)
+            // Nạp hiệu ứng và âm thanh bay
             string flyEffect = missile != null ? missile.FlyEffectPath : "";
             if (!string.IsNullOrEmpty(flyEffect))
             {
                 flyingEffectInstance = EffectManager.Instance.SpawnEffect(flyEffect, transform.position, transform.rotation, transform, 0f);
             }
 
-            // Phát âm thanh đạn bay nếu có cấu hình (FlySoundID)
             if (missile != null && missile.flySoundID > 0)
             {
                 SoundManager.Instance.PlaySound(missile.flySoundID, transform);
             }
 
             isInitialized = true;
+            isDestroying = false;
         }
 
         private void Update()
@@ -109,49 +116,23 @@ namespace TopDownGame.Skills
                 return;
             }
 
-            // 0. Chu kỳ kích hoạt Sub-Skill theo nhịp đạn bay (FlySkillId & FlyEventInterval)
-            if (skillData != null && skillData.HasFlySkill && skillData.flyEventInterval > 0)
-            {
-                flyTimer += dt;
-                float intervalSec = skillData.FlyEventIntervalInSeconds;
-                if (intervalSec > 0f && flyTimer >= intervalSec)
-                {
-                    flyTimer -= intervalSec;
-                    TriggerFlySkill();
-                }
-            }
+            // Kích hoạt Sub-Skill theo nhịp bay
+            UpdateFlySkill(dt);
 
-            // 1. Tự động bẻ lái uốn lượn bám theo mục tiêu (Homing / Target tracking theo DATA_CONVENTIONS.md: MoveKind = 2)
-            bool isHoming = missileData != null && (missileData.moveKind == MissileMoveKind.HomingTracking || (int)missileData.moveKind == 2 || missileData.isFollowTarget);
-            if (isHoming && homingTarget != null)
-            {
-                Vector3 toTarget = (homingTarget.position - transform.position);
-                toTarget.y = 0f;
-                if (toTarget.sqrMagnitude > 0.001f)
-                {
-                    moveDirection = Vector3.RotateTowards(moveDirection, toTarget.normalized, 8f * dt, 0f);
-                    transform.rotation = Quaternion.LookRotation(moveDirection);
-                }
-            }
+            // Cập nhật gia tốc & bẻ lái Homing
+            UpdateTrajectory(dt);
 
-            // 1.5 Gia tốc tăng tốc khi bay (Acceleration = AcceSpeed / 10.0f m/s^2)
-            if (missileData != null && missileData.acceSpeed > 0f)
-            {
-                speed += missileData.AccelerationInUnitsPerSec2 * dt;
-            }
-
-            // 2. Tính toán bước di chuyển & va chạm
+            // Tính toán bước di chuyển & kiểm tra va chạm
             float stepDistance = speed * dt;
             Vector3 currentPos = transform.position;
             Vector3 nextPos = currentPos + moveDirection * stepDistance;
 
-            // 3. Quét va chạm liên tục (Continuous Collision Detection)
             if (CheckCollision(currentPos, nextPos, stepDistance))
             {
                 return;
             }
 
-            // 4. Cập nhật vị trí
+            // Di chuyển tiếp nếu chưa chạm đích
             if (speed > 0f)
             {
                 transform.position = nextPos;
@@ -164,12 +145,55 @@ namespace TopDownGame.Skills
             }
         }
 
+        #endregion
+
+        #region Trajectory & Movement
+
+        private void UpdateTrajectory(float dt)
+        {
+            // Bẻ lái bám mục tiêu (Homing / Target tracking)
+            bool isHoming = missileData != null && (missileData.moveKind == MissileMoveKind.HomingTracking || (int)missileData.moveKind == 2 || missileData.isFollowTarget);
+            if (isHoming && homingTarget != null)
+            {
+                Vector3 toTarget = homingTarget.position - transform.position;
+                toTarget.y = 0f;
+                if (toTarget.sqrMagnitude > 0.001f)
+                {
+                    moveDirection = Vector3.RotateTowards(moveDirection, toTarget.normalized, 8f * dt, 0f);
+                    transform.rotation = Quaternion.LookRotation(moveDirection);
+                }
+            }
+
+            // Tăng tốc đạn bay nếu có cấu hình gia tốc
+            if (missileData != null && missileData.acceSpeed > 0f)
+            {
+                speed += missileData.AccelerationInUnitsPerSec2 * dt;
+            }
+        }
+
+        private void UpdateFlySkill(float dt)
+        {
+            if (skillData == null || !skillData.HasFlySkill || skillData.flyEventInterval <= 0) return;
+
+            flyTimer += dt;
+            float intervalSec = skillData.FlyEventIntervalInSeconds;
+            if (intervalSec > 0f && flyTimer >= intervalSec)
+            {
+                flyTimer -= intervalSec;
+                TriggerFlySkill();
+            }
+        }
+
+        #endregion
+
+        #region Collision & Hit Resolution
+
         private bool CheckCollision(Vector3 fromPos, Vector3 toPos, float stepDistance)
         {
             Vector3 castOrigin = fromPos + Vector3.up * HitHeightOffset;
             Vector3 targetCenter = toPos + Vector3.up * HitHeightOffset;
 
-            // A. Quét hình cầu dọc đường đạn (SphereCast) khi đạn di chuyển
+            // 1. Quét hình cầu dọc đường bay (SphereCast)
             if (stepDistance > 0.001f)
             {
                 int hitCount = Physics.SphereCastNonAlloc(castOrigin, collisionRadius, moveDirection, raycastBuffer, stepDistance, targetLayer);
@@ -181,38 +205,14 @@ namespace TopDownGame.Skills
                     Vector3 hitPoint = hit.point != Vector3.zero ? hit.point : CombatFormula.GetSafeClosestPoint(hit.collider, castOrigin);
                     if (hitPoint == Vector3.zero) hitPoint = targetCenter;
 
-                    if (ProcessHit(hit.collider, hitPoint, moveDirection))
+                    if (HandleHitTarget(hit.collider, hitPoint, fromPos))
                     {
-                        // Cơ chế nảy đạn liên hoàn (ChainBouncing)
-                        if (bouncesRemaining > 0)
-                        {
-                            Transform nextTarget = FindNextBounceTarget(hitPoint, hit.collider);
-                            if (nextTarget != null)
-                            {
-                                bouncesRemaining--;
-                                homingTarget = nextTarget;
-                                Vector3 toNext = (nextTarget.position - transform.position);
-                                toNext.y = 0f;
-                                moveDirection = toNext.sqrMagnitude > 0.001f ? toNext.normalized : moveDirection;
-                                transform.position = new Vector3(hitPoint.x, fromPos.y, hitPoint.z);
-                                transform.rotation = Quaternion.LookRotation(moveDirection);
-                                distanceTraveled = 0f;
-                                return false; // Tiếp tục bay sang mục tiêu kế tiếp
-                            }
-                        }
-
-                        // Kiểm tra xem đạn có tự hủy khi trúng đích hay tiếp tục xuyên thấu
-                        bool shouldVanish = missileData != null && missileData.ShouldVanishOnHit;
-                        if (shouldVanish)
-                        {
-                            ExplodeAndDestroy(hitPoint, true);
-                            return true;
-                        }
+                        return true;
                     }
                 }
             }
 
-            // B. Quét điểm tiếp xúc tại đích (OverlapSphere fallback)
+            // 2. Quét điểm tiếp xúc tại đích (OverlapSphere fallback)
             int overlapCount = Physics.OverlapSphereNonAlloc(targetCenter, collisionRadius, overlapBuffer, targetLayer);
             for (int i = 0; i < overlapCount; i++)
             {
@@ -222,37 +222,99 @@ namespace TopDownGame.Skills
                 Vector3 hitPoint = CombatFormula.GetSafeClosestPoint(col, targetCenter);
                 if (hitPoint == Vector3.zero) hitPoint = targetCenter;
 
-                if (ProcessHit(col, hitPoint, moveDirection))
+                if (HandleHitTarget(col, hitPoint, fromPos))
                 {
-                    // Cơ chế nảy đạn liên hoàn (ChainBouncing)
-                    if (bouncesRemaining > 0)
-                    {
-                        Transform nextTarget = FindNextBounceTarget(hitPoint, col);
-                        if (nextTarget != null)
-                        {
-                            bouncesRemaining--;
-                            homingTarget = nextTarget;
-                            Vector3 toNext = (nextTarget.position - transform.position);
-                            toNext.y = 0f;
-                            moveDirection = toNext.sqrMagnitude > 0.001f ? toNext.normalized : moveDirection;
-                            transform.position = new Vector3(hitPoint.x, fromPos.y, hitPoint.z);
-                            transform.rotation = Quaternion.LookRotation(moveDirection);
-                            distanceTraveled = 0f;
-                            return false;
-                        }
-                    }
-
-                    // Kiểm tra xem đạn có tự hủy khi trúng đích hay tiếp tục xuyên thấu
-                    bool shouldVanish = missileData != null && missileData.ShouldVanishOnHit;
-                    if (shouldVanish)
-                    {
-                        ExplodeAndDestroy(hitPoint, true);
-                        return true;
-                    }
+                    return true;
                 }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Xử lý trúng mục tiêu, nảy đạn liên hoàn hoặc tự hủy đạn
+        /// </summary>
+        private bool HandleHitTarget(Collider col, Vector3 hitPoint, Vector3 currentPos)
+        {
+            if (!ProcessHit(col, hitPoint, moveDirection)) return false;
+
+            // Cơ chế nảy đạn liên hoàn (Chain Bouncing)
+            if (bouncesRemaining > 0)
+            {
+                Transform nextTarget = FindNextBounceTarget(hitPoint, col);
+                if (nextTarget != null)
+                {
+                    bouncesRemaining--;
+                    homingTarget = nextTarget;
+                    Vector3 toNext = nextTarget.position - transform.position;
+                    toNext.y = 0f;
+                    moveDirection = toNext.sqrMagnitude > 0.001f ? toNext.normalized : moveDirection;
+                    transform.position = new Vector3(hitPoint.x, currentPos.y, hitPoint.z);
+                    transform.rotation = Quaternion.LookRotation(moveDirection);
+                    distanceTraveled = 0f;
+                    return false; // Tiếp tục bay đến mục tiêu kế tiếp
+                }
+            }
+
+            // Tự hủy khi trúng đích nếu cấu hình VanishOnHit
+            if (missileData != null && missileData.ShouldVanishOnHit)
+            {
+                ExplodeAndDestroy(hitPoint, true);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool ProcessHit(Collider col, Vector3 hitPoint, Vector3 hitDir)
+        {
+            if (col == null || (caster != null && col.gameObject == caster.gameObject)) return false;
+
+            float repeatInterval = (missileData != null && missileData.canRepeatDmg && missileData.dmgInterval > 0f)
+                ? (missileData.dmgInterval / 15.0f)
+                : 0f;
+
+            bool isHitSuccess = false;
+
+            if (skillData != null && skillData.IsHeal)
+            {
+                isHitSuccess = TryApplyHeal(col, repeatInterval);
+            }
+            else
+            {
+                isHitSuccess = SkillDamageResolver.ApplyDamage(col, damage, hitPoint, hitDir, caster, lastHitTimes, repeatInterval);
+            }
+
+            if (isHitSuccess)
+            {
+                PlayHitFeedback(hitPoint, col);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryApplyHeal(Collider col, float repeatInterval)
+        {
+            bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
+            bool isTargetPlayer = col.CompareTag(CombatLayersAndTags.TagPlayer) || col.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
+
+            if (isCasterPlayer != isTargetPlayer) return false;
+
+            var targetStats = col.GetComponent<EntityStats>() ?? col.GetComponentInParent<EntityStats>();
+            if (targetStats == null || targetStats.IsDead) return false;
+
+            if (lastHitTimes.TryGetValue(targetStats, out float lastTime))
+            {
+                if (repeatInterval <= 0f || (Time.time - lastTime) < repeatInterval)
+                {
+                    return false;
+                }
+            }
+
+            lastHitTimes[targetStats] = Time.time;
+            targetStats.Heal(damage);
+            return true;
         }
 
         private Transform FindNextBounceTarget(Vector3 origin, Collider currentHit)
@@ -260,6 +322,7 @@ namespace TopDownGame.Skills
             int count = Physics.OverlapSphereNonAlloc(origin, bounceRadius, overlapBuffer, targetLayer);
             Transform best = null;
             float closestDist = float.MaxValue;
+            bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
 
             for (int i = 0; i < count; i++)
             {
@@ -272,7 +335,6 @@ namespace TopDownGame.Skills
                     if (dmg is EntityStats stats && stats.IsDead) continue;
                     if (dmg is Component comp)
                     {
-                        bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
                         bool isTargetPlayer = comp.CompareTag(CombatLayersAndTags.TagPlayer) || comp.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
                         if (isCasterPlayer == isTargetPlayer) continue;
 
@@ -289,71 +351,37 @@ namespace TopDownGame.Skills
             return best;
         }
 
-        private bool ProcessHit(Collider col, Vector3 hitPoint, Vector3 hitDir)
+        #endregion
+
+        #region Sub-Skills & Feedback
+
+        private void PlayHitFeedback(Vector3 hitPoint, Collider hitCol)
         {
-            if (col == null || (caster != null && col.gameObject == caster.gameObject)) return false;
-
-            // Nhịp lặp sát thương (DmgInterval tính theo chuẩn 15 FPS: DmgInterval / 15.0f)
-            float repeatInterval = (missileData != null && missileData.canRepeatDmg && missileData.dmgInterval > 0f)
-                ? (missileData.dmgInterval / 15.0f)
-                : 0f;
-
-            bool isHitSuccess = false;
-
-            if (skillData != null && skillData.IsHeal)
+            // VFX trúng đích
+            if (missileData != null && !string.IsNullOrEmpty(missileData.HitEffectPath))
             {
-                bool isCasterPlayer = caster != null && (caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null);
-                bool isTargetPlayer = col.CompareTag(CombatLayersAndTags.TagPlayer) || col.GetComponentInParent<TopDownGame.Player.PlayerController>() != null;
+                EffectManager.Instance.SpawnEffect(missileData.HitEffectPath, hitPoint, Quaternion.identity, null, 2.0f);
+            }
 
-                if (isCasterPlayer == isTargetPlayer)
+            // Âm thanh trúng đích
+            if (missileData != null && missileData.collSoundID > 0)
+            {
+                SoundManager.Instance.PlaySoundAtPosition(missileData.collSoundID, hitPoint);
+            }
+
+            // Kích hoạt chiêu phụ trúng đích (HitSkillID)
+            if (skillData != null && skillData.HasHitSkill)
+            {
+                SkillData hitSkill = SkillDatabase.GetSkill(skillData.hitSkillId);
+                if (hitSkill != null && hitSkill.id != skillData.id)
                 {
-                    var targetStats = col.GetComponent<EntityStats>() ?? col.GetComponentInParent<EntityStats>();
-                    if (targetStats != null && !targetStats.IsDead)
+                    if (hitSkill.HasSound && SoundManager.Instance != null)
                     {
-                        if (lastHitTimes.TryGetValue(targetStats, out float lastTime))
-                        {
-                            if (repeatInterval <= 0f || (Time.time - lastTime) < repeatInterval)
-                            {
-                                return false;
-                            }
-                        }
-                        lastHitTimes[targetStats] = Time.time;
-                        targetStats.Heal(damage);
-                        isHitSuccess = true;
+                        SoundManager.Instance.PlaySkillSound(hitSkill, hitCol.transform);
                     }
+                    SkillDamageResolver.CastDamage(caster, casterStats, hitSkill, targetLayer, hitCol.transform, hitPoint);
                 }
             }
-            else
-            {
-                isHitSuccess = SkillDamageResolver.ApplyDamage(col, damage, hitPoint, hitDir, caster, lastHitTimes, repeatInterval);
-            }
-
-            if (isHitSuccess)
-            {
-                // Hiệu ứng nổ / va chạm khi trúng đích (CollResID)
-                SpawnHitEffect(hitPoint);
-
-                // Âm thanh khi chạm trúng đích (CollSoundID)
-                PlayHitSound(hitPoint);
-
-                // Kích hoạt chiêu phụ khi đánh trúng mục tiêu (HitSkillID)
-                if (skillData != null && skillData.HasHitSkill)
-                {
-                    SkillData hitSkill = SkillDatabase.GetSkill(skillData.hitSkillId);
-                    if (hitSkill != null && hitSkill.id != skillData.id)
-                    {
-                        if (hitSkill.HasSound && SoundManager.Instance != null)
-                        {
-                            SoundManager.Instance.PlaySkillSound(hitSkill, col.transform);
-                        }
-                        SkillDamageResolver.CastDamage(caster, casterStats, hitSkill, targetLayer, col.transform, hitPoint);
-                    }
-                }
-
-                return true;
-            }
-
-            return false;
         }
 
         private void TriggerFlySkill()
@@ -371,23 +399,22 @@ namespace TopDownGame.Skills
             SkillDamageResolver.CastDamage(caster, casterStats, flySkill, targetLayer, target, targetPt);
         }
 
-        private void SpawnHitEffect(Vector3 hitPoint)
+        private void TriggerVanishedSkill(Vector3 explosionPos)
         {
-            string hitEffectPath = missileData != null ? missileData.HitEffectPath : "";
-            if (!string.IsNullOrEmpty(hitEffectPath))
+            if (skillData == null || !skillData.HasVanishedSkill) return;
+            SkillData vanishSkill = SkillDatabase.GetSkill(skillData.vanishedSkillId);
+            if (vanishSkill == null || vanishSkill.id == skillData.id) return;
+
+            if (vanishSkill.HasSound && SoundManager.Instance != null)
             {
-                EffectManager.Instance.SpawnEffect(hitEffectPath, hitPoint, Quaternion.identity, null, 2.0f);
+                SoundManager.Instance.PlaySoundAtPosition(vanishSkill.playsound, explosionPos);
             }
+            SkillDamageResolver.CastDamage(caster, casterStats, vanishSkill, targetLayer, homingTarget, explosionPos);
         }
 
-        private void PlayHitSound(Vector3 hitPoint)
-        {
-            int soundId = missileData != null ? missileData.collSoundID : -1;
-            if (soundId > 0)
-            {
-                SoundManager.Instance.PlaySoundAtPosition(soundId, hitPoint);
-            }
-        }
+        #endregion
+
+        #region Explosion & Recycle
 
         private void ExplodeAndDestroy(Vector3 explosionPos, bool hasHitTarget = true)
         {
@@ -395,21 +422,10 @@ namespace TopDownGame.Skills
             isDestroying = true;
             isInitialized = false;
 
-            // Kích hoạt chiêu phụ khi đạn tan biến / hết hạn (VanishedSkillId)
-            if (skillData != null && skillData.HasVanishedSkill)
-            {
-                SkillData vanishSkill = SkillDatabase.GetSkill(skillData.vanishedSkillId);
-                if (vanishSkill != null && vanishSkill.id != skillData.id)
-                {
-                    if (vanishSkill.HasSound && SoundManager.Instance != null)
-                    {
-                        SoundManager.Instance.PlaySoundAtPosition(vanishSkill.playsound, explosionPos);
-                    }
-                    SkillDamageResolver.CastDamage(caster, casterStats, vanishSkill, targetLayer, homingTarget, explosionPos);
-                }
-            }
+            // Kích hoạt chiêu phụ khi đạn tan biến
+            TriggerVanishedSkill(explosionPos);
 
-            // Nếu đạn tan biến khi hết tầm bay mà không chạm ai, sinh hiệu ứng VanishResID nếu có
+            // VFX tan biến khi hết hạn bay
             if (!hasHitTarget && missileData != null && !string.IsNullOrEmpty(missileData.VanishEffectPath))
             {
                 EffectManager.Instance.SpawnEffect(missileData.VanishEffectPath, explosionPos, Quaternion.identity, null, 1.5f);
@@ -421,7 +437,6 @@ namespace TopDownGame.Skills
 
             if (delaySec > 0.01f)
             {
-                // Dừng phát hạt mới để vệt khói/hiệu ứng tan tự nhiên
                 if (flyingEffectInstance != null)
                 {
                     var particles = flyingEffectInstance.GetComponentsInChildren<ParticleSystem>();
@@ -465,11 +480,7 @@ namespace TopDownGame.Skills
             ProjectilePool.Instance.Release(this);
         }
 
-        /// <summary>
-        /// Độ cao tâm quả cầu va chạm: Lấy bằng chính bán kính va chạm (collisionRadius)
-        /// để đáy quả cầu luôn tiếp xúc vừa chạm mặt đất (Y_bottom = 0), không bị chìm xuống lòng đất
-        /// </summary>
-        public float HitHeightOffset => collisionRadius > 0f ? collisionRadius : 0.6f;
+        #endregion
 
         private void OnDrawGizmos()
         {

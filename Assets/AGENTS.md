@@ -37,6 +37,13 @@
    * Tag/Layer Người chơi: `"Player"` (Layer 3/Default tùy project).
    * Tag/Layer Quái vật: `"Enemy"` (Layer 6).
    * Khi tạo Enemy phải gán đệ quy tag & layer cho cả root lẫn toàn bộ bone/mesh con.
+6. **Quản lý biến/bộ nhớ Static & Domain Reload (Editor Play Mode):**
+   * Mọi class có dữ liệu `static` (Database cache, Object Pool, Singleton instance, static Events/Action delegate) **bắt buộc** phải có hàm dọn dẹp/reset gắn attribute:
+     ```csharp
+     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+     private static void ResetStaticData() { /* Clear cache/events/instances */ }
+     ```
+   * Đảm bảo không bị rò rỉ dữ liệu (leaked state/events) khi bật chế độ *Enter Play Mode Options* (tắt Domain Reload) trong Unity Editor.
 
 ---
 
@@ -251,3 +258,4 @@ Khi gọi `GameDatabase.EnsureLoaded()`, dữ liệu **phải** được nạp t
 * ❌ **KHÔNG** dùng `Physics.OverlapSphere` (sinh rác GC). Luôn dùng phiên bản NonAlloc với bộ đệm tĩnh: `Physics.OverlapSphereNonAlloc(..., hitBuffer, ...)`.
 * ❌ **KHÔNG** xóa bỏ hàm gán Tag/Layer đệ quy khi tạo quái. Nếu các GameObject con chứa Mesh/Collider không mang layer `Enemy`, `PlayerAiming` và `SkillDamageResolver` sẽ bỏ qua mục tiêu.
 * ❌ **KHÔNG** tạo `LegacyAnimationController` trước khi nạp Model Prefab con khi sinh quái động (Dynamic Spawn). Phải nạp Model Prefab con trước hoặc gọi `AutoFindAnimationComponents()` sau khi gắn model và luôn đặt `Animation.cullingType = AnimationCullingType.AlwaysAnimate` để tránh mất animation ngoài frustum camera.
+* ❌ **KHÔNG** quên reset các trường `static` (Singletons, Caches, Events). Phải luôn khai báo hàm `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]` để dọn dẹp biến static tránh lỗi logic khi lặp lại Play Mode trong Editor.
