@@ -87,7 +87,6 @@ namespace TopDownGame.Data
                 }
 
                 IsLoaded = true;
-                Debug.Log($"[ExpRuleDatabase] ✅ Đã nạp ma trận ExpRule ({loadedRows} hàng Player Lv, Max Monster Lv: {maxMonsterLevel}).");
             }
             catch (Exception ex)
             {

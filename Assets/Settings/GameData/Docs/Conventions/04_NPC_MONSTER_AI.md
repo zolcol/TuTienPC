@@ -83,7 +83,29 @@ Bảng `NpcTemplate.csv` là bảng trung tâm chứa **toàn bộ** entity tron
 
 ---
 
-## 15. CHI TIẾT BẢNG `NpcAttribute.csv` & `MagicDesc.csv`
+## 15. CHI TIẾT BẢNG `NpcStats.csv` (Chỉ Số Chiến Đấu Tùy Biến Player & NPC)
+
+Bảng `NpcStats.csv` được tạo ra để quản lý trực tiếp bộ chỉ số cơ bản của cả Player (ID = 0) và NPC/Quái vật theo `TemplateID`, thay thế hoặc ghi đè dữ liệu gốc từ `NpcAttribute.csv`:
+
+| Tên Cột | Kiểu Dữ Liệu | Mặc Định Khi Trống | Ý Nghĩa / Ánh Xạ Trong C# `EntityStats` |
+| :--- | :---: | :---: | :--- |
+| **`Id`** *(Khóa)* | `int` | *Bắt buộc* | `0` = Player, `> 0` = TemplateID của NPC / Quái vật. |
+| **`Name`** | `string` | `""` | Tên gợi nhớ. |
+| **`MaxHp`** | `float` / `{Lv,Val}` | `100` | Sinh lực tối đa $\rightarrow$ `health.SetMaxValue(...)`. Hỗ trợ scale `{1,100;50,2000}`. |
+| **`MaxMp`** | `float` / `{Lv,Val}` | `0` | Nội lực / Mana tối đa $\rightarrow$ `mana.SetMaxValue(...)`. |
+| **`PhysicalDamage`**| `float` / `{Lv,Val}` | `20` | Sát thương vật lý $\rightarrow$ `SetPhysicalDamage(...)`. |
+| **`MagicDamage`** | `float` / `{Lv,Val}` | `0` | Sát thương phép $\rightarrow$ `SetMagicDamage(...)`. |
+| **`Armor`** | `float` / `{Lv,Val}` | `0` | Giáp giảm sát thương vật lý $\rightarrow$ `SetArmor(...)`. |
+| **`MagicResist`** | `float` / `{Lv,Val}` | `0` | Kháng phép $\rightarrow$ `SetMagicResist(...)`. |
+| **`AttackSpeed`** | `float` / `{Lv,Val}` | `15` | Tốc độ xuất chiêu cơ bản (chuẩn 15 FPS) $\rightarrow$ `SetAttackSpeed(...)`. |
+| **`CritChance`** | `float` / `{Lv,Val}` | `5` | Tỉ lệ chí mạng (%) $\rightarrow$ `SetCritRate(...)`. |
+| **`CritMultiplier`**| `float` / `{Lv,Val}` | `150` | Sát thương chí mạng (%) $\rightarrow$ `SetCritDamage(...)`. |
+| **`HpRegen`** | `float` / `{Lv,Val}` | `0` | Hồi máu mỗi giây $\rightarrow$ `health.SetRegenRate(...)`. |
+| **`MpRegen`** | `float` / `{Lv,Val}` | `0` | Hồi mana mỗi giây $\rightarrow$ `mana.SetRegenRate(...)`. |
+
+---
+
+## 16. CHI TIẾT BẢNG `NpcAttribute.csv` & `MagicDesc.csv` (Dữ Liệu Thuộc Tính Cũ)
 
 Toàn bộ tên thuộc tính ánh xạ chuẩn theo [MagicDesc.csv](file:///C:/Users/zolcol/Desktop/Data/CSV/N/MagicDesc.csv):
 

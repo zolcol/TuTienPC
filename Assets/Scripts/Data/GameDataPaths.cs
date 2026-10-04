@@ -49,6 +49,7 @@ namespace TopDownGame.Data
 
         public static string NpcTemplateCsv => GetFilePath("NPC", "NpcTemplate.csv");
         public static string CharacterCsv => GetFilePath("NPC", "Character.csv");
+        public static string NpcStatsCsv => GetFilePath("NPC", "NpcStats.csv");
         public static string NpcAttributeCsv => GetFilePath("NPC", "NpcAttribute.csv");
         public static string NpcResCsv => GetFilePath("NPC", "NpcRes.csv");
         public static string FieldHeaderBossCsv => GetFilePath("NPC", "Field_HeaderBoss.csv");

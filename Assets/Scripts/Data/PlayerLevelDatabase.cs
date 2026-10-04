@@ -86,7 +86,6 @@ namespace TopDownGame.Data
                 }
 
                 IsLoaded = true;
-                Debug.Log($"[PlayerLevelDatabase] ✅ Đã nạp {levels.Count} cấp độ nhân vật (Max Lv: {maxLevel}).");
             }
             catch (Exception ex)
             {

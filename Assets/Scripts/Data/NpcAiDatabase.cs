@@ -56,7 +56,6 @@ namespace TopDownGame.Data
                 }
 
                 IsLoaded = true;
-                Debug.Log($"[NpcAiDatabase] ✅ Đã nạp {aiProfiles.Count} cấu hình AI từ: {dirPath}");
             }
             catch (Exception ex)
             {

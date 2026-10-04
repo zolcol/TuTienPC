@@ -11,7 +11,7 @@
 | **01** | [**01_CORE_STANDARDS.md**](file:///D:/Unity%20Project/test1/Assets/Settings/GameData/Docs/Conventions/01_CORE_STANDARDS.md) | `CombatFormula.cs`, `CombatEnums.cs` | Quy chuẩn đơn vị đo ($1\text{m} = 100$), Frame Timing 15 FPS, công thức Attack Speed và toàn bộ Enums & Structs C# chuẩn. |
 | **02** | [**02_SKILLS_AND_MISSILES.md**](file:///D:/Unity%20Project/test1/Assets/Settings/GameData/Docs/Conventions/02_SKILLS_AND_MISSILES.md) | `Skill.csv`, `Missile.csv`, `ActionEvent.csv`, `AttackSkill.csv`, `PreciseCastSkill.csv`, `SkillSelector.csv`, `AutoSkill.csv`, `SkillLevelUp.csv` | Cơ chế kỹ năng, đạn đạo, DoT interval, tham số đa biến `Param1..6`, `MissileForm`, `AcceSpeedInfo`, cơ chế Joystick Smartcast Selector, icon & atlas kỹ năng. |
 | **03** | [**03_COMBAT_AND_STATES.md**](file:///D:/Unity%20Project/test1/Assets/Settings/GameData/Docs/Conventions/03_COMBAT_AND_STATES.md) | `SkillSetting.ini`, `SkillConstant.csv`, `SpecialState.csv`, `CommonScript/Skill/` | Công thức tính Dame, Hit/Dodge/Crit, Khắc chế hệ ngũ hành tương sinh tương khắc, hệ thống hiệu ứng bất lợi & khống chế (CC). |
-| **04** | [**04_NPC_MONSTER_AI.md**](file:///D:/Unity%20Project/test1/Assets/Settings/GameData/Docs/Conventions/04_NPC_MONSTER_AI.md) | `NpcRes.csv`, `ActionName.csv`, `NpcTemplate.csv`, `Field_HeaderBoss.csv`, `NpcAttribute.csv`, `MagicDesc.csv`, `CommonActive.ini`, `CommonPassive.ini` | Thông số thể tích quái, animation clips, template Boss/quái, thuộc tính sinh mệnh/công kích và máy trạng thái AI FSM cơ bản. |
+| **04** | [**04_NPC_MONSTER_AI.md**](file:///D:/Unity%20Project/test1/Assets/Settings/GameData/Docs/Conventions/04_NPC_MONSTER_AI.md) | `NpcRes.csv`, `ActionName.csv`, `NpcTemplate.csv`, `Field_HeaderBoss.csv`, `NpcStats.csv`, `NpcAttribute.csv`, `MagicDesc.csv`, `CommonActive.ini`, `CommonPassive.ini` | Thông số thể tích quái, animation clips, template Boss/quái, thuộc tính sinh mệnh/công kích tùy biến và máy trạng thái AI FSM cơ bản. |
 | **05** | [**05_VFX_AUDIO_SLOTS.md**](file:///D:/Unity%20Project/test1/Assets/Settings/GameData/Docs/Conventions/05_VFX_AUDIO_SLOTS.md) | `EffectRes.csv`, `StateEffect.csv`, `PartSlot.csv`, `Sound.csv`, `AUDIO_MAPPING_RULES.md` | Cơ chế VFX Pooling, 4 chế độ khóa trục xoay `VfxLockRotation`, khớp xương gắn hiệu ứng (`PartSlot`) và tra cứu âm thanh Wwise. |
 | **06** | [**06_LEVEL_AND_EXP.md**](file:///D:/Unity%20Project/test1/Assets/Settings/GameData/Docs/Conventions/06_LEVEL_AND_EXP.md) | `PlayerLevel.csv`, `ExpRule.csv` | Cột mốc cấp độ người chơi, ma trận % EXP quái rơi theo chênh lệch cấp độ và thuật toán thưởng EXP. |
 
@@ -32,8 +32,9 @@ Khi gọi `GameDatabase.EnsureLoaded()`, dữ liệu **phải** được nạp t
 9. `PartSlots` (`Settings/GameData/VFX_Slots/PartSlot.csv`)
 10. `NpcRes` (`Settings/GameData/NPC/NpcRes.csv`)
 11. `NpcAttributes` (`Settings/GameData/NPC/NpcAttribute.csv`)
-12. `NpcTemplates` (`Settings/GameData/NPC/NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes`, `NpcAttribute` & `NpcAi`.
-13. `Skills` (`Settings/GameData/Combat/Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
+12. `NpcStats` (`Settings/GameData/NPC/NpcStats.csv`)
+13. `NpcTemplates` (`Settings/GameData/NPC/NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes`, `NpcAttribute` & `NpcAi`.
+14. `Skills` (`Settings/GameData/Combat/Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
 
 ---
 

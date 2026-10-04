@@ -270,14 +270,26 @@ namespace TopDownGame.Enemy
             if (template == null) return;
 
             int level = Stats != null ? Stats.MonsterLevel : 1;
-            var attrib = template.GetAttribute();
-            if (attrib != null && Stats != null)
+            
+            // 1. Ưu tiên nạp chỉ số tùy chỉnh từ NpcStats.csv theo Template ID
+            var customStats = NpcStatDatabase.GetStats(npcTemplateId);
+            if (customStats != null && Stats != null)
             {
-                Stats.Health.SetMaxValue(attrib.GetMaxLife(level), true);
-                Stats.SetPhysicalDamage(attrib.GetAverageAttack(level));
-                Stats.SetMagicDamage(attrib.GetTotalMagicDamage(level));
-                Stats.SetAttackSpeed(attrib.attackSpeed > 0 ? attrib.attackSpeed : 15f);
+                Stats.ApplyStatsFromData(customStats, level);
                 Stats.SetMoveSpeed(template.runSpeed > 0f ? template.runSpeed : 5.0f);
+            }
+            else
+            {
+                // Fallback: Nạp từ NpcAttribute.csv cũ
+                var attrib = template.GetAttribute();
+                if (attrib != null && Stats != null)
+                {
+                    Stats.Health.SetMaxValue(attrib.GetMaxLife(level), true);
+                    Stats.SetPhysicalDamage(attrib.GetAverageAttack(level));
+                    Stats.SetMagicDamage(attrib.GetTotalMagicDamage(level));
+                    Stats.SetAttackSpeed(attrib.attackSpeed > 0 ? attrib.attackSpeed : 15f);
+                    Stats.SetMoveSpeed(template.runSpeed > 0f ? template.runSpeed : 5.0f);
+                }
             }
 
             var resData = template.GetRes();

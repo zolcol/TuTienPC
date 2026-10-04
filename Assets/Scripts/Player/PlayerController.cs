@@ -61,8 +61,20 @@ namespace TopDownGame.Player
         private void Start()
         {
             ApplyHitboxFromNpcRes();
+            ApplyStatsFromDatabase();
             if (Stats != null) Stats.OnDamaged += HandleDamaged;
             StateMachine.Initialize(IdleState);
+        }
+
+        public void ApplyStatsFromDatabase(int templateId = 0)
+        {
+            if (Stats == null) return;
+            NpcStatDatabase.Instance.EnsureLoaded();
+            var statData = NpcStatDatabase.GetStats(templateId);
+            if (statData != null)
+            {
+                Stats.ApplyStatsFromData(statData, Stats.CurrentLevel);
+            }
         }
 
         private void OnDestroy()

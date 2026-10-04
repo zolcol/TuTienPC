@@ -130,7 +130,6 @@ namespace TopDownGame.Data
                 }
 
                 IsLoaded = true;
-                Debug.Log($"[FlyCharDatabase] ✅ Đã nạp thành công {itemsByType.Count} cấu hình FlyChar từ CSV.");
             }
             catch (Exception ex)
             {

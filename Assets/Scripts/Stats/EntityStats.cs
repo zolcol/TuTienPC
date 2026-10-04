@@ -64,6 +64,24 @@ namespace TopDownGame.Stats
         public void SetMagicResist(float value) => magicResist = Mathf.Max(0f, value);
         public void SetMoveSpeed(float value) => moveSpeed = Mathf.Max(0f, value);
 
+        public void ApplyStatsFromData(TopDownGame.Data.NpcStatData statData, int level = 1)
+        {
+            if (statData == null) return;
+            health.SetMaxValue(statData.GetMaxHp(level), true);
+            health.SetRegenRate(statData.GetHpRegen(level));
+
+            mana.SetMaxValue(statData.GetMaxMp(level), true);
+            mana.SetRegenRate(statData.GetMpRegen(level));
+
+            SetPhysicalDamage(statData.GetPhysicalDamage(level));
+            SetMagicDamage(statData.GetMagicDamage(level));
+            SetArmor(statData.GetArmor(level));
+            SetMagicResist(statData.GetMagicResist(level));
+            SetAttackSpeed(statData.GetAttackSpeed(level));
+            SetCritRate(statData.GetCritChance(level));
+            SetCritDamage(statData.GetCritMultiplier(level));
+        }
+
         public bool HasEnoughMana(float amount) => mana.CurrentValue >= amount;
         public bool ConsumeMana(float amount) => mana.Consume(amount);
         public void RestoreMana(float amount) => mana.Modify(amount);

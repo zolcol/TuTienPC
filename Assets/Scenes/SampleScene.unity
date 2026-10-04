@@ -7250,7 +7250,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   health:
-    maxValue: 100000
+    maxValue: 0
     currentValue: 0
     regenRate: 0
   mana:
