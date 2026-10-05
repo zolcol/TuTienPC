@@ -65,7 +65,7 @@ namespace TopDownGame.Editor
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(1040f, 680f);
+            panelRect.sizeDelta = new Vector2(1140f, 740f);
             panelRect.anchoredPosition = new Vector2(0f, 0f);
 
             Image panelBg = panelObj.GetComponent<Image>();
@@ -145,7 +145,7 @@ namespace TopDownGame.Editor
             rt.anchorMin = new Vector2(0f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(0f, 54f);
+            rt.sizeDelta = new Vector2(0f, 60f);
             rt.anchoredPosition = Vector2.zero;
 
             Image img = headerObj.GetComponent<Image>();
@@ -162,7 +162,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI tmp = titleObj.GetComponent<TextMeshProUGUI>();
             tmp.text = "VÕ HỌC & KỸ NĂNG";
-            tmp.fontSize = 21;
+            tmp.fontSize = 23;
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.MidlineLeft;
             tmp.color = GoldColor;
@@ -180,7 +180,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI spTmp = spObj.GetComponent<TextMeshProUGUI>();
             spTmp.text = "Điểm Kỹ Năng: <color=#FFD54F>0 SP</color>";
-            spTmp.fontSize = 17;
+            spTmp.fontSize = 19;
             spTmp.fontStyle = FontStyles.Bold;
             spTmp.alignment = TextAlignmentOptions.MidlineRight;
             spTmp.color = WhiteTextColor;
@@ -194,7 +194,7 @@ namespace TopDownGame.Editor
             closeRt.anchorMin = new Vector2(1f, 0.5f);
             closeRt.anchorMax = new Vector2(1f, 0.5f);
             closeRt.pivot = new Vector2(1f, 0.5f);
-            closeRt.sizeDelta = new Vector2(36f, 36f);
+            closeRt.sizeDelta = new Vector2(38f, 38f);
             closeRt.anchoredPosition = new Vector2(-10f, 0f);
 
             Image closeImg = closeBtnObj.GetComponent<Image>();
@@ -209,7 +209,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI xTmp = xTextObj.GetComponent<TextMeshProUGUI>();
             xTmp.text = "X";
-            xTmp.fontSize = 20;
+            xTmp.fontSize = 21;
             xTmp.fontStyle = FontStyles.Bold;
             xTmp.alignment = TextAlignmentOptions.Center;
             xTmp.color = Color.white;
@@ -227,7 +227,7 @@ namespace TopDownGame.Editor
             rt.anchorMax = new Vector2(0f, 1f);
             rt.pivot = new Vector2(0f, 0.5f);
             rt.offsetMin = new Vector2(16f, 16f);
-            rt.offsetMax = new Vector2(370f, -62f);
+            rt.offsetMax = new Vector2(400f, -68f);
 
             Image bg = leftCol.GetComponent<Image>();
             bg.color = PanelInnerBg;
@@ -243,7 +243,7 @@ namespace TopDownGame.Editor
             subRt.anchorMin = new Vector2(0f, 1f);
             subRt.anchorMax = new Vector2(1f, 1f);
             subRt.pivot = new Vector2(0.5f, 1f);
-            subRt.sizeDelta = new Vector2(0f, 36f);
+            subRt.sizeDelta = new Vector2(0f, 40f);
             subRt.anchoredPosition = Vector2.zero;
             subHeader.GetComponent<Image>().color = SectionHeaderColor;
 
@@ -256,7 +256,7 @@ namespace TopDownGame.Editor
             subTextRt.offsetMax = new Vector2(-12f, 0f);
             TextMeshProUGUI subTmp = subTextObj.GetComponent<TextMeshProUGUI>();
             subTmp.text = "DANH SÁCH CHIÊU THỨC";
-            subTmp.fontSize = 14;
+            subTmp.fontSize = 16;
             subTmp.fontStyle = FontStyles.Bold;
             subTmp.alignment = TextAlignmentOptions.MidlineLeft;
             subTmp.color = LabelTextColor;
@@ -268,7 +268,7 @@ namespace TopDownGame.Editor
             scrollRt.anchorMin = Vector2.zero;
             scrollRt.anchorMax = Vector2.one;
             scrollRt.offsetMin = new Vector2(6f, 6f);
-            scrollRt.offsetMax = new Vector2(-6f, -40f);
+            scrollRt.offsetMax = new Vector2(-6f, -44f);
 
             ScrollRect sr = scrollObj.GetComponent<ScrollRect>();
             sr.horizontal = false;
@@ -318,7 +318,7 @@ namespace TopDownGame.Editor
             cardObj.transform.SetParent(parent, false);
 
             RectTransform cardRt = cardObj.GetComponent<RectTransform>();
-            cardRt.sizeDelta = new Vector2(0f, 66f);
+            cardRt.sizeDelta = new Vector2(0f, 76f);
 
             Image cardBg = cardObj.GetComponent<Image>();
             cardBg.color = RowBgColor;
@@ -344,7 +344,7 @@ namespace TopDownGame.Editor
             iconRt.anchorMin = new Vector2(0f, 0.5f);
             iconRt.anchorMax = new Vector2(0f, 0.5f);
             iconRt.pivot = new Vector2(0f, 0.5f);
-            iconRt.sizeDelta = new Vector2(48f, 48f);
+            iconRt.sizeDelta = new Vector2(54f, 54f);
             iconRt.anchoredPosition = new Vector2(10f, 0f);
             Image iconImg = iconObj.GetComponent<Image>();
             iconImg.color = Color.white;
@@ -355,11 +355,11 @@ namespace TopDownGame.Editor
             RectTransform nameRt = nameObj.GetComponent<RectTransform>();
             nameRt.anchorMin = new Vector2(0f, 0.5f);
             nameRt.anchorMax = new Vector2(1f, 1f);
-            nameRt.offsetMin = new Vector2(66f, 0f);
-            nameRt.offsetMax = new Vector2(-60f, -4f);
+            nameRt.offsetMin = new Vector2(74f, 0f);
+            nameRt.offsetMax = new Vector2(-66f, -4f);
             TextMeshProUGUI nameTmp = nameObj.GetComponent<TextMeshProUGUI>();
             nameTmp.text = "Tên Kỹ Năng";
-            nameTmp.fontSize = 17;
+            nameTmp.fontSize = 19;
             nameTmp.fontStyle = FontStyles.Bold;
             nameTmp.alignment = TextAlignmentOptions.BottomLeft;
             nameTmp.color = WhiteTextColor;
@@ -370,11 +370,11 @@ namespace TopDownGame.Editor
             RectTransform lvRt = lvObj.GetComponent<RectTransform>();
             lvRt.anchorMin = new Vector2(0f, 0f);
             lvRt.anchorMax = new Vector2(1f, 0.5f);
-            lvRt.offsetMin = new Vector2(66f, 4f);
-            lvRt.offsetMax = new Vector2(-60f, 0f);
+            lvRt.offsetMin = new Vector2(74f, 6f);
+            lvRt.offsetMax = new Vector2(-66f, 0f);
             TextMeshProUGUI lvTmp = lvObj.GetComponent<TextMeshProUGUI>();
             lvTmp.text = "Lv.1";
-            lvTmp.fontSize = 14;
+            lvTmp.fontSize = 16;
             lvTmp.alignment = TextAlignmentOptions.TopLeft;
             lvTmp.color = LabelTextColor;
 
@@ -385,7 +385,7 @@ namespace TopDownGame.Editor
             badgeRt.anchorMin = new Vector2(1f, 0.5f);
             badgeRt.anchorMax = new Vector2(1f, 0.5f);
             badgeRt.pivot = new Vector2(1f, 0.5f);
-            badgeRt.sizeDelta = new Vector2(50f, 28f);
+            badgeRt.sizeDelta = new Vector2(56f, 32f);
             badgeRt.anchoredPosition = new Vector2(-8f, 0f);
             Image badgeImg = badgeObj.GetComponent<Image>();
             badgeImg.color = new Color(0.15f, 0.35f, 0.2f, 0.9f);
@@ -398,7 +398,7 @@ namespace TopDownGame.Editor
             badgeTextRt.sizeDelta = Vector2.zero;
             TextMeshProUGUI badgeTmp = badgeTextObj.GetComponent<TextMeshProUGUI>();
             badgeTmp.text = "[ Q ]";
-            badgeTmp.fontSize = 14;
+            badgeTmp.fontSize = 15;
             badgeTmp.fontStyle = FontStyles.Bold;
             badgeTmp.alignment = TextAlignmentOptions.Center;
             badgeTmp.color = GoldColor;
@@ -427,8 +427,8 @@ namespace TopDownGame.Editor
             rt.anchorMin = new Vector2(0f, 0f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(1f, 0.5f);
-            rt.offsetMin = new Vector2(386f, 16f);
-            rt.offsetMax = new Vector2(-16f, -62f);
+            rt.offsetMin = new Vector2(416f, 16f);
+            rt.offsetMax = new Vector2(-16f, -68f);
 
             Image bg = rightCol.GetComponent<Image>();
             bg.color = PanelInnerBg;
@@ -461,7 +461,7 @@ namespace TopDownGame.Editor
             rt.anchorMin = new Vector2(0f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(0f, 86f);
+            rt.sizeDelta = new Vector2(0f, 96f);
             rt.anchoredPosition = new Vector2(0f, -8f);
 
             // Big Icon
@@ -471,7 +471,7 @@ namespace TopDownGame.Editor
             iconRt.anchorMin = new Vector2(0f, 0.5f);
             iconRt.anchorMax = new Vector2(0f, 0.5f);
             iconRt.pivot = new Vector2(0f, 0.5f);
-            iconRt.sizeDelta = new Vector2(68f, 68f);
+            iconRt.sizeDelta = new Vector2(76f, 76f);
             iconRt.anchoredPosition = new Vector2(16f, 0f);
             Image iconImg = iconObj.GetComponent<Image>();
             iconImg.color = Color.white;
@@ -487,11 +487,11 @@ namespace TopDownGame.Editor
             nameRt.anchorMin = new Vector2(0f, 1f);
             nameRt.anchorMax = new Vector2(1f, 1f);
             nameRt.pivot = new Vector2(0f, 1f);
-            nameRt.offsetMin = new Vector2(96f, -34f);
+            nameRt.offsetMin = new Vector2(106f, -38f);
             nameRt.offsetMax = new Vector2(-16f, 0f);
             TextMeshProUGUI nameTmp = nameObj.GetComponent<TextMeshProUGUI>();
             nameTmp.text = "Tên Kỹ Năng";
-            nameTmp.fontSize = 22;
+            nameTmp.fontSize = 25;
             nameTmp.fontStyle = FontStyles.Bold;
             nameTmp.color = GoldColor;
             so.FindProperty("detailNameText").objectReferenceValue = nameTmp;
@@ -502,11 +502,11 @@ namespace TopDownGame.Editor
             RectTransform typeRt = typeObj.GetComponent<RectTransform>();
             typeRt.anchorMin = new Vector2(0f, 0f);
             typeRt.anchorMax = new Vector2(0.6f, 1f);
-            typeRt.offsetMin = new Vector2(96f, 6f);
-            typeRt.offsetMax = new Vector2(0f, -36f);
+            typeRt.offsetMin = new Vector2(106f, 6f);
+            typeRt.offsetMax = new Vector2(0f, -40f);
             TextMeshProUGUI typeTmp = typeObj.GetComponent<TextMeshProUGUI>();
             typeTmp.text = "Kỹ Năng Võ Học";
-            typeTmp.fontSize = 15;
+            typeTmp.fontSize = 17;
             typeTmp.fontStyle = FontStyles.Italic;
             typeTmp.color = LabelTextColor;
             so.FindProperty("detailTypeText").objectReferenceValue = typeTmp;
@@ -518,17 +518,17 @@ namespace TopDownGame.Editor
             lvRt.anchorMin = new Vector2(0.6f, 0f);
             lvRt.anchorMax = new Vector2(1f, 1f);
             lvRt.offsetMin = new Vector2(0f, 6f);
-            lvRt.offsetMax = new Vector2(-16f, -36f);
+            lvRt.offsetMax = new Vector2(-16f, -40f);
             TextMeshProUGUI lvTmp = lvObj.GetComponent<TextMeshProUGUI>();
             lvTmp.text = "Cấp độ: <color=#FFD54F>1</color> / 5";
-            lvTmp.fontSize = 16;
+            lvTmp.fontSize = 18;
             lvTmp.fontStyle = FontStyles.Bold;
             lvTmp.alignment = TextAlignmentOptions.MidlineRight;
             lvTmp.color = WhiteTextColor;
             so.FindProperty("detailLevelText").objectReferenceValue = lvTmp;
 
             // Separator
-            CreateSeparator(parent, -96f);
+            CreateSeparator(parent, -106f);
         }
 
         private static void CreateDetailDescription(Transform parent, SerializedObject so)
@@ -539,8 +539,8 @@ namespace TopDownGame.Editor
             rt.anchorMin = new Vector2(0f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(0f, 86f);
-            rt.anchoredPosition = new Vector2(0f, -102f);
+            rt.sizeDelta = new Vector2(0f, 96f);
+            rt.anchoredPosition = new Vector2(0f, -112f);
             rt.offsetMin = new Vector2(16f, rt.offsetMin.y);
             rt.offsetMax = new Vector2(-16f, rt.offsetMax.y);
             descBox.GetComponent<Image>().color = new Color(0.10f, 0.10f, 0.14f, 0.5f);
@@ -550,12 +550,12 @@ namespace TopDownGame.Editor
             RectTransform textRt = textObj.GetComponent<RectTransform>();
             textRt.anchorMin = Vector2.zero;
             textRt.anchorMax = Vector2.one;
-            textRt.offsetMin = new Vector2(12f, 8f);
-            textRt.offsetMax = new Vector2(-12f, -8f);
+            textRt.offsetMin = new Vector2(14f, 10f);
+            textRt.offsetMax = new Vector2(-14f, -10f);
 
             TextMeshProUGUI tmp = textObj.GetComponent<TextMeshProUGUI>();
             tmp.text = "Mô tả kỹ năng chi tiết sẽ hiển thị ở đây.";
-            tmp.fontSize = 15f;
+            tmp.fontSize = 17.5f;
             tmp.color = WhiteTextColor;
             tmp.enableWordWrapping = true;
             so.FindProperty("detailDescriptionText").objectReferenceValue = tmp;
@@ -569,13 +569,13 @@ namespace TopDownGame.Editor
             rt.anchorMin = new Vector2(0f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(0f, 76f);
-            rt.anchoredPosition = new Vector2(0f, -196f);
+            rt.sizeDelta = new Vector2(0f, 88f);
+            rt.anchoredPosition = new Vector2(0f, -216f);
             rt.offsetMin = new Vector2(16f, rt.offsetMin.y);
             rt.offsetMax = new Vector2(-16f, rt.offsetMax.y);
 
             GridLayoutGroup glg = statsObj.GetComponent<GridLayoutGroup>();
-            glg.cellSize = new Vector2(286f, 32f);
+            glg.cellSize = new Vector2(320f, 38f);
             glg.spacing = new Vector2(12f, 8f);
 
             so.FindProperty("detailCooldownText").objectReferenceValue = CreateStatBox(statsObj.transform, "Hồi chiêu:", "10.0s");
@@ -583,7 +583,7 @@ namespace TopDownGame.Editor
             so.FindProperty("detailDamageText").objectReferenceValue = CreateStatBox(statsObj.transform, "Sát thương:", "20");
             so.FindProperty("detailScalingText").objectReferenceValue = CreateStatBox(statsObj.transform, "Tỉ lệ công:", "200% Vật Lý");
 
-            CreateSeparator(parent, -280f);
+            CreateSeparator(parent, -312f);
         }
 
         private static TextMeshProUGUI CreateStatBox(Transform parent, string label, string defaultValue)
@@ -597,11 +597,11 @@ namespace TopDownGame.Editor
             RectTransform labelRt = labelObj.GetComponent<RectTransform>();
             labelRt.anchorMin = new Vector2(0f, 0f);
             labelRt.anchorMax = new Vector2(0.48f, 1f);
-            labelRt.offsetMin = new Vector2(10f, 0f);
+            labelRt.offsetMin = new Vector2(12f, 0f);
             labelRt.offsetMax = Vector2.zero;
             TextMeshProUGUI lTmp = labelObj.GetComponent<TextMeshProUGUI>();
             lTmp.text = label;
-            lTmp.fontSize = 15;
+            lTmp.fontSize = 17;
             lTmp.alignment = TextAlignmentOptions.MidlineLeft;
             lTmp.color = LabelTextColor;
 
@@ -611,10 +611,10 @@ namespace TopDownGame.Editor
             valRt.anchorMin = new Vector2(0.48f, 0f);
             valRt.anchorMax = new Vector2(1f, 1f);
             valRt.offsetMin = Vector2.zero;
-            valRt.offsetMax = new Vector2(-10f, 0f);
+            valRt.offsetMax = new Vector2(-12f, 0f);
             TextMeshProUGUI vTmp = valObj.GetComponent<TextMeshProUGUI>();
             vTmp.text = defaultValue;
-            vTmp.fontSize = 15.5f;
+            vTmp.fontSize = 17.5f;
             vTmp.fontStyle = FontStyles.Bold;
             vTmp.alignment = TextAlignmentOptions.MidlineRight;
             vTmp.color = WhiteTextColor;
@@ -630,8 +630,8 @@ namespace TopDownGame.Editor
             rt.anchorMin = new Vector2(0f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(0f, 84f);
-            rt.anchoredPosition = new Vector2(0f, -288f);
+            rt.sizeDelta = new Vector2(0f, 92f);
+            rt.anchoredPosition = new Vector2(0f, -320f);
             rt.offsetMin = new Vector2(16f, rt.offsetMin.y);
             rt.offsetMax = new Vector2(-16f, rt.offsetMax.y);
 
@@ -646,7 +646,7 @@ namespace TopDownGame.Editor
             titleRt.anchoredPosition = Vector2.zero;
             TextMeshProUGUI tTmp = titleObj.GetComponent<TextMeshProUGUI>();
             tTmp.text = "GÁN PHÍM NHANH (HOTBAR)";
-            tTmp.fontSize = 14f;
+            tTmp.fontSize = 16f;
             tTmp.fontStyle = FontStyles.Bold;
             tTmp.color = LabelTextColor;
 
@@ -677,7 +677,7 @@ namespace TopDownGame.Editor
             so.FindProperty("assignRButton").objectReferenceValue = btnR;
             so.FindProperty("assignRText").objectReferenceValue = txtR;
 
-            CreateSeparator(parent, -380f);
+            CreateSeparator(parent, -420f);
         }
 
         private static void CreateUpgradeSection(Transform parent, SerializedObject so)
@@ -688,7 +688,7 @@ namespace TopDownGame.Editor
             rt.anchorMin = new Vector2(0f, 0f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.offsetMin = new Vector2(16f, 12f);
-            rt.offsetMax = new Vector2(-16f, -388f);
+            rt.offsetMax = new Vector2(-16f, -428f);
 
             // Title
             GameObject titleObj = new GameObject("SectionTitle", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -701,7 +701,7 @@ namespace TopDownGame.Editor
             titleRt.anchoredPosition = Vector2.zero;
             TextMeshProUGUI tTmp = titleObj.GetComponent<TextMeshProUGUI>();
             tTmp.text = "CỘNG ĐIỂM NÂNG CẤP VÕ HỌC";
-            tTmp.fontSize = 14f;
+            tTmp.fontSize = 16f;
             tTmp.fontStyle = FontStyles.Bold;
             tTmp.color = LabelTextColor;
 
@@ -711,12 +711,12 @@ namespace TopDownGame.Editor
             RectTransform reqRt = reqObj.GetComponent<RectTransform>();
             reqRt.anchorMin = new Vector2(0f, 1f);
             reqRt.anchorMax = new Vector2(1f, 1f);
-            reqRt.pivot = new Vector2(0f, 1f);
-            reqRt.sizeDelta = new Vector2(0f, 24f);
-            reqRt.anchoredPosition = new Vector2(0f, -28f);
+            reqRt.pivot = new Vector2(0.5f, 1f);
+            reqRt.sizeDelta = new Vector2(0f, 26f);
+            reqRt.anchoredPosition = new Vector2(0f, -30f);
             TextMeshProUGUI reqTmp = reqObj.GetComponent<TextMeshProUGUI>();
             reqTmp.text = "Yêu cầu: Nhân vật Cấp 1 | Tốn 1 SP";
-            reqTmp.fontSize = 15;
+            reqTmp.fontSize = 17;
             reqTmp.color = LabelTextColor;
             so.FindProperty("upgradeRequirementText").objectReferenceValue = reqTmp;
 
@@ -726,12 +726,12 @@ namespace TopDownGame.Editor
             RectTransform prevRt = prevObj.GetComponent<RectTransform>();
             prevRt.anchorMin = new Vector2(0f, 1f);
             prevRt.anchorMax = new Vector2(1f, 1f);
-            prevRt.pivot = new Vector2(0f, 1f);
-            prevRt.sizeDelta = new Vector2(0f, 24f);
-            prevRt.anchoredPosition = new Vector2(0f, -52f);
+            prevRt.pivot = new Vector2(0.5f, 1f);
+            prevRt.sizeDelta = new Vector2(0f, 26f);
+            prevRt.anchoredPosition = new Vector2(0f, -58f);
             TextMeshProUGUI prevTmp = prevObj.GetComponent<TextMeshProUGUI>();
             prevTmp.text = "Cấp tiếp theo: +15% Hiệu quả";
-            prevTmp.fontSize = 15;
+            prevTmp.fontSize = 17;
             prevTmp.color = GoldColor;
             so.FindProperty("nextLevelPreviewText").objectReferenceValue = prevTmp;
 
@@ -742,7 +742,7 @@ namespace TopDownGame.Editor
             btnRt.anchorMin = new Vector2(0f, 0f);
             btnRt.anchorMax = new Vector2(1f, 0f);
             btnRt.pivot = new Vector2(0.5f, 0f);
-            btnRt.sizeDelta = new Vector2(0f, 48f);
+            btnRt.sizeDelta = new Vector2(0f, 52f);
             btnRt.anchoredPosition = Vector2.zero;
 
             Image btnImg = btnObj.GetComponent<Image>();
@@ -761,7 +761,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI btnTmp = textObj.GetComponent<TextMeshProUGUI>();
             btnTmp.text = "+ NÂNG CẤP (1 SP)";
-            btnTmp.fontSize = 18;
+            btnTmp.fontSize = 20;
             btnTmp.fontStyle = FontStyles.Bold;
             btnTmp.alignment = TextAlignmentOptions.Center;
             btnTmp.color = Color.white;
@@ -793,7 +793,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI tmp = textObj.GetComponent<TextMeshProUGUI>();
             tmp.text = defaultLabel;
-            tmp.fontSize = 15.5f;
+            tmp.fontSize = 17f;
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = WhiteTextColor;

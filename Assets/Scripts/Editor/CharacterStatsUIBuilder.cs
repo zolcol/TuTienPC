@@ -61,7 +61,7 @@ namespace TopDownGame.Editor
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(560f, 740f);
+            panelRect.sizeDelta = new Vector2(620f, 800f);
             panelRect.anchoredPosition = new Vector2(0f, 0f);
 
             Image panelBg = panelObj.GetComponent<Image>();
@@ -180,7 +180,7 @@ namespace TopDownGame.Editor
             rt.anchorMin = new Vector2(0f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(0f, 54f);
+            rt.sizeDelta = new Vector2(0f, 58f);
             rt.anchoredPosition = Vector2.zero;
 
             Image img = headerObj.GetComponent<Image>();
@@ -197,7 +197,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI tmp = titleObj.GetComponent<TextMeshProUGUI>();
             tmp.text = "THUỘC TÍNH NHÂN VẬT";
-            tmp.fontSize = 21;
+            tmp.fontSize = 22;
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.MidlineLeft;
             tmp.color = GoldColor;
@@ -212,7 +212,7 @@ namespace TopDownGame.Editor
             closeRt.anchorMin = new Vector2(1f, 0.5f);
             closeRt.anchorMax = new Vector2(1f, 0.5f);
             closeRt.pivot = new Vector2(1f, 0.5f);
-            closeRt.sizeDelta = new Vector2(36f, 36f);
+            closeRt.sizeDelta = new Vector2(38f, 38f);
             closeRt.anchoredPosition = new Vector2(-10f, 0f);
 
             Image closeImg = closeBtnObj.GetComponent<Image>();
@@ -227,7 +227,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI xTmp = xTextObj.GetComponent<TextMeshProUGUI>();
             xTmp.text = "X";
-            xTmp.fontSize = 20;
+            xTmp.fontSize = 21;
             xTmp.fontStyle = FontStyles.Bold;
             xTmp.alignment = TextAlignmentOptions.Center;
             xTmp.color = Color.white;
@@ -241,7 +241,7 @@ namespace TopDownGame.Editor
             lvlObj.transform.SetParent(parent, false);
 
             RectTransform rt = lvlObj.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(0f, 68f);
+            rt.sizeDelta = new Vector2(0f, 74f);
 
             Image bg = lvlObj.GetComponent<Image>();
             bg.color = RowBgColor;
@@ -257,7 +257,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI lvlTmp = lvlTextObj.GetComponent<TextMeshProUGUI>();
             lvlTmp.text = "Cấp: 1";
-            lvlTmp.fontSize = 20;
+            lvlTmp.fontSize = 21;
             lvlTmp.fontStyle = FontStyles.Bold;
             lvlTmp.alignment = TextAlignmentOptions.MidlineLeft;
             lvlTmp.color = WhiteTextColor;
@@ -276,7 +276,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI expTmp = expTextObj.GetComponent<TextMeshProUGUI>();
             expTmp.text = "EXP: 0 / 28,000";
-            expTmp.fontSize = 15.5f;
+            expTmp.fontSize = 17f;
             expTmp.alignment = TextAlignmentOptions.MidlineRight;
             expTmp.color = LabelTextColor;
             expTmp.outlineColor = new Color32(10, 10, 15, 255);
@@ -332,7 +332,7 @@ namespace TopDownGame.Editor
             sectionObj.transform.SetParent(parent, false);
 
             RectTransform rt = sectionObj.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(0f, 34f);
+            rt.sizeDelta = new Vector2(0f, 38f);
 
             Image img = sectionObj.GetComponent<Image>();
             img.color = SectionHeaderColor;
@@ -347,7 +347,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI tmp = textObj.GetComponent<TextMeshProUGUI>();
             tmp.text = title;
-            tmp.fontSize = 16;
+            tmp.fontSize = 18;
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.MidlineLeft;
             tmp.color = GoldColor;
@@ -361,7 +361,7 @@ namespace TopDownGame.Editor
             rowObj.transform.SetParent(parent, false);
 
             RectTransform rt = rowObj.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(0f, 34f);
+            rt.sizeDelta = new Vector2(0f, 40f);
 
             Image img = rowObj.GetComponent<Image>();
             img.color = RowBgColor;
@@ -379,7 +379,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI labelTmp = labelObj.GetComponent<TextMeshProUGUI>();
             labelTmp.text = labelName;
-            labelTmp.fontSize = 16;
+            labelTmp.fontSize = 18;
             labelTmp.alignment = TextAlignmentOptions.MidlineLeft;
             labelTmp.color = LabelTextColor;
             labelTmp.outlineColor = new Color32(10, 10, 15, 255);
@@ -396,7 +396,7 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI valTmp = valObj.GetComponent<TextMeshProUGUI>();
             valTmp.text = "0";
-            valTmp.fontSize = 17;
+            valTmp.fontSize = 19;
             valTmp.fontStyle = FontStyles.Bold;
             valTmp.alignment = TextAlignmentOptions.MidlineRight;
             valTmp.color = WhiteTextColor;
@@ -418,7 +418,7 @@ namespace TopDownGame.Editor
 
                 TextMeshProUGUI subValTmp = subValObj.GetComponent<TextMeshProUGUI>();
                 subValTmp.text = "+0/s";
-                subValTmp.fontSize = 15;
+                subValTmp.fontSize = 17;
                 subValTmp.fontStyle = FontStyles.Bold;
                 subValTmp.alignment = TextAlignmentOptions.MidlineRight;
                 subValTmp.color = new Color(0.35f, 0.90f, 0.45f, 1f);
