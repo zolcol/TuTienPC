@@ -14951,11 +14951,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ea0680fae5d0094b97ad74d3993ebbd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  defaultNormalAttackId: 301
+  defaultNormalAttackId: 1
   npcResId: 2
   skillSlotQ_Id: 306
   skillSlotE_Id: 308
-  skillSlotR_Id: 346
+  skillSlotR_Id: 312
   noCooldown: 1
   noManaCost: 1
   showHitGizmos: 1

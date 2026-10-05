@@ -5,9 +5,28 @@
 
 ---
 
-## 2. CHI TIẾT BẢNG `Skill.csv`
+## 1. BẢNG TÙY BIẾN KỸ NĂNG `CustomSkill.csv` (CUSTOM GAMEPLAY LAYER)
 
-Bảng định nghĩa thuộc tính cốt lõi của mọi chiêu thức.
+Bảng dành riêng cho thiết kế game mới: Tự do tùy biến Sát thương, Hồi máu, Hồi chiêu, Tiêu hao và Tên/Mô tả trong khi kế thừa 100% Animation, Timeline ActionEvent và VFX từ `BaseSkillId`.
+
+| Tên Cột | Kiểu | Ý nghĩa & Nguyên tắc vận hành |
+| :--- | :---: | :--- |
+| **`SkillId`** | `int` | ID kỹ năng mới của người chơi (Khóa chính). |
+| **`BaseSkillId`** | `int` | ID chiêu gốc trong `Skill.csv` để clone toàn bộ Animation, ActionEvent, Missile, VFX, Hitbox. |
+| **`SkillName`** | `string` | Tên chiêu thức tùy chỉnh hiển thị trong game. |
+| **`Description`** | `string` | Mô tả hiệu ứng, sát thương chiêu thức. |
+| **`IconPath`** | `string` | Đường dẫn Sprite icon mới (Nếu để trống `""` $\rightarrow$ tự lấy icon của `BaseSkillId`). |
+| **`Cooldown`** | `float` | Thời gian hồi chiêu tính theo **giây**. |
+| **`ManaCost`** | `float` | Lượng MP/Nội lực tiêu hao. |
+| **`BaseDamage`** | `float` | Sát thương cố định cộng thêm. |
+| **`PhysScale`** | `float` | Hệ số sát thương theo Công vật lý (`1.0` = 100%). |
+| **`MagicScale`** | `float` | Hệ số sát thương theo Công phép / Nội công. |
+| **`BaseHeal`** | `float` | Lượng máu hồi cố định mỗi nhịp (chiêu hồi máu). |
+| **`HealScale`** | `float` | Hệ số hồi máu theo Công phép: $\text{Heal} = \text{BaseHeal} + (\text{Công Phép} \times \text{HealScale})$. |
+
+---
+
+## 2. CHI TIẾT BẢNG `Skill.csv`
 
 | Tên Cột | Kiểu | Ý nghĩa & Nguyên lý vận hành | Bằng chứng Source Code |
 | :--- | :---: | :--- | :--- |

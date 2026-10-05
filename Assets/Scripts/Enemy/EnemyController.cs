@@ -328,7 +328,7 @@ namespace TopDownGame.Enemy
             {
                 Perception.SetAiData(aiData);
                 var skillListRef = template.GetSkillList();
-                float firstSkillRange = (skillListRef.Count > 0 && SkillDatabase.GetSkill(skillListRef[0]) != null) ? SkillDatabase.GetSkill(skillListRef[0]).range : 3f;
+                float firstSkillRange = (skillListRef.Count > 0 && SkillDatabase.GetBaseSkill(skillListRef[0]) != null) ? SkillDatabase.GetBaseSkill(skillListRef[0]).range : 3f;
                 Perception.SetRanges(template.visionRadius, template.activeRadius, firstSkillRange);
             }
 

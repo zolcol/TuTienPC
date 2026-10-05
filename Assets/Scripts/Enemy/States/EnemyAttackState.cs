@@ -112,7 +112,7 @@ namespace TopDownGame.Enemy
                             SkillData targetSkill = currentSkill;
                             if (castEv.skillId > 0 && castEv.skillId != currentSkill.id)
                             {
-                                SkillData subSkill = SkillDatabase.GetSkill(castEv.skillId);
+                                SkillData subSkill = SkillDatabase.GetBaseSkill(castEv.skillId);
                                 if (subSkill != null)
                                 {
                                     targetSkill = subSkill;

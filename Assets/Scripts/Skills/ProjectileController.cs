@@ -534,7 +534,7 @@ namespace TopDownGame.Skills
             // Kích hoạt chiêu phụ trúng đích (HitSkillID)
             if (skillData != null && skillData.HasHitSkill)
             {
-                SkillData hitSkill = SkillDatabase.GetSkill(skillData.hitSkillId);
+                SkillData hitSkill = SkillDatabase.GetSubSkill(skillData.hitSkillId, skillData);
                 if (hitSkill != null && hitSkill.id != skillData.id)
                 {
                     if (hitSkill.HasSound && SoundManager.Instance != null)
@@ -549,7 +549,7 @@ namespace TopDownGame.Skills
         private void TriggerFlySkill()
         {
             if (skillData == null || skillData.flySkillId <= 0) return;
-            SkillData flySkill = SkillDatabase.GetSkill(skillData.flySkillId);
+            SkillData flySkill = SkillDatabase.GetSubSkill(skillData.flySkillId, skillData);
             if (flySkill == null || flySkill.id == skillData.id) return;
 
             Transform target = homingTarget != null ? homingTarget : null;
@@ -564,7 +564,7 @@ namespace TopDownGame.Skills
         private void TriggerVanishedSkill(Vector3 explosionPos)
         {
             if (skillData == null || !skillData.HasVanishedSkill) return;
-            SkillData vanishSkill = SkillDatabase.GetSkill(skillData.vanishedSkillId);
+            SkillData vanishSkill = SkillDatabase.GetSubSkill(skillData.vanishedSkillId, skillData);
             if (vanishSkill == null || vanishSkill.id == skillData.id) return;
 
             if (vanishSkill.HasSound && SoundManager.Instance != null)

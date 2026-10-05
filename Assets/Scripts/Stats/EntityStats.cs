@@ -43,6 +43,10 @@ namespace TopDownGame.Stats
 
         public ResourceStat Health => health;
         public ResourceStat Mana => mana;
+        public float MaxHealth => health != null ? health.MaxValue : 0f;
+        public float CurrentHealth => health != null ? health.CurrentValue : 0f;
+        public float MaxMana => mana != null ? mana.MaxValue : 0f;
+        public float CurrentMana => mana != null ? mana.CurrentValue : 0f;
         public float PhysicalDamage => physicalDamage;
         public float MagicDamage => magicDamage;
         public float AttackSpeed => attackSpeed;

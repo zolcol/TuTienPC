@@ -20,7 +20,7 @@ namespace TopDownGame.Editor
             SkillDatabase.Instance.LoadDatabase();
 
             // 1. KIỂM TRA SKILL 306 (Từ Hàng Phổ Độ)
-            SkillData s306 = SkillDatabase.GetSkill(306);
+            SkillData s306 = SkillDatabase.GetSkillOrBase(306);
             if (s306 == null)
             {
                 Debug.LogError("❌ Skill 306 KHÔNG tồn tại trong SkillDatabase!");
@@ -58,7 +58,7 @@ namespace TopDownGame.Editor
             }
 
             // 2. KIỂM TRA SKILL 308 (Bạch Lộ Ngưng Sương)
-            SkillData s308 = SkillDatabase.GetSkill(308);
+            SkillData s308 = SkillDatabase.GetSkillOrBase(308);
             if (s308 == null)
             {
                 Debug.LogError("❌ Skill 308 KHÔNG tồn tại trong SkillDatabase!");
@@ -84,14 +84,14 @@ namespace TopDownGame.Editor
             }
 
             // 3. KIỂM TRA SKILL 312 (Thiên Vũ Bảo Luân - Area DoT & StartSkill 313)
-            SkillData s312 = SkillDatabase.GetSkill(312);
+            SkillData s312 = SkillDatabase.GetSkillOrBase(312);
             if (s312 != null)
             {
                 Debug.Log($"✅ Skill 312: Name='{s312.name}', MSGenerate={s312.msGenerate} (AreaDoT), ChildCount={s312.childCount}, MSGenerateParam='{s312.msGenerateParam}', StartSkillID={s312.startSkillId}");
             }
 
             // 4. KIỂM TRA SKILL 313 (Thiên Vũ Bảo Luân _ Hồi Sinh Lực - Static Repeat Heal)
-            SkillData s313 = SkillDatabase.GetSkill(313);
+            SkillData s313 = SkillDatabase.GetSkillOrBase(313);
             if (s313 != null)
             {
                 var m313 = MissileDatabase.GetMissile(s313.childId);
@@ -99,7 +99,7 @@ namespace TopDownGame.Editor
             }
 
             // 5. KIỂM TRA SKILL 631 (Vạn Kiếm Phong Thiên Quyết - FlySkill 632)
-            SkillData s631 = SkillDatabase.GetSkill(631);
+            SkillData s631 = SkillDatabase.GetSkillOrBase(631);
             if (s631 != null)
             {
                 Debug.Log($"✅ Skill 631: Name='{s631.name}', FlySkillId={s631.flySkillId}, FlyEventInterval={s631.flyEventInterval}");

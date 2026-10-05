@@ -59,7 +59,7 @@ Assets/Scripts/
 │
 ├── Combat/
 │   ├── CombatEnums.cs                 # Toàn bộ Enums: NpcKind, NpcCamp, SkillTypeDef, HitboxShape, v.v.
-│   ├── CombatFormula.cs               # STATIC PURE MATH: Đổi Frame sang Giây, tính Tốc Đánh, Damage, Heal, Giảm trừ Giáp & Bạo kích
+│   ├── CombatFormula.cs               # STATIC PURE MATH: Đổi Frame sang Giây, tính Tốc Đánh, Damage (Base+Phys+Magic), Heal (Base+Magic*HealScale), Giảm trừ Giáp & Crit
 │   ├── DummyTarget.cs                 # Bia tập bắn / Bao cát test dame có thanh máu OnGUI
 │   ├── EffectManager.cs               # VFX POOLING: SpawnEffect, SpawnEffectAtSlot, RecycleEffect
 │   ├── GameConstants.cs               # Hằng số tập trung: Tags, Layers, LayerMasks, Animation Clips, Resource Paths
@@ -124,10 +124,10 @@ Assets/Scripts/
 │   ├── LegacySkillCsvParser.cs        # Parser dự phòng cho định dạng Skills.csv cũ
 │   ├── ProjectileController.cs        # Quỹ đạo đạn, Homing, Chain-bouncing, DoT interval, SphereCast
 │   ├── ProjectilePool.cs              # Object Pool đạn đạo tái sử dụng 100% (0 GC Alloc)
-│   ├── SkillCsvParser.cs              # Parse Skill.csv chuẩn kết hợp ActionEvent.csv
+│   ├── SkillCsvParser.cs              # Parse Skill.csv + ActionEvent.csv + CustomSkill.csv (Custom Gameplay Layer)
 │   ├── SkillDamageResolver.cs         # THUẬT TOÁN GÂY SÁT THƯƠNG: BoxCast, Sector, Circle, Projectile, Heal
 │   ├── SkillData.cs                   # DTO kỹ năng: chỉ số, hitbox, frame mốc, sprite icon
-│   ├── SkillDatabase.cs               # Tra cứu SkillData theo ID
+│   ├── SkillDatabase.cs               # Tra cứu SkillData: GetSkill (Player/Custom), GetBaseSkill (NPC), GetSubSkill (Kế thừa chỉ số)
 │   └── SkillType.cs / VfxStartPosType.cs # Enums hình thái hitbox và vị trí xuất phát chiêu
 │
 ├── StateMachine/
@@ -175,7 +175,7 @@ Assets/Scripts/
 | **Sửa phản ứng Bị thương (Hit Reaction / Flinch)** | `Player/States/PlayerHurtState.cs`<br>`Enemy/States/EnemyHurtState.cs` | `LegacyAnimationController.cs`<br>`Stats/EntityStats.cs` |
 | **Sửa thuật toán Va chạm Hitbox / Gây Sát thương / Hồi máu** | `Skills/SkillDamageResolver.cs` | `Skills/SkillData.cs`<br>`Stats/EntityStats.cs` |
 | **Sửa cơ chế Đạn bay / Bám đuổi / Nảy đạn (Projectile)** | `Skills/ProjectileController.cs`<br>`Skills/ProjectilePool.cs` | `Data/MissileDatabase.cs` |
-| **Thêm / Sửa thuộc tính Kỹ năng từ Database** | `Skills/SkillData.cs`<br>`Skills/SkillCsvParser.cs`<br>`Skills/ActionEventParser.cs` | `Data/GameDatabase.cs` |
+| **Thêm / Sửa thuộc tính Kỹ năng từ Database** | `Skills/SkillData.cs`<br>`Skills/SkillCsvParser.cs`<br>`Skills/ActionEventParser.cs`<br>`Settings/GameData/Combat/CustomSkill.csv` | `Data/GameDatabase.cs`<br>`Skills/SkillDatabase.cs` |
 | **Sửa AI / Hành vi Quái vật / Boss** | `Enemy/EnemyBrain.cs`<br>`Enemy/EnemyPerception.cs`<br>`Enemy/EnemyController.cs`<br>`Enemy/States/EnemyIdleState.cs`<br>`Enemy/States/EnemyChaseState.cs`<br>`Enemy/States/EnemyAttackState.cs`<br>`Enemy/States/EnemyReturnState.cs` | `Data/NpcAiDatabase.cs`<br>`Data/NpcAiData.cs`<br>`NPC/NpcTemplateDatabase.cs` |
 | **Sửa Hoạt ảnh / Khớp xương / Đồng bộ Body & Head** | `LegacyAnimationController.cs`<br>`Combat/VfxLockRotation.cs`<br>`Data/PartSlotDatabase.cs` | `Skills/CastActionID.cs` |
 | **Sửa Chỉ số Máu, Mana, Cấp độ, Kinh nghiệm, Tốc đánh, Giáp, Kháng, Chí mạng** | `Stats/EntityStats.cs`<br>`Stats/PlayerStats.cs`<br>`Combat/CombatFormula.cs`<br>`Data/NpcStatDatabase.cs`<br>`Data/PlayerLevelDatabase.cs`<br>`Data/ExpRuleDatabase.cs`<br>`Data/NpcAttributeDatabase.cs`<br>`Data/CsvParserHelper.cs` | `Stats/ResourceStat.cs`<br>`Settings/GameData/NPC/NpcStats.csv` |
@@ -253,7 +253,7 @@ Khi gọi `GameDatabase.EnsureLoaded()`, dữ liệu **phải** được nạp t
 11. `NpcAttributes` (`Settings/GameData/NPC/NpcAttribute.csv`)
 12. `NpcStats` (`Settings/GameData/NPC/NpcStats.csv`)
 13. `NpcTemplates` (`Settings/GameData/NPC/NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes`, `NpcAttribute` & `NpcAi`.
-14. `Skills` (`Settings/GameData/Combat/Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
+14. `Skills` (`Settings/GameData/Combat/Skill.csv`, `ActionEvent.csv`, `CustomSkill.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
 
 ---
 

@@ -330,6 +330,159 @@ namespace TopDownGame.Skills
             }
         }
 
+        /// <summary>
+        /// Nạp danh sách kỹ năng tùy chỉnh từ CustomSkill.csv (kế thừa visual từ baseSkills và ghi đè gameplay vào customSkills)
+        /// </summary>
+        public static void LoadCustomSkills(
+            string customSkillPath, 
+            Dictionary<int, SkillData> baseSkills, 
+            Dictionary<int, SkillData> customSkills,
+            Dictionary<int, int> baseToCustomMap = null)
+        {
+            if (string.IsNullOrEmpty(customSkillPath) || !File.Exists(customSkillPath)) return;
+
+            try
+            {
+                using (var fs = new FileStream(customSkillPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var reader = new StreamReader(fs, System.Text.Encoding.UTF8))
+                {
+                    string headerLine = reader.ReadLine();
+                    if (string.IsNullOrEmpty(headerLine)) return;
+
+                    string[] headers = CsvParserHelper.SplitCsvLine(headerLine);
+                    var colMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                    for (int i = 0; i < headers.Length; i++)
+                    {
+                        string norm = headers[i].Trim().ToLowerInvariant().Replace(" ", "").Replace("_", "");
+                        colMap[norm] = i;
+                    }
+
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+                        string[] tokens = CsvParserHelper.SplitCsvLine(line);
+                        if (tokens.Length < 2) continue;
+
+                        int skillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "skillid", 0));
+                        if (skillId <= 0) continue;
+
+                        int baseSkillId = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "baseskillid", 1));
+
+                        SkillData data = null;
+                        if (baseSkillId > 0 && baseSkills != null && baseSkills.TryGetValue(baseSkillId, out SkillData baseData))
+                        {
+                            data = baseData.Clone();
+                        }
+                        else
+                        {
+                            data = new SkillData();
+                        }
+
+                        data.id = skillId;
+                        data.baseSkillId = baseSkillId;
+
+                        string skillName = GetColRaw(tokens, colMap, "skillname", 2);
+                        if (!string.IsNullOrEmpty(skillName)) data.name = skillName.Trim();
+
+                        string desc = GetColRaw(tokens, colMap, "description", 3);
+                        if (!string.IsNullOrEmpty(desc)) data.description = desc.Trim();
+
+                        string iconPath = GetColRaw(tokens, colMap, "iconpath", 4);
+                        if (!string.IsNullOrEmpty(iconPath))
+                        {
+                            data.iconPath = iconPath.Trim();
+                            data.ResetCachedIcon();
+                        }
+
+                        string cdStr = GetColRaw(tokens, colMap, "cooldown", 5);
+                        if (!string.IsNullOrEmpty(cdStr)) data.cooldown = CsvParserHelper.ParseFloat(cdStr, data.cooldown);
+
+                        string manaStr = GetColRaw(tokens, colMap, "manacost", 6);
+                        if (!string.IsNullOrEmpty(manaStr)) data.manaCost = CsvParserHelper.ParseFloat(manaStr, data.manaCost);
+
+                        string baseDmgStr = GetColRaw(tokens, colMap, "basedamage", 7);
+                        if (!string.IsNullOrEmpty(baseDmgStr)) data.baseDamage = CsvParserHelper.ParseFloat(baseDmgStr, 0f);
+
+                        string physScaleStr = GetColRaw(tokens, colMap, "physscale", 8);
+                        if (!string.IsNullOrEmpty(physScaleStr)) data.physScale = CsvParserHelper.ParseFloat(physScaleStr, data.physScale);
+
+                        string magicScaleStr = GetColRaw(tokens, colMap, "magicscale", 9);
+                        if (!string.IsNullOrEmpty(magicScaleStr)) data.magicScale = CsvParserHelper.ParseFloat(magicScaleStr, data.magicScale);
+
+                        string baseHealStr = GetColRaw(tokens, colMap, "baseheal", 10);
+                        if (!string.IsNullOrEmpty(baseHealStr)) data.baseHeal = CsvParserHelper.ParseFloat(baseHealStr, 0f);
+
+                        string healScaleStr = GetColRaw(tokens, colMap, "healscale", 11);
+                        if (!string.IsNullOrEmpty(healScaleStr)) data.healScale = CsvParserHelper.ParseFloat(healScaleStr, 0f);
+
+                        customSkills[skillId] = data;
+
+                        if (baseSkillId > 0 && baseToCustomMap != null)
+                        {
+                            baseToCustomMap[baseSkillId] = skillId;
+                        }
+                    }
+
+                    // Tự động remap các ID liên kết (NextComboSkillId, sub-skills, castEvents) sang custom ID
+                    if (baseToCustomMap != null && baseToCustomMap.Count > 0)
+                    {
+                        foreach (var data in customSkills.Values)
+                        {
+                            // 1. Ánh xạ combo kế tiếp (NextComboSkillId / param2)
+                            if (data.param2 > 0 && baseToCustomMap.TryGetValue(data.param2, out int mappedComboId))
+                            {
+                                data.param2 = mappedComboId;
+                            }
+
+                            // 2. Ánh xạ các sub-skill liên kết
+                            if (data.startSkillId > 0 && baseToCustomMap.TryGetValue(data.startSkillId, out int mappedStartId))
+                            {
+                                data.startSkillId = mappedStartId;
+                            }
+                            if (data.flySkillId > 0 && baseToCustomMap.TryGetValue(data.flySkillId, out int mappedFlyId))
+                            {
+                                data.flySkillId = mappedFlyId;
+                            }
+                            if (data.hitSkillId > 0 && baseToCustomMap.TryGetValue(data.hitSkillId, out int mappedHitId))
+                            {
+                                data.hitSkillId = mappedHitId;
+                            }
+                            if (data.vanishedSkillId > 0 && baseToCustomMap.TryGetValue(data.vanishedSkillId, out int mappedVanId))
+                            {
+                                data.vanishedSkillId = mappedVanId;
+                            }
+                            if (data.subSkillId > 0 && baseToCustomMap.TryGetValue(data.subSkillId, out int mappedSubId))
+                            {
+                                data.subSkillId = mappedSubId;
+                            }
+
+                            // 3. Ánh xạ castEvents
+                            if (data.castEvents != null)
+                            {
+                                for (int i = 0; i < data.castEvents.Count; i++)
+                                {
+                                    var ev = data.castEvents[i];
+                                    if (ev.skillId == data.baseSkillId)
+                                    {
+                                        ev.skillId = data.id;
+                                    }
+                                    else if (ev.skillId > 0 && baseToCustomMap.TryGetValue(ev.skillId, out int mappedEvId))
+                                    {
+                                        ev.skillId = mappedEvId;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SkillCsvParser] ❌ Lỗi đọc CustomSkill.csv: {ex.Message}");
+            }
+        }
+
         private static string GetColRaw(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex)
         {
             if (colMap.TryGetValue(key, out int idx) && idx < tokens.Length) return tokens[idx];

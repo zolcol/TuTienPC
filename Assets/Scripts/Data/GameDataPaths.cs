@@ -43,6 +43,7 @@ namespace TopDownGame.Data
 
         // Quick Accessors
         public static string SkillCsv => GetFilePath("Combat", "Skill.csv");
+        public static string CustomSkillCsv => GetFilePath("Combat", "CustomSkill.csv");
         public static string ActionEventCsv => GetFilePath("Combat", "ActionEvent.csv");
         public static string ActionNameCsv => GetFilePath("Combat", "ActionName.csv");
         public static string MissileCsv => GetFilePath("Combat", "Missile.csv");

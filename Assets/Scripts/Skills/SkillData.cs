@@ -50,7 +50,9 @@ namespace TopDownGame.Skills
 
         // --- IDENTITY & ANIMATION ---
         public int id;
+        public int baseSkillId = 0;
         public string name;
+        public string description = "";
         public string iconAtlas;
         public string iconName;
         public string iconPath;
@@ -98,6 +100,7 @@ namespace TopDownGame.Skills
         public float movePosDistance = 0f;
         public float movePosSpeed = 0f;
         public float movePosAccel = 0f;
+        public float speed => movePosSpeed;
         public int movePosFrame = -1;
         public List<SkillMoveEvent> moveEvents = new List<SkillMoveEvent>();
         public SkillType skillType = SkillType.StraightRay;
@@ -148,8 +151,11 @@ namespace TopDownGame.Skills
         }
 
         // --- COMBAT SCALING & RESOURCE ---
+        public float baseDamage = 0f;
         public float physScale = 1f;
         public float magicScale = 0f;
+        public float baseHeal = 0f;
+        public float healScale = 0f;
         public float manaCost = 0f;
         public float cooldown = 0f;
         public bool canCancel = true;
@@ -237,11 +243,57 @@ namespace TopDownGame.Skills
         }
 
         /// <summary>
+        /// Xóa cache Sprite icon khi thay đổi đường dẫn iconPath
+        /// </summary>
+        public void ResetCachedIcon()
+        {
+            cachedIcon = null;
+            attemptedIconLoad = false;
+        }
+
+        /// <summary>
+        /// Tạo bản sao độc lập của SkillData (dùng khi kế thừa từ BaseSkillId)
+        /// </summary>
+        public SkillData Clone()
+        {
+            var clone = (SkillData)this.MemberwiseClone();
+            if (this.castEvents != null)
+            {
+                clone.castEvents = new List<SkillCastEvent>(this.castEvents.Count);
+                for (int i = 0; i < this.castEvents.Count; i++)
+                {
+                    var ev = this.castEvents[i];
+                    clone.castEvents.Add(new SkillCastEvent { frame = ev.frame, skillId = ev.skillId, skillLevel = ev.skillLevel });
+                }
+            }
+            if (this.moveEvents != null)
+            {
+                clone.moveEvents = new List<SkillMoveEvent>(this.moveEvents.Count);
+                for (int i = 0; i < this.moveEvents.Count; i++)
+                {
+                    var ev = this.moveEvents[i];
+                    clone.moveEvents.Add(new SkillMoveEvent { frame = ev.frame, distance = ev.distance, speed = ev.speed, accel = ev.accel });
+                }
+            }
+            if (this.effectEvents != null)
+            {
+                clone.effectEvents = new List<SkillEffectEvent>(this.effectEvents.Count);
+                for (int i = 0; i < this.effectEvents.Count; i++)
+                {
+                    var ev = this.effectEvents[i];
+                    clone.effectEvents.Add(new SkillEffectEvent { frame = ev.frame, effectPath = ev.effectPath, slotId = ev.slotId, duration = ev.duration });
+                }
+            }
+            clone.ResetCachedIcon();
+            return clone;
+        }
+
+        /// <summary>
         /// Tính tổng sát thương dựa trên chỉ số Vật Lý và Phép của thực thể tung chiêu
         /// </summary>
         public float CalculateDamage(EntityStats attackerStats)
         {
-            return CombatFormula.CalculateDamage(attackerStats, physScale, magicScale);
+            return CombatFormula.CalculateDamage(attackerStats, physScale, magicScale, baseDamage);
         }
 
         /// <summary>
@@ -249,7 +301,7 @@ namespace TopDownGame.Skills
         /// </summary>
         public float CalculateHeal(EntityStats casterStats)
         {
-            return CombatFormula.CalculateHeal(casterStats, magicScale);
+            return CombatFormula.CalculateHeal(casterStats, magicScale, baseHeal, healScale);
         }
     }
 }

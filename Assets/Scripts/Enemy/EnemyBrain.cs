@@ -101,7 +101,7 @@ namespace TopDownGame.Enemy
             for (int i = 0; i < attackSkillIds.Count; i++)
             {
                 int id = attackSkillIds[i];
-                SkillData skill = SkillDatabase.GetSkill(id);
+                SkillData skill = SkillDatabase.GetBaseSkill(id);
                 if (skill != null && !IsOnCooldown(skill.id))
                 {
                     // Bỏ qua các kỹ năng tự thân / bị động / buff khi đang tìm chiêu tấn công mục tiêu
@@ -130,7 +130,7 @@ namespace TopDownGame.Enemy
             {
                 for (int i = 0; i < attackSkillIds.Count; i++)
                 {
-                    var sk = SkillDatabase.GetSkill(attackSkillIds[i]);
+                    var sk = SkillDatabase.GetBaseSkill(attackSkillIds[i]);
                     if (sk != null && !sk.targetSelf && sk.relation != SkillRelation.Self && sk.range > 0f && sk.range < minR)
                     {
                         minR = sk.range;

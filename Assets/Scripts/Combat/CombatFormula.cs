@@ -135,21 +135,21 @@ namespace TopDownGame.Combat
         /// <summary>
         /// Tính tổng sát thương dựa trên chỉ số Vật Lý và Phép của thực thể tung chiêu.
         /// </summary>
-        public static float CalculateDamage(EntityStats attackerStats, float physScale, float magicScale)
+        public static float CalculateDamage(EntityStats attackerStats, float physScale, float magicScale, float baseDamage = 0f)
         {
             if (attackerStats == null)
             {
-                return (20f * physScale) + (10f * magicScale);
+                return baseDamage + (20f * physScale) + (10f * magicScale);
             }
-            return (attackerStats.PhysicalDamage * physScale) + (attackerStats.MagicDamage * magicScale);
+            return baseDamage + (attackerStats.PhysicalDamage * physScale) + (attackerStats.MagicDamage * magicScale);
         }
 
         /// <summary>
         /// Tính tổng sát thương trực tiếp từ giá trị công Vật Lý và Phép.
         /// </summary>
-        public static float CalculateDamage(float physDamage, float magicDamage, float physScale, float magicScale)
+        public static float CalculateDamage(float physDamage, float magicDamage, float physScale, float magicScale, float baseDamage = 0f)
         {
-            return (physDamage * physScale) + (magicDamage * magicScale);
+            return baseDamage + (physDamage * physScale) + (magicDamage * magicScale);
         }
 
         /// <summary>
@@ -178,7 +178,7 @@ namespace TopDownGame.Combat
         /// <summary>
         /// Tính toán sát thương tổng hợp đầy đủ từ Caster sang Target (kết hợp công, thủ và bạo kích).
         /// </summary>
-        public static (float damage, bool isCrit) CalculateCombatDamage(EntityStats attacker, EntityStats defender, float physScale, float magicScale)
+        public static (float damage, bool isCrit) CalculateCombatDamage(EntityStats attacker, EntityStats defender, float physScale, float magicScale, float baseDamage = 0f)
         {
             float rawPhys = (attacker != null ? attacker.PhysicalDamage : 20f) * physScale;
             float rawMagic = (attacker != null ? attacker.MagicDamage : 10f) * magicScale;
@@ -188,7 +188,7 @@ namespace TopDownGame.Combat
 
             float mitigatedPhys = CalculateMitigatedDamage(rawPhys, armor);
             float mitigatedMagic = CalculateMitigatedDamage(rawMagic, magicRes);
-            float baseTotal = mitigatedPhys + mitigatedMagic;
+            float baseTotal = baseDamage + mitigatedPhys + mitigatedMagic;
 
             float critRate = attacker != null ? attacker.CritRate : 0f;
             float critDmg = attacker != null ? attacker.CritDamage : 150f;
@@ -197,25 +197,23 @@ namespace TopDownGame.Combat
         }
 
         /// <summary>
-        /// Tính tổng lượng hồi máu dựa trên chỉ số Phép / Nội công của thực thể tung chiêu.
+        /// Tính tổng lượng hồi máu chuẩn: BaseHeal + (Công Phép * HealScale).
+        /// Nếu không đặt HealScale (> 0) thì fallback sang MagicScale nếu có.
         /// </summary>
-        public static float CalculateHeal(EntityStats casterStats, float magicScale)
+        public static float CalculateHeal(EntityStats casterStats, float magicScale, float baseHeal = 0f, float healScale = 0f)
         {
-            float baseHeal = 100f * (magicScale > 0f ? magicScale : 1f);
-            if (casterStats == null)
-            {
-                return baseHeal;
-            }
-            return baseHeal + (casterStats.MagicDamage * 2.2f);
+            float scale = healScale > 0f ? healScale : (magicScale > 0f ? magicScale : 0f);
+            float magicDmg = casterStats != null ? casterStats.MagicDamage : 0f;
+            return baseHeal + (magicDmg * scale);
         }
 
         /// <summary>
-        /// Tính tổng lượng hồi máu trực tiếp từ giá trị công Phép.
+        /// Tính tổng lượng hồi máu trực tiếp từ giá trị công Phép: BaseHeal + (Công Phép * HealScale).
         /// </summary>
-        public static float CalculateHeal(float magicDamage, float magicScale)
+        public static float CalculateHeal(float magicDamage, float magicScale, float baseHeal = 0f, float healScale = 0f)
         {
-            float baseHeal = 100f * (magicScale > 0f ? magicScale : 1f);
-            return baseHeal + (magicDamage * 2.2f);
+            float scale = healScale > 0f ? healScale : (magicScale > 0f ? magicScale : 0f);
+            return baseHeal + (magicDamage * scale);
         }
 
         /// <summary>

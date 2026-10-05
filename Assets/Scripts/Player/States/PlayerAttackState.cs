@@ -160,9 +160,9 @@ namespace TopDownGame.Player
                             hasTriggeredHit = true;
 
                             SkillData targetSkillToCast = currentSkill;
-                            if (castEv.skillId > 0 && castEv.skillId != currentSkill.id)
+                            if (castEv.skillId > 0 && castEv.skillId != currentSkill.id && castEv.skillId != currentSkill.baseSkillId)
                             {
-                                SkillData subSkill = SkillDatabase.GetSkill(castEv.skillId);
+                                SkillData subSkill = SkillDatabase.GetSkillOrBase(castEv.skillId);
                                 if (subSkill != null)
                                 {
                                     targetSkillToCast = subSkill;

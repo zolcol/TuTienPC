@@ -50,7 +50,7 @@ namespace TopDownGame.Skills
             // 0. Kích hoạt chiêu phụ bắt đầu (StartSkillID) nếu có
             if (skill.HasStartSkill)
             {
-                SkillData startSkill = SkillDatabase.GetSkill(skill.startSkillId);
+                SkillData startSkill = SkillDatabase.GetSubSkill(skill.startSkillId, skill);
                 if (startSkill != null && startSkill.id != skill.id)
                 {
                     if (startSkill.HasSound && SoundManager.Instance != null)
@@ -69,7 +69,7 @@ namespace TopDownGame.Skills
                 // Kích hoạt chiêu phụ legacy kèm theo (nếu khác start/fly/hit skill)
                 if (skill.HasSubSkill && skill.subSkillId != skill.startSkillId && skill.subSkillId != skill.flySkillId && skill.subSkillId != skill.hitSkillId)
                 {
-                    SkillData subSkill = SkillDatabase.GetSkill(skill.subSkillId);
+                    SkillData subSkill = SkillDatabase.GetSubSkill(skill.subSkillId, skill);
                     if (subSkill != null && subSkill.id != skill.id)
                     {
                         if (subSkill.HasSound && SoundManager.Instance != null)
@@ -133,7 +133,7 @@ namespace TopDownGame.Skills
             // 3. Kích hoạt chiêu phụ legacy nếu có
             if (skill.HasSubSkill && skill.subSkillId != skill.startSkillId && skill.subSkillId != skill.flySkillId && skill.subSkillId != skill.hitSkillId)
             {
-                SkillData subSkill = SkillDatabase.GetSkill(skill.subSkillId);
+                SkillData subSkill = SkillDatabase.GetSubSkill(skill.subSkillId, skill);
                 if (subSkill != null && subSkill.id != skill.id)
                 {
                     if (subSkill.HasSound && SoundManager.Instance != null)
@@ -891,7 +891,7 @@ namespace TopDownGame.Skills
 
                 if (caster == null) yield break;
 
-                SkillData flySkill = SkillDatabase.GetSkill(skill.flySkillId);
+                SkillData flySkill = SkillDatabase.GetSubSkill(skill.flySkillId, skill);
                 if (flySkill != null && flySkill.id != skill.id)
                 {
                     CastHeal(caster, casterStats, flySkill, explicitTarget, default, true);
