@@ -14,6 +14,7 @@ namespace TopDownGame.Input
         private InputAction skill1Action;
         private InputAction skill2Action;
         private InputAction skill3Action;
+        private InputAction toggleCharacterStatsAction;
 
         public Vector2 MoveInput { get; private set; }
         public bool AttackTriggered { get; private set; }
@@ -27,6 +28,7 @@ namespace TopDownGame.Input
         public bool Skill3Triggered { get; private set; }
         public bool Skill3Held { get; private set; }
         public bool Skill3Released { get; private set; }
+        public bool ToggleCharacterStatsTriggered { get; private set; }
         public bool IsUsingGamepad { get; private set; }
 
         private void Awake()
@@ -46,6 +48,7 @@ namespace TopDownGame.Input
                     skill1Action = playerMap.FindAction("Skill1");
                     skill2Action = playerMap.FindAction("Skill2");
                     skill3Action = playerMap.FindAction("Skill3");
+                    toggleCharacterStatsAction = playerMap.FindAction("ToggleCharacterStats") ?? playerMap.FindAction("CharacterStats");
                 }
             }
         }
@@ -59,6 +62,7 @@ namespace TopDownGame.Input
             skill1Action?.Enable();
             skill2Action?.Enable();
             skill3Action?.Enable();
+            toggleCharacterStatsAction?.Enable();
         }
 
         private void OnDisable()
@@ -70,6 +74,7 @@ namespace TopDownGame.Input
             skill1Action?.Disable();
             skill2Action?.Disable();
             skill3Action?.Disable();
+            toggleCharacterStatsAction?.Disable();
         }
 
         private void Update()
@@ -122,6 +127,17 @@ namespace TopDownGame.Input
                 Skill3Triggered = skill3Action.WasPressedThisFrame();
                 Skill3Held = skill3Action.IsPressed();
                 Skill3Released = skill3Action.WasReleasedThisFrame();
+            }
+
+            // Bật/tắt bảng thuộc tính
+            if (toggleCharacterStatsAction != null)
+            {
+                ToggleCharacterStatsTriggered = toggleCharacterStatsAction.WasPressedThisFrame();
+            }
+            else
+            {
+                // Fallback: nếu chưa config trong inputactions asset, vẫn hỗ trợ phím C hoặc Gamepad Select/Back
+                ToggleCharacterStatsTriggered = (Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame);
             }
         }
 
