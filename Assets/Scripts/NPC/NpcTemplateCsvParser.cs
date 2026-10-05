@@ -79,7 +79,7 @@ namespace TopDownGame.NPC
                             camp = camp,
                             npcResId = resId,
                             npcAttribId = attribId,
-                            skill = skill1,
+                            skill = 0,
                             skill1 = skill1,
                             skill2 = skill2,
                             skill3 = skill3,

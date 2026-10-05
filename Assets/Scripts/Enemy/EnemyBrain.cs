@@ -57,7 +57,15 @@ namespace TopDownGame.Enemy
         {
             if (skills != null && skills.Count > 0)
             {
-                attackSkillIds = new List<int>(skills);
+                attackSkillIds.Clear();
+                for (int i = 0; i < skills.Count; i++)
+                {
+                    int id = skills[i];
+                    if (id > 0 && !attackSkillIds.Contains(id))
+                    {
+                        attackSkillIds.Add(id);
+                    }
+                }
             }
         }
 

@@ -66,10 +66,10 @@ namespace TopDownGame.NPC
         public List<int> GetSkillList()
         {
             var list = new List<int>();
-            if (skill > 0) list.Add(skill);
-            if (skill1 > 0) list.Add(skill1);
-            if (skill2 > 0) list.Add(skill2);
-            if (skill3 > 0) list.Add(skill3);
+            if (skill1 > 0 && !list.Contains(skill1)) list.Add(skill1);
+            if (skill2 > 0 && !list.Contains(skill2)) list.Add(skill2);
+            if (skill3 > 0 && !list.Contains(skill3)) list.Add(skill3);
+            if (skill > 0 && !list.Contains(skill)) list.Add(skill);
             return list;
         }
 
