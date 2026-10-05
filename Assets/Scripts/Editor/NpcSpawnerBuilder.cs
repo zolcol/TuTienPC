@@ -149,6 +149,7 @@ namespace TopDownGame.Editor
 
             // 3. Thêm EnemyStats & EnemyController
             EnemyStats stats = rootGO.AddComponent<EnemyStats>();
+            stats.SetHealthBarOffset(height + 0.3f);
             var attrib = template.GetAttribute();
             if (attrib != null)
             {

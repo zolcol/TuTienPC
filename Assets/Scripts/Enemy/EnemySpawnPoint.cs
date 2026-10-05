@@ -262,6 +262,7 @@ namespace TopDownGame.Enemy
             // 4. EnemyStats
             EnemyStats stats = enemyGO.AddComponent<EnemyStats>();
             stats.MonsterLevel = level;
+            stats.SetHealthBarOffset(height + 0.3f);
 
             // 5. EnemyPerception & Brain
             EnemyPerception perception = enemyGO.AddComponent<EnemyPerception>();

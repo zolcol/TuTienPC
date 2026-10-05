@@ -53,30 +53,27 @@ namespace TopDownGame.Enemy
             }
         }
 
-        private void OnGUI()
+        private EnemyHealthBar healthBar;
+
+        protected virtual void Start()
         {
-            if (!showHealthBar || IsDead) return;
-
-            UnityEngine.Camera cam = UnityEngine.Camera.main;
-            if (cam == null) return;
-
-            Vector3 screenPos = cam.WorldToScreenPoint(transform.position + Vector3.up * healthBarOffsetY);
-            if (screenPos.z > 0)
+            if (showHealthBar)
             {
-                float barWidth = 80f;
-                float barHeight = 8f;
-                float hpPercent = health.Percentage;
+                healthBar = GetComponent<EnemyHealthBar>();
+                if (healthBar == null)
+                {
+                    healthBar = gameObject.AddComponent<EnemyHealthBar>();
+                }
+                healthBar.Initialize(this, healthBarOffsetY);
+            }
+        }
 
-                Rect bgRect = new Rect(screenPos.x - barWidth * 0.5f, Screen.height - screenPos.y, barWidth, barHeight);
-                Rect fillRect = new Rect(bgRect.x, bgRect.y, barWidth * hpPercent, barHeight);
-
-                GUI.color = new Color(0f, 0f, 0f, 0.8f);
-                GUI.DrawTexture(bgRect, Texture2D.whiteTexture);
-
-                GUI.color = Color.Lerp(Color.red, new Color(0.2f, 0.9f, 0.2f), hpPercent);
-                GUI.DrawTexture(fillRect, Texture2D.whiteTexture);
-
-                GUI.color = Color.white;
+        public void SetHealthBarOffset(float offset)
+        {
+            healthBarOffsetY = offset;
+            if (healthBar != null)
+            {
+                healthBar.SetOffsetY(offset);
             }
         }
     }
