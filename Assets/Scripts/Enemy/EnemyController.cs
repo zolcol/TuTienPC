@@ -197,7 +197,26 @@ namespace TopDownGame.Enemy
             if (StateMachine.CurrentState == AttackState || StateMachine.CurrentState == ReturnState) return;
             if (AnimationController == null || !AnimationController.HasClip(LegacyAnimationController.CLIP_HURT)) return;
 
-            StateMachine.ChangeState(HurtState);
+            // Chỉ kích hoạt hoạt ảnh bị thương khi quái đang đứng yên (Idle) hoặc đang đứng chờ hồi chiêu trong cự ly tấn công
+            bool isStationary = false;
+            if (StateMachine.CurrentState == IdleState)
+            {
+                isStationary = true;
+            }
+            else if (StateMachine.CurrentState == ChaseState)
+            {
+                float distanceToTarget = GetDistanceToTarget();
+                float minCombatRange = GetMinAttackRange();
+                if (ForbitMove || distanceToTarget <= minCombatRange)
+                {
+                    isStationary = true;
+                }
+            }
+
+            if (isStationary)
+            {
+                StateMachine.ChangeState(HurtState);
+            }
         }
 
         public void TryFindTarget() => Perception?.TryFindTarget();

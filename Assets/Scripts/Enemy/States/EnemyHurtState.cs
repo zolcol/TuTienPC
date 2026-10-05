@@ -40,6 +40,21 @@ namespace TopDownGame.Enemy
         {
             base.Update();
 
+            if (enemy.Perception != null)
+            {
+                enemy.Perception.TickPerception(Time.deltaTime);
+            }
+
+            // Nếu trong lúc bị thương có chiêu thức sẵn sàng và mục tiêu trong tầm -> Xuất chiêu tấn công ngay
+            float distanceToTarget = enemy.GetDistanceToTarget();
+            var readyAttack = enemy.GetReadyAttack(distanceToTarget);
+            if (readyAttack != null)
+            {
+                enemy.AttackState.SetSkill(readyAttack);
+                stateMachine.ChangeState(enemy.AttackState);
+                return;
+            }
+
             timer += Time.deltaTime;
             if (timer >= hurtDuration)
             {
