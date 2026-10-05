@@ -5,6 +5,7 @@ using TMPro;
 using TopDownGame.Player;
 using TopDownGame.Stats;
 using TopDownGame.Input;
+using TopDownGame.Combat;
 
 namespace TopDownGame.UI
 {
@@ -217,7 +218,7 @@ namespace TopDownGame.UI
             long curExp = playerStats.CurrentExp;
             if (expText != null)
             {
-                expText.text = $"EXP: {curExp:N0} / {reqExp:N0}";
+                expText.text = $"EXP: {PlayerHUD.FormatExpValue(curExp)} / {PlayerHUD.FormatExpValue(reqExp)}";
             }
             if (expSlider != null && reqExp > 0)
             {
@@ -227,7 +228,7 @@ namespace TopDownGame.UI
             // 2. Resources (HP / MP)
             if (hpText != null)
             {
-                hpText.text = $"{Mathf.CeilToInt(playerStats.Health.CurrentValue):N0} / {Mathf.CeilToInt(playerStats.Health.MaxValue):N0}";
+                hpText.text = $"{PlayerHUD.FormatStatValue(playerStats.Health.CurrentValue)} / {PlayerHUD.FormatStatValue(playerStats.Health.MaxValue)}";
             }
             if (hpRegenText != null)
             {
@@ -236,7 +237,7 @@ namespace TopDownGame.UI
 
             if (mpText != null)
             {
-                mpText.text = $"{Mathf.CeilToInt(playerStats.Mana.CurrentValue):N0} / {Mathf.CeilToInt(playerStats.Mana.MaxValue):N0}";
+                mpText.text = $"{PlayerHUD.FormatStatValue(playerStats.Mana.CurrentValue)} / {PlayerHUD.FormatStatValue(playerStats.Mana.MaxValue)}";
             }
             if (mpRegenText != null)
             {
@@ -254,7 +255,8 @@ namespace TopDownGame.UI
             }
             if (attackSpeedText != null)
             {
-                attackSpeedText.text = $"+{playerStats.AttackSpeed:0.#}%";
+                float speedMultiplier = CombatFormula.CalculateAttackSpeedMultiplier(playerStats.AttackSpeed);
+                attackSpeedText.text = $"{speedMultiplier:0.00}";
             }
             if (critRateText != null)
             {

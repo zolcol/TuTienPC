@@ -161,7 +161,7 @@ namespace TopDownGame.Editor
             CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
             if (scaler == null) scaler = canvas.gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1280, 720);
+            scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = 0.5f;
 
             SetLayerRecursively(canvas.gameObject, GameConstants.Layers.UILayer);
@@ -194,7 +194,7 @@ namespace TopDownGame.Editor
             out Image manaFill, out TextMeshProUGUI manaText,
             out Image expFill, out TextMeshProUGUI expText, out TextMeshProUGUI levelText)
         {
-            // Panel nền góc trên-trái (Thiết kế thanh mảnh, tinh gọn)
+            // Panel nền góc trên-trái (Chuẩn tỷ lệ Full HD 1080p)
             GameObject panelGO = new GameObject("StatusPanel_TopLeft", typeof(RectTransform), typeof(Image));
             panelGO.transform.SetParent(parent, false);
 
@@ -202,8 +202,8 @@ namespace TopDownGame.Editor
             panelRect.anchorMin = new Vector2(0f, 1f);
             panelRect.anchorMax = new Vector2(0f, 1f);
             panelRect.pivot = new Vector2(0f, 1f);
-            panelRect.anchoredPosition = new Vector2(20f, -20f);
-            panelRect.sizeDelta = new Vector2(300f, 96f);
+            panelRect.anchoredPosition = new Vector2(24f, -24f);
+            panelRect.sizeDelta = new Vector2(420f, 126f);
 
             Image panelImg = panelGO.GetComponent<Image>();
             panelImg.sprite = flatSprite;
@@ -216,15 +216,15 @@ namespace TopDownGame.Editor
             hpBarRect.anchorMin = new Vector2(0f, 1f);
             hpBarRect.anchorMax = new Vector2(0f, 1f);
             hpBarRect.pivot = new Vector2(0f, 1f);
-            hpBarRect.anchoredPosition = new Vector2(48f, -10f);
-            hpBarRect.sizeDelta = new Vector2(240f, 24f);
+            hpBarRect.anchoredPosition = new Vector2(56f, -12f);
+            hpBarRect.sizeDelta = new Vector2(350f, 32f);
 
             Image hpBgImg = hpBarGO.GetComponent<Image>();
             hpBgImg.sprite = flatSprite;
             hpBgImg.color = HpBgColor;
 
             // Label "HP"
-            CreateBadgeText(panelGO.transform, "HP", new Vector2(10f, -10f), new Vector2(34f, 24f), 13, new Color(1f, 0.35f, 0.35f));
+            CreateBadgeText(panelGO.transform, "HP", new Vector2(12f, -12f), new Vector2(40f, 32f), 16, new Color(1f, 0.35f, 0.35f));
 
             // Vạch vàng Ghost tụt theo
             GameObject ghostGO = new GameObject("GhostFill", typeof(RectTransform), typeof(Image));
@@ -259,7 +259,7 @@ namespace TopDownGame.Editor
             healthFill.color = HpFillColor;
 
             // Text số Máu
-            healthText = CreateValueText(hpBarGO.transform, "100 / 100", 12);
+            healthText = CreateValueText(hpBarGO.transform, "100 / 100", 18);
 
             // 2. THANH MANA
             GameObject mpBarGO = new GameObject("ManaBar", typeof(RectTransform), typeof(Image));
@@ -268,15 +268,15 @@ namespace TopDownGame.Editor
             mpBarRect.anchorMin = new Vector2(0f, 1f);
             mpBarRect.anchorMax = new Vector2(0f, 1f);
             mpBarRect.pivot = new Vector2(0f, 1f);
-            mpBarRect.anchoredPosition = new Vector2(48f, -40f);
-            mpBarRect.sizeDelta = new Vector2(240f, 18f);
+            mpBarRect.anchoredPosition = new Vector2(56f, -50f);
+            mpBarRect.sizeDelta = new Vector2(350f, 26f);
 
             Image mpBgImg = mpBarGO.GetComponent<Image>();
             mpBgImg.sprite = flatSprite;
             mpBgImg.color = MpBgColor;
 
             // Label "MP"
-            CreateBadgeText(panelGO.transform, "MP", new Vector2(10f, -40f), new Vector2(34f, 18f), 12, new Color(0.35f, 0.75f, 1f));
+            CreateBadgeText(panelGO.transform, "MP", new Vector2(12f, -50f), new Vector2(40f, 26f), 14, new Color(0.35f, 0.75f, 1f));
 
             // Fill Mana xanh
             GameObject mpFillGO = new GameObject("Fill", typeof(RectTransform), typeof(Image));
@@ -295,7 +295,7 @@ namespace TopDownGame.Editor
             manaFill.color = MpFillColor;
 
             // Text số Mana
-            manaText = CreateValueText(mpBarGO.transform, "100 / 100", 11);
+            manaText = CreateValueText(mpBarGO.transform, "100 / 100", 15);
 
             // 3. VẠCH LEVEL & KINH NGHIỆM (EXP BAR)
             GameObject expBarGO = new GameObject("ExpBar", typeof(RectTransform), typeof(Image));
@@ -304,8 +304,8 @@ namespace TopDownGame.Editor
             expBarRect.anchorMin = new Vector2(0f, 1f);
             expBarRect.anchorMax = new Vector2(0f, 1f);
             expBarRect.pivot = new Vector2(0f, 1f);
-            expBarRect.anchoredPosition = new Vector2(48f, -66f);
-            expBarRect.sizeDelta = new Vector2(240f, 14f);
+            expBarRect.anchoredPosition = new Vector2(56f, -84f);
+            expBarRect.sizeDelta = new Vector2(350f, 22f);
 
             Image expBgImg = expBarGO.GetComponent<Image>();
             expBgImg.sprite = flatSprite;
@@ -318,14 +318,14 @@ namespace TopDownGame.Editor
             levelBadgeRect.anchorMin = new Vector2(0f, 1f);
             levelBadgeRect.anchorMax = new Vector2(0f, 1f);
             levelBadgeRect.pivot = new Vector2(0f, 1f);
-            levelBadgeRect.anchoredPosition = new Vector2(10f, -65f);
-            levelBadgeRect.sizeDelta = new Vector2(34f, 16f);
+            levelBadgeRect.anchoredPosition = new Vector2(12f, -83f);
+            levelBadgeRect.sizeDelta = new Vector2(40f, 24f);
 
             Image levelBadgeImg = levelBadgeGO.GetComponent<Image>();
             levelBadgeImg.sprite = flatSprite;
             levelBadgeImg.color = LevelBadgeBgColor;
 
-            levelText = CreateBadgeText(levelBadgeGO.transform, "Lv.1", Vector2.zero, Vector2.zero, 11, GoldTextColor, true);
+            levelText = CreateBadgeText(levelBadgeGO.transform, "Lv.1", Vector2.zero, Vector2.zero, 13, GoldTextColor, true);
 
             // Fill EXP vàng cam sáng
             GameObject expFillGO = new GameObject("Fill", typeof(RectTransform), typeof(Image));
@@ -344,12 +344,12 @@ namespace TopDownGame.Editor
             expFill.color = ExpFillColor;
 
             // Text số EXP
-            expText = CreateValueText(expBarGO.transform, "0 / 28000", 10);
+            expText = CreateValueText(expBarGO.transform, "0 / 28,000", 13);
         }
 
         private static void CreateSkillPanel(Transform parent, Sprite flatSprite, out SkillSlotUI slotQ, out SkillSlotUI slotE, out SkillSlotUI slotR)
         {
-            // Panel chứa 3 nút kỹ năng ở đáy chính giữa (Gọn gàng, vừa tầm mắt)
+            // Panel chứa 3 nút kỹ năng ở đáy chính giữa (Tỷ lệ 1080p chuẩn)
             GameObject panelGO = new GameObject("SkillPanel_BottomCenter", typeof(RectTransform), typeof(Image));
             panelGO.transform.SetParent(parent, false);
 
@@ -357,17 +357,17 @@ namespace TopDownGame.Editor
             panelRect.anchorMin = new Vector2(0.5f, 0f);
             panelRect.anchorMax = new Vector2(0.5f, 0f);
             panelRect.pivot = new Vector2(0.5f, 0f);
-            panelRect.anchoredPosition = new Vector2(0f, 18f);
-            panelRect.sizeDelta = new Vector2(210f, 72f);
+            panelRect.anchoredPosition = new Vector2(0f, 24f);
+            panelRect.sizeDelta = new Vector2(270f, 90f);
 
             Image panelImg = panelGO.GetComponent<Image>();
             panelImg.sprite = flatSprite;
             panelImg.color = BgDarkColor;
 
-            // 3 ô skill (size 56x56) cách đều
-            slotQ = CreateSingleSkillSlot(panelGO.transform, "SkillSlot_Q", "Q", -66f, flatSprite);
+            // 3 ô skill (size 72x72) cách đều
+            slotQ = CreateSingleSkillSlot(panelGO.transform, "SkillSlot_Q", "Q", -86f, flatSprite);
             slotE = CreateSingleSkillSlot(panelGO.transform, "SkillSlot_E", "E", 0f, flatSprite);
-            slotR = CreateSingleSkillSlot(panelGO.transform, "SkillSlot_R", "R", 66f, flatSprite);
+            slotR = CreateSingleSkillSlot(panelGO.transform, "SkillSlot_R", "R", 86f, flatSprite);
         }
 
         private static SkillSlotUI CreateSingleSkillSlot(Transform parent, string name, string keyName, float posX, Sprite flatSprite)
@@ -380,7 +380,7 @@ namespace TopDownGame.Editor
             slotRect.anchorMax = new Vector2(0.5f, 0.5f);
             slotRect.pivot = new Vector2(0.5f, 0.5f);
             slotRect.anchoredPosition = new Vector2(posX, 0f);
-            slotRect.sizeDelta = new Vector2(56f, 56f);
+            slotRect.sizeDelta = new Vector2(72f, 72f);
 
             Image slotFrame = slotGO.GetComponent<Image>();
             slotFrame.sprite = flatSprite;
@@ -427,10 +427,12 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI cdTmp = cdTextGO.GetComponent<TextMeshProUGUI>();
             cdTmp.text = "";
-            cdTmp.fontSize = 22;
+            cdTmp.fontSize = 26;
             cdTmp.fontStyle = FontStyles.Bold;
             cdTmp.alignment = TextAlignmentOptions.Center;
             cdTmp.color = GoldTextColor;
+            cdTmp.outlineColor = new Color32(10, 10, 15, 255);
+            cdTmp.outlineWidth = 0.25f;
             cdTextGO.SetActive(false);
 
             // 4. Key Badge (Chữ Q, E, R)
@@ -440,8 +442,8 @@ namespace TopDownGame.Editor
             badgeRect.anchorMin = new Vector2(1f, 0f);
             badgeRect.anchorMax = new Vector2(1f, 0f);
             badgeRect.pivot = new Vector2(1f, 0f);
-            badgeRect.anchoredPosition = new Vector2(-2f, 2f);
-            badgeRect.sizeDelta = new Vector2(24f, 22f);
+            badgeRect.anchoredPosition = new Vector2(-3f, 3f);
+            badgeRect.sizeDelta = new Vector2(28f, 26f);
 
             Image badgeImg = badgeGO.GetComponent<Image>();
             badgeImg.sprite = flatSprite;
@@ -456,10 +458,12 @@ namespace TopDownGame.Editor
 
             TextMeshProUGUI keyTmp = badgeTextGO.GetComponent<TextMeshProUGUI>();
             keyTmp.text = keyName;
-            keyTmp.fontSize = 12;
+            keyTmp.fontSize = 14;
             keyTmp.fontStyle = FontStyles.Bold;
             keyTmp.alignment = TextAlignmentOptions.Center;
             keyTmp.color = GoldTextColor;
+            keyTmp.outlineColor = new Color32(10, 10, 15, 255);
+            keyTmp.outlineWidth = 0.2f;
 
             // 5. Nối dây references cho SkillSlotUI
             SerializedObject slotSO = new SerializedObject(slotUI);
@@ -488,6 +492,10 @@ namespace TopDownGame.Editor
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = Color.white;
+            tmp.outlineColor = new Color32(10, 10, 15, 255);
+            tmp.outlineWidth = 0.25f;
+            tmp.enableWordWrapping = false;
+            tmp.overflowMode = TextOverflowModes.Ellipsis;
             return tmp;
         }
 
@@ -518,6 +526,10 @@ namespace TopDownGame.Editor
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = color;
+            tmp.outlineColor = new Color32(10, 10, 15, 255);
+            tmp.outlineWidth = 0.25f;
+            tmp.enableWordWrapping = false;
+            tmp.overflowMode = TextOverflowModes.Ellipsis;
             return tmp;
         }
     }

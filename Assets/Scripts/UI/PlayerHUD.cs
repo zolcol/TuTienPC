@@ -103,7 +103,7 @@ namespace TopDownGame.UI
         {
             if (levelText != null) levelText.text = $"Lv.{level}";
             targetExpFill = maxExp > 0 ? Mathf.Clamp01((float)exp / maxExp) : 1f;
-            if (expText != null) expText.text = $"{exp} / {maxExp}";
+            if (expText != null) expText.text = $"{FormatExpValue(exp)} / {FormatExpValue(maxExp)}";
         }
 
         private void HandleLevelUp(int newLevel)
@@ -192,7 +192,7 @@ namespace TopDownGame.UI
 
             if (healthText != null)
             {
-                healthText.text = $"{Mathf.CeilToInt(current)} / {Mathf.CeilToInt(max)}";
+                healthText.text = $"{FormatStatValue(current)} / {FormatStatValue(max)}";
             }
         }
 
@@ -201,8 +201,35 @@ namespace TopDownGame.UI
             targetManaFill = max > 0f ? Mathf.Clamp01(current / max) : 0f;
             if (manaText != null)
             {
-                manaText.text = $"{Mathf.CeilToInt(current)} / {Mathf.CeilToInt(max)}";
+                manaText.text = $"{FormatStatValue(current)} / {FormatStatValue(max)}";
             }
+        }
+
+        public static string FormatStatValue(float value)
+        {
+            int intVal = Mathf.CeilToInt(value);
+            if (intVal >= 1_000_000)
+            {
+                return (intVal / 1_000_000f).ToString("0.#") + "M";
+            }
+            if (intVal >= 100_000)
+            {
+                return (intVal / 1_000f).ToString("0.#") + "K";
+            }
+            return intVal.ToString("N0");
+        }
+
+        public static string FormatExpValue(long value)
+        {
+            if (value >= 1_000_000)
+            {
+                return (value / 1_000_000f).ToString("0.##") + "M";
+            }
+            if (value >= 100_000)
+            {
+                return (value / 1_000f).ToString("0.#") + "K";
+            }
+            return value.ToString("N0");
         }
 
         private void UpdateSkillCooldownsAndMana()

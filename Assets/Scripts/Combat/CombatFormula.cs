@@ -104,6 +104,16 @@ namespace TopDownGame.Combat
         }
 
         /// <summary>
+        /// Tính hệ số tốc độ xuất chiêu (Speed Multiplier) từ điểm Tốc Đánh.
+        /// Cơ bản là 1.0, cứ mỗi 10 điểm AttackSpeed tăng thêm 0.05 (5%).
+        /// </summary>
+        public static float CalculateAttackSpeedMultiplier(float attackSpeedPercent)
+        {
+            float speedReduction = Mathf.Floor(attackSpeedPercent / 10f) / 20f;
+            return 1.0f + speedReduction;
+        }
+
+        /// <summary>
         /// Tính thời lượng thực tế (giây) của animation sau khi scale theo Tốc Đánh.
         /// </summary>
         public static float CalculateActionDuration(int originalFrame, float attackSpeedPercent = 0f, float fps = ACTION_EVENT_FPS)
