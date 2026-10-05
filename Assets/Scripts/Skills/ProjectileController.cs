@@ -83,7 +83,7 @@ namespace TopDownGame.Skills
                 : (skill != null ? skill.CalculateDamage(casterStats) : 20f);
 
             this.moveDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : (caster != null ? caster.forward : Vector3.forward);
-            this.speed = missile != null ? missile.SpeedInUnitsPerSec : 10f;
+            this.speed = missile != null ? missile.SpeedInUnitsPerSec : 0f;
             this.collisionRadius = missile != null ? missile.CollisionRadius : 0.6f;
             this.lifeTimer = missile != null ? missile.LifeTimeInSeconds : 2.5f;
             this.maxDistance = (skill != null && skill.range > 0f) 

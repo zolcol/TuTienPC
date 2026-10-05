@@ -542,14 +542,15 @@ namespace TopDownGame.Skills
             }
 
             // 1. Bắn vòng tròn 360 độ (Circular Ring)
-            if (skill.missileForm == 3 || skill.msGenerate == 3)
+            if (skill.missileForm == 3)
             {
+                float ringRadius = (skill.skillParam1 > 0f) ? (skill.skillParam1 / 100f) : spawnOffset;
                 float angleStep = 360f / Mathf.Max(1, count);
                 for (int i = 0; i < count; i++)
                 {
                     float currentAngle = i * angleStep;
                     Vector3 shotDir = Quaternion.Euler(0, currentAngle, 0) * aimDirection;
-                    Vector3 ringSpawnPos = originPos + shotDir * spawnOffset;
+                    Vector3 ringSpawnPos = originPos + shotDir * ringRadius;
                     SpawnSingleMissileObject(caster, casterStats, skill, missile, ringSpawnPos, shotDir, targetLayer, explicitTarget);
                 }
                 return;

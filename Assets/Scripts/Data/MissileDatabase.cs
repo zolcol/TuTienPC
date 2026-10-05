@@ -32,8 +32,8 @@ namespace TopDownGame.Data
         public bool isFollowTarget;
 
         public bool IsProjectile => moveKind > MissileMoveKind.StaticTrap || missileResID > 0;
-        public float SpeedInUnitsPerSec => speed > 0f ? (speed / 10.0f) : 10.0f;
-        public float AccelerationInUnitsPerSec2 => acceSpeed > 0f ? (acceSpeed / 10.0f) : 0f;
+        public float SpeedInUnitsPerSec => (moveKind == MissileMoveKind.StaticTrap || speed <= 0f) ? 0f : (speed / 10.0f);
+        public float AccelerationInUnitsPerSec2 => (moveKind == MissileMoveKind.StaticTrap || acceSpeed <= 0f) ? 0f : (acceSpeed / 10.0f);
         public float LifeTimeInSeconds => lifeTime > 0f ? (lifeTime / 15.0f) : 2.5f;
         public float DmgIntervalInSeconds => dmgInterval > 0f ? (dmgInterval / 15.0f) : 0f;
         public float CollisionRadius => dmgRange > 0f ? (dmgRange / 10.0f) : 0.6f;
