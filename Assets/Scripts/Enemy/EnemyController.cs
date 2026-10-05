@@ -74,18 +74,20 @@ namespace TopDownGame.Enemy
             ReturnState = new EnemyReturnState(this, StateMachine);
             HurtState = new EnemyHurtState(this, StateMachine);
             DeadState = new EnemyDeadState(this, StateMachine);
+
+            if (Stats != null)
+            {
+                Stats.OnDeath += HandleDeath;
+                Stats.OnDamaged += HandleDamaged;
+            }
         }
 
         private void Start()
         {
             EnsureAnimationController();
             TryFindTarget();
-            if (Stats != null)
-            {
-                Stats.OnDeath += HandleDeath;
-                Stats.OnDamaged += HandleDamaged;
-            }
-            StateMachine.Initialize(IdleState);
+            // Quái có thể bị hạ ngay frame spawn (trước Start) -> vào thẳng DeadState
+            StateMachine.Initialize(Stats != null && Stats.IsDead ? (IState)DeadState : IdleState);
         }
 
         private void OnDestroy()
@@ -182,7 +184,11 @@ namespace TopDownGame.Enemy
             }
         }
 
-        private void HandleDeath() => StateMachine.ChangeState(DeadState);
+        private void HandleDeath()
+        {
+            if (StateMachine.CurrentState == null) return;
+            StateMachine.ChangeState(DeadState);
+        }
 
         private void HandleDamaged(float amount, Vector3 hitPoint, Vector3 hitDirection)
         {
