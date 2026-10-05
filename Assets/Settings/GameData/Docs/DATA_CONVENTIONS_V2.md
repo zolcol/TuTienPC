@@ -34,7 +34,7 @@ Khi gọi `GameDatabase.EnsureLoaded()`, dữ liệu **phải** được nạp t
 11. `NpcAttributes` (`Settings/GameData/NPC/NpcAttribute.csv`)
 12. `NpcStats` (`Settings/GameData/NPC/NpcStats.csv`)
 13. `NpcTemplates` (`Settings/GameData/NPC/NpcTemplate.csv`, `Character.csv`) $\rightarrow$ cần `NpcRes`, `NpcAttribute` & `NpcAi`.
-14. `Skills` (`Settings/GameData/Combat/Skill.csv`, `ActionEvent.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
+14. `Skills` (`Settings/GameData/Combat/Skill.csv`, `ActionEvent.csv`, `CustomSkill.csv`) $\rightarrow$ cần toàn bộ các bảng trên.
 
 ---
 

@@ -15,6 +15,7 @@ namespace TopDownGame.Input
         private InputAction skill2Action;
         private InputAction skill3Action;
         private InputAction toggleCharacterStatsAction;
+        private InputAction toggleSkillBookAction;
 
         public Vector2 MoveInput { get; private set; }
         public bool AttackTriggered { get; private set; }
@@ -29,6 +30,7 @@ namespace TopDownGame.Input
         public bool Skill3Held { get; private set; }
         public bool Skill3Released { get; private set; }
         public bool ToggleCharacterStatsTriggered { get; private set; }
+        public bool ToggleSkillBookTriggered { get; private set; }
         public bool IsUsingGamepad { get; private set; }
 
         private void Awake()
@@ -49,6 +51,7 @@ namespace TopDownGame.Input
                     skill2Action = playerMap.FindAction("Skill2");
                     skill3Action = playerMap.FindAction("Skill3");
                     toggleCharacterStatsAction = playerMap.FindAction("ToggleCharacterStats") ?? playerMap.FindAction("CharacterStats");
+                    toggleSkillBookAction = playerMap.FindAction("ToggleSkillBook") ?? playerMap.FindAction("SkillBook") ?? playerMap.FindAction("Skills");
                 }
             }
         }
@@ -63,6 +66,7 @@ namespace TopDownGame.Input
             skill2Action?.Enable();
             skill3Action?.Enable();
             toggleCharacterStatsAction?.Enable();
+            toggleSkillBookAction?.Enable();
         }
 
         private void OnDisable()
@@ -75,6 +79,7 @@ namespace TopDownGame.Input
             skill2Action?.Disable();
             skill3Action?.Disable();
             toggleCharacterStatsAction?.Disable();
+            toggleSkillBookAction?.Disable();
         }
 
         private void Update()
@@ -138,6 +143,16 @@ namespace TopDownGame.Input
             {
                 // Fallback: nếu chưa config trong inputactions asset, vẫn hỗ trợ phím C hoặc Gamepad Select/Back
                 ToggleCharacterStatsTriggered = (Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame);
+            }
+
+            // Bật/tắt bảng kỹ năng (K)
+            if (toggleSkillBookAction != null)
+            {
+                ToggleSkillBookTriggered = toggleSkillBookAction.WasPressedThisFrame();
+            }
+            else
+            {
+                ToggleSkillBookTriggered = (Keyboard.current != null && Keyboard.current.kKey.wasPressedThisFrame);
             }
         }
 

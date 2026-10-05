@@ -83,6 +83,17 @@ namespace TopDownGame.UI
             }
 
             // 2. Thiết lập 3 ô kỹ năng theo thứ tự Q - E - R từ Database
+            RefreshSkillSlots();
+
+            if (player.Combat != null)
+            {
+                player.Combat.OnSkillSlotsChanged += RefreshSkillSlots;
+            }
+        }
+
+        public void RefreshSkillSlots()
+        {
+            if (player == null) return;
             if (skillSlot_Q != null) skillSlot_Q.SetupSlot(player.SkillSlotQ, "Q");
             if (skillSlot_E != null) skillSlot_E.SetupSlot(player.SkillSlotE, "E");
             if (skillSlot_R != null) skillSlot_R.SetupSlot(player.SkillSlotR, "R");
@@ -90,12 +101,19 @@ namespace TopDownGame.UI
 
         private void OnDestroy()
         {
-            if (player != null && player.Stats != null)
+            if (player != null)
             {
-                player.Stats.Health.OnValueChanged -= HandleHealthChanged;
-                player.Stats.Mana.OnValueChanged -= HandleManaChanged;
-                player.Stats.OnExpChanged -= HandleExpChanged;
-                player.Stats.OnLevelUp -= HandleLevelUp;
+                if (player.Stats != null)
+                {
+                    player.Stats.Health.OnValueChanged -= HandleHealthChanged;
+                    player.Stats.Mana.OnValueChanged -= HandleManaChanged;
+                    player.Stats.OnExpChanged -= HandleExpChanged;
+                    player.Stats.OnLevelUp -= HandleLevelUp;
+                }
+                if (player.Combat != null)
+                {
+                    player.Combat.OnSkillSlotsChanged -= RefreshSkillSlots;
+                }
             }
         }
 

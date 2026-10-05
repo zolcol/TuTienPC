@@ -41,9 +41,13 @@ namespace TopDownGame.Player
                 if (player != null) player.ApplyHitboxFromNpcRes(); 
             } 
         }
-        public int SkillSlotQ_Id { get => skillSlotQ_Id; set => skillSlotQ_Id = value; }
-        public int SkillSlotE_Id { get => skillSlotE_Id; set => skillSlotE_Id = value; }
-        public int SkillSlotR_Id { get => skillSlotR_Id; set => skillSlotR_Id = value; }
+        public enum SkillHotbarSlot { Q = 0, E = 1, R = 2 }
+
+        public event Action OnSkillSlotsChanged;
+
+        public int SkillSlotQ_Id { get => skillSlotQ_Id; set { skillSlotQ_Id = value; OnSkillSlotsChanged?.Invoke(); } }
+        public int SkillSlotE_Id { get => skillSlotE_Id; set { skillSlotE_Id = value; OnSkillSlotsChanged?.Invoke(); } }
+        public int SkillSlotR_Id { get => skillSlotR_Id; set { skillSlotR_Id = value; OnSkillSlotsChanged?.Invoke(); } }
 
         public SkillData DefaultNormalAttack => SkillDatabase.GetSkill(defaultNormalAttackId);
         public SkillData SkillSlotQ => SkillDatabase.GetSkill(skillSlotQ_Id);
@@ -51,6 +55,32 @@ namespace TopDownGame.Player
         public SkillData SkillSlotR => SkillDatabase.GetSkill(skillSlotR_Id);
         public bool NoCooldown { get => noCooldown; set => noCooldown = value; }
         public bool NoManaCost { get => noManaCost; set => noManaCost = value; }
+
+        public void AssignSkillToSlot(SkillHotbarSlot slot, int skillId)
+        {
+            switch (slot)
+            {
+                case SkillHotbarSlot.Q:
+                    skillSlotQ_Id = skillId;
+                    break;
+                case SkillHotbarSlot.E:
+                    skillSlotE_Id = skillId;
+                    break;
+                case SkillHotbarSlot.R:
+                    skillSlotR_Id = skillId;
+                    break;
+            }
+            OnSkillSlotsChanged?.Invoke();
+        }
+
+        public SkillHotbarSlot? GetEquippedSlot(int skillId)
+        {
+            if (skillId <= 0) return null;
+            if (skillSlotQ_Id == skillId) return SkillHotbarSlot.Q;
+            if (skillSlotE_Id == skillId) return SkillHotbarSlot.E;
+            if (skillSlotR_Id == skillId) return SkillHotbarSlot.R;
+            return null;
+        }
 
         private void Awake()
         {

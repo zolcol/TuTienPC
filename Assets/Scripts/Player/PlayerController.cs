@@ -24,6 +24,7 @@ namespace TopDownGame.Player
         public PlayerInputReader InputReader { get; private set; }
         public LegacyAnimationController AnimationController { get; private set; }
         public PlayerStats Stats { get; private set; }
+        public PlayerSkillManager SkillManager { get; private set; }
         public CharacterController CharacterController => Movement != null ? Movement.CharacterController : GetComponent<CharacterController>();
 
         public float MoveSpeed => (Stats != null && Stats.MoveSpeed > 0f) ? Stats.MoveSpeed : (Movement != null ? Movement.MoveSpeed : 6f);
@@ -50,6 +51,8 @@ namespace TopDownGame.Player
             InputReader = GetComponent<PlayerInputReader>() ?? GetComponentInChildren<PlayerInputReader>();
             AnimationController = GetComponent<LegacyAnimationController>() ?? GetComponentInChildren<LegacyAnimationController>();
             Stats = GetComponent<PlayerStats>() ?? GetComponentInChildren<PlayerStats>();
+            SkillManager = GetComponent<PlayerSkillManager>() ?? gameObject.AddComponent<PlayerSkillManager>();
+            if (Stats != null && SkillManager != null) SkillManager.BindStats(Stats);
 
             StateMachine = new TopDownGame.StateMachine.StateMachine();
             IdleState = new PlayerIdleState(this, StateMachine);

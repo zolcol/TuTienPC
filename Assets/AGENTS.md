@@ -122,6 +122,7 @@ Assets/Scripts/
 │   ├── ActionEventParser.cs           # Parse ActionEvent.csv (CastSkill, CanDoSkill, CanDoRun, MovePos...)
 │   ├── CastActionID.cs                # Enum & Helper ánh xạ CastActionID (16=at01, 21=jn01...) sang tên clip
 │   ├── LegacySkillCsvParser.cs        # Parser dự phòng cho định dạng Skills.csv cũ
+│   ├── PlayerSkillManager.cs          # Quản lý cấp độ kỹ năng RPG, điểm kỹ năng SkillPoints, nâng cấp chiêu thức
 │   ├── ProjectileController.cs        # Quỹ đạo đạn, Homing, Chain-bouncing, DoT interval, SphereCast
 │   ├── ProjectilePool.cs              # Object Pool đạn đạo tái sử dụng 100% (0 GC Alloc)
 │   ├── SkillCsvParser.cs              # Parse Skill.csv + ActionEvent.csv + CustomSkill.csv (Custom Gameplay Layer)
@@ -136,7 +137,7 @@ Assets/Scripts/
 │
 ├── Stats/
 │   ├── EntityStats.cs                 # Base stats: Máu, Mana, Công vật lý/phép, Tốc đánh/chạy, Giáp/Kháng, Chí mạng, IDamageable
-│   ├── PlayerStats.cs                 # Mở rộng cho Player: Cấp độ (Level), Kinh nghiệm (Exp), LevelUp
+│   ├── PlayerStats.cs                 # Mở rộng cho Player: Cấp độ (Level), Kinh nghiệm (Exp), Điểm kỹ năng (SkillPoints), LevelUp
 │   └── ResourceStat.cs                # Cặp giá trị Current/Max, tự hồi máu/mana, phát Action event
 │
 ├── UI/
@@ -144,6 +145,8 @@ Assets/Scripts/
 │   ├── FloatingTextItem.cs            # Hiệu ứng chữ/số nảy 3D (Billboard, Scale Pop, Fade Out)
 │   ├── FloatingTextManager.cs         # POOLING FLOATING TEXT: SpawnDamage, SpawnHeal, SpawnExp, Miss...
 │   ├── PlayerHUD.cs                   # Điều khiển HUD: Máu lerp + Ghost Bar vàng, Mana, Level/EXP, 3 ô skill, Format số liệu
+│   ├── SkillBookItemUI.cs             # Mục kỹ năng trong Bảng Võ Học: Icon, Tên, Cấp, Nút Tăng cấp (+), Nút gán phím Q/E/R
+│   ├── SkillBookUI.cs                 # BẢNG VÕ HỌC (K): Quản lý danh sách chiêu thức, cộng điểm kỹ năng, gán Hotbar slot
 │   └── SkillSlotUI.cs                 # Ô skill đơn lẻ: Icon, Overlay xoay 360°, đếm ngược số giây, Mana cost
 │
 ├── Audio/
@@ -157,8 +160,10 @@ Assets/Scripts/
     ├── NpcSpawnerBuilder.cs           # Tool dựng nhanh quái/bãi quái ra Scene từ NpcTemplate.csv
     ├── PlayerAnimationPopulator.cs    # Tool quét thư mục nạp clips vào component Animation
     ├── PlayerHUDBuilder.cs            # Tool tạo tự động Canvas UI HUD chuẩn vào Scene
+    ├── SkillBookUIBuilder.cs          # Tool tự động tạo Canvas Bảng Võ Học (K) vào Scene
     ├── SkillEffectVerifier.cs         # Tool Unit Test kiểm tra tính toàn vẹn của Skill trong console
-    └── SmartPackageImporter.cs        # Tool nhập .unitypackage tự động khử trùng Shader & C# GUID
+    ├── SmartPackageImporter.cs        # Tool nhập .unitypackage tự động khử trùng Shader & C# GUID
+    └── VietnameseFontAutoSetup.cs     # Tool tự động cấu hình Fallback Font tiếng Việt cho TextMeshPro
 ```
 
 ---
@@ -176,6 +181,7 @@ Assets/Scripts/
 | **Sửa thuật toán Va chạm Hitbox / Gây Sát thương / Hồi máu** | `Skills/SkillDamageResolver.cs` | `Skills/SkillData.cs`<br>`Stats/EntityStats.cs` |
 | **Sửa cơ chế Đạn bay / Bám đuổi / Nảy đạn (Projectile)** | `Skills/ProjectileController.cs`<br>`Skills/ProjectilePool.cs` | `Data/MissileDatabase.cs` |
 | **Thêm / Sửa thuộc tính Kỹ năng từ Database** | `Skills/SkillData.cs`<br>`Skills/SkillCsvParser.cs`<br>`Skills/ActionEventParser.cs`<br>`Settings/GameData/Combat/CustomSkill.csv` | `Data/GameDatabase.cs`<br>`Skills/SkillDatabase.cs` |
+| **Sửa Bảng Võ Học / Nâng Cấp & Gán Kỹ Năng (Phím K)** | `Skills/PlayerSkillManager.cs`<br>`UI/SkillBookUI.cs`<br>`UI/SkillBookItemUI.cs`<br>`Player/PlayerCombat.cs`<br>`Editor/SkillBookUIBuilder.cs` | `Stats/PlayerStats.cs`<br>`Input/PlayerInputReader.cs`<br>`UI/PlayerHUD.cs` |
 | **Sửa AI / Hành vi Quái vật / Boss** | `Enemy/EnemyBrain.cs`<br>`Enemy/EnemyPerception.cs`<br>`Enemy/EnemyController.cs`<br>`Enemy/States/EnemyIdleState.cs`<br>`Enemy/States/EnemyChaseState.cs`<br>`Enemy/States/EnemyAttackState.cs`<br>`Enemy/States/EnemyReturnState.cs` | `Data/NpcAiDatabase.cs`<br>`Data/NpcAiData.cs`<br>`NPC/NpcTemplateDatabase.cs` |
 | **Sửa Hoạt ảnh / Khớp xương / Đồng bộ Body & Head** | `LegacyAnimationController.cs`<br>`Combat/VfxLockRotation.cs`<br>`Data/PartSlotDatabase.cs` | `Skills/CastActionID.cs` |
 | **Sửa Chỉ số Máu, Mana, Cấp độ, Kinh nghiệm, Tốc đánh, Giáp, Kháng, Chí mạng** | `Stats/EntityStats.cs`<br>`Stats/PlayerStats.cs`<br>`Combat/CombatFormula.cs`<br>`Data/NpcStatDatabase.cs`<br>`Data/PlayerLevelDatabase.cs`<br>`Data/ExpRuleDatabase.cs`<br>`Data/NpcAttributeDatabase.cs`<br>`Data/CsvParserHelper.cs` | `Stats/ResourceStat.cs`<br>`Settings/GameData/NPC/NpcStats.csv` |
@@ -183,6 +189,7 @@ Assets/Scripts/
 | **Sửa Bảng Thông tin Thuộc tính Nhân vật (Phím C)** | `UI/CharacterStatsUI.cs`<br>`Editor/CharacterStatsUIBuilder.cs` | `Stats/PlayerStats.cs`<br>`Input/PlayerInputReader.cs` |
 | **Sửa Số nhảy Sát thương / Floating Text (Dame, Heal, Exp, Miss)** | `UI/FloatingTextManager.cs`<br>`UI/FloatingTextItem.cs`<br>`Data/FlyCharDatabase.cs` | `Data/FlyCharData.cs`<br>`Settings/GameData/Combat/FlyChar.csv` |
 | **Sửa Âm thanh / Tiếng chém trúng / Voice** | `Audio/SoundManager.cs`<br>`Audio/SoundDatabase.cs` | `Audio/SoundData.cs` |
+| **Quản lý Font chữ Tiếng Việt / TextMeshPro** | `Editor/VietnameseFontAutoSetup.cs` | `Fonts/` |
 | **Tạo Tool Editor mới hoặc chỉnh sửa Spawner** | `Enemy/EnemySpawnPoint.cs`<br>`Editor/EnemySpawnPointEditor.cs`<br>`Editor/NpcSpawnerBuilder.cs` | `Enemy/EnemyController.cs`<br>`NPC/NpcTemplateDatabase.cs` |
 | **Tra cứu Quy chuẩn Dữ liệu / Schema CSV / Toán Game** | `Settings/GameData/Docs/DATA_CONVENTIONS_V2.md` | `Settings/GameData/Docs/Conventions/` (`01` -> `06`) |
 
