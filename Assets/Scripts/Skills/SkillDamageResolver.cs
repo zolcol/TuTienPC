@@ -1056,7 +1056,6 @@ namespace TopDownGame.Skills
             switch (type)
             {
                 case SkillType.StraightRay:
-                case SkillType.TargetLock:
                     float halfHeight = BoxHeight * 0.5f;
                     float backwardOffset = BackwardOffset;
                     float totalLength = range + backwardOffset;
@@ -1091,6 +1090,7 @@ namespace TopDownGame.Skills
                     Gizmos.DrawLine(btmCenter + forward * range, topCenter + forward * range);
                     break;
 
+                case SkillType.TargetLock:
                 case SkillType.Circle:
                     Vector3 circCenter = origin + Vector3.up * (BoxHeight * 0.5f);
                     Gizmos.DrawWireSphere(circCenter, range);
