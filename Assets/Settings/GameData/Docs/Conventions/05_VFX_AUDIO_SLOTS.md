@@ -5,7 +5,7 @@
 
 ---
 
-## 16. CHI TIẾT BẢNG `EffectRes.csv`
+## 16. CHI TIẾT BẢNG `EffectRes.csv` (GỐC `EffectRes.tab`)
 
 | Tên Cột | Kiểu | Ý nghĩa & Cơ chế Override Thần Binh |
 | :--- | :---: | :--- |
@@ -17,11 +17,40 @@
 
 ---
 
+## 17. CHI TIẾT BẢNG `StateEffect.csv` (GỐC `StateEffect.tab`)
+
+Bảng quy định hiển thị hiệu ứng buff/debuff, hào quang, biến hình và biểu tượng trên đầu nhân vật:
+
+| Tên Cột | Kiểu | Ý nghĩa & Vận hành trong Gameplay |
+| :--- | :---: | :--- |
+| **`StateEffectId`** | `int` | ID hiệu ứng trạng thái (Khóa chính, trỏ từ `Skill.csv` cột `StateEffectId`). |
+| **`StateName`** | `string` | Tên trạng thái / Buff (Tiếng Việt). |
+| **`EffectResID1`** | `int` | ID Prefab VFX chính 1 (Trỏ sang `EffectRes.csv`). |
+| **`SlotID1`** | `int` | Vị trí khớp xương gắn `EffectResID1` (Trỏ sang `PartSlot.csv`). |
+| **`EffectResID2`** | `int` | ID Prefab VFX phụ 2 (Trỏ sang `EffectRes.csv`). |
+| **`SlotID2`** | `int` | Vị trí khớp xương gắn `EffectResID2` (Trỏ sang `PartSlot.csv`). |
+| **`HeadResID`** | `int` | ID Sprite/Icon hiển thị trên đỉnh đầu nhân vật (Buff/Stun icon). |
+| **`Alpha`** | `int` | Độ trong suốt làm mờ nhân vật ($Alpha / 1000.0f$). |
+| **`ChangeSize`** | `int` | Tỉ lệ phóng to/thu nhỏ Model nhân vật (%) khi dính Buff (vd: $120\%$). |
+| **`ChangeSizeSpeed`**| `int` | Tốc độ phóng to/thu nhỏ Model. |
+| **`RunActID`** | `int` | Hoạt ảnh chạy đặc biệt thay thế khi đang có Buff này. |
+| **`HeadWord`** | `string` | Chữ hiển thị nổi trên đầu khi dính hiệu ứng ("Định", "Choáng", "Thuẫn", "Ngự"...). |
+| **`Icon` / `IconAtlas`** | `string` | Icon và Sprite Atlas hiển thị trên thanh Buff UI người chơi. |
+| **`HideBody` / `HideHead`**| `int (0/1)`| `1` = Ẩn hoàn toàn thân hoặc đầu nhân vật (Tàng hình / Biến thể). |
+| **`HightLightSkill`** | `int` | ID ô kỹ năng viền sáng vàng trên HUD khi Buff này kích hoạt. |
+| **`RequireSuperpose`**| `int` | Số tầng cộng dồn tối thiểu để bắt đầu hiển thị VFX. |
+
 ---
 
-## 17. CHI TIẾT BẢNG `StateEffect.csv`, `PartSlot.csv` & QUẢN LÝ KHỚP GẮN VFX
+## 18. CHI TIẾT BẢNG `PartSlot.csv` & QUẢN LÝ KHỚP GẮN VFX
 
-### 🏛️ 1. Bảng Tra Cứu Khớp Xương Gốc ([PartSlot.csv](file:///C:/Users/zolcol/Desktop/Data/CSV/N/PartSlot.csv)):
+### 🏛️ 1. Phân Bổ Dải Khớp Xương Chuẩn ([PartSlot.tab](file:///C:/Users/zolcol/Desktop/Data/unpacked_data/Setting/Npc/Res/PartSlot.tab) & [`NpcPartSlotID.cs`](file:///D:/Export%20VLTK/Project/ExportedProject/Assets/Scripts/Assembly-CSharp/NpcPartSlotID.cs)):
+* **`SlotId 1 ~ 48`**: Khớp đục lỗ trên cơ thể nhân vật (`slot_body`).
+* **`SlotId 50 ~ 99`**: Khớp đục lỗ trên cánh / phi phong (`slot_wing`).
+* **`SlotId 100 ~ 150`**: Khớp đục lỗ trên vũ khí (`slot_weapon`).
+* **`SlotId 151 ~ 200`**: Khớp đục lỗ trên thú cưỡi / ngựa (`slot_horse`).
+
+### 📋 2. Bảng Tra Cứu Khớp Xương Chi Tiết:
 
 | `SlotId` | Tên Khớp Xương (`SlotName`) | Vị trí mô tả | Chế độ Xoay (Rotation Mode) |
 | :---: | :--- | :--- | :---: |
@@ -46,10 +75,22 @@
 
 ---
 
----
+## 19. CHI TIẾT BẢNG `Sound.csv` (GỐC `Sound.tab`) & ÂM THANH
 
-## 3. CHI TIẾT BẢNG Sound.csv & ÂM THANH
+| Tên Cột | Kiểu | Ý nghĩa trong Audio System |
+| :--- | :---: | :--- |
+| **`SoundID`** | `int` | ID âm thanh duy nhất (Khóa chính). |
+| **`Desc`** | `string` | Mô tả ngữ cảnh phát âm thanh. |
+| **`Bank`** | `string` | Tên gói Wwise SoundBank chứa audio track (vd: `Em`, `Th`, `Common`, `Npc`). |
+| **`Sound`** | `string` | Tên Wwise Event phát âm thanh (vd: `Play_Em_01_01`, `Play_Em_05_Hit`). |
 
+### 🔗 Ánh xạ Sound ID từ các bảng dữ liệu khác:
+* **`Skill.csv`**: `CastSoundID` $\rightarrow$ Phát âm thanh lúc người chơi bấm xuất chiêu.
+* **`Missile.csv`**:
+  * `FlySoundID`: Âm thanh rít gió tuần hoàn khi đạn đang bay.
+  * `CollSoundID`: Âm thanh nổ va chạm khi trúng đích.
+  * `VanishSoundID`: Âm thanh khi đạn tan biến.
+* **`ActionEvent.csv`**: `PlaySound` / `StopSound` $\rightarrow$ Phát/Dừng âm thanh tại frame chính xác trên dòng thời gian hoạt ảnh.
+* **`NpcRes.csv`**: `RunSoundID`, `DeathSoundID`, `HitSoundID` $\rightarrow$ Âm thanh bước chân, tiếng gầm khi chết và tiếng kêu bị thương.
 
-
-* **Quy tắc ánh xạ âm thanh chuyên sâu:** Xem thêm tại [AUDIO_MAPPING_RULES.md](../AUDIO_MAPPING_RULES.md).
+* **Quy tắc trích xuất file `.wav` từ Wwise Event:** Xem chi tiết tại [AUDIO_MAPPING_RULES.md](../AUDIO_MAPPING_RULES.md).

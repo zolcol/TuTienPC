@@ -44,7 +44,9 @@ Từ điển mã hóa tên viết tắt các Clip hoạt ảnh chuẩn trích t�
 | **21..25** | `jn01..jn05` | `Skill 1..5` | Kỹ năng phái 1, 2, 3, 4 và Tuyệt kỹ Nộ. |
 | **26** | `jf` | `Knockup` | Đánh bay tung lên không. |
 | **27..28** | `jn02b / jn02a`| `Skill Sub-action` | Phân nhánh động tác kỹ năng 2. |
-| **29..34** | `qg01..qg05` | `Multi-step Qinggong`| Chuỗi khinh công đa đoạn 1 đến 5. |
+| **29..30** | `qg01..qg02` | `Qinggong Step 1-2` | Khinh công đoạn 1 và 2. |
+| **31** | `jsrun` | `Sprint` | Tăng tốc chạy nhanh (Gia tốc chạy). |
+| **32..34** | `qg03..qg05` | `Qinggong Step 3-5` | Khinh công đoạn 3, 4, 5. |
 | **35** | `dz` | `Meditate` | Ngồi thiền / Đả tọa hồi phục. |
 | **39** | `sit` | `Sit` | Ngồi thông thường. |
 | **40** | `jn01a` | `Skill 1 Sub-action` | Phân nhánh động tác kỹ năng 1. |

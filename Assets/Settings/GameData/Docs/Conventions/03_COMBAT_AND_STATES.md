@@ -49,9 +49,9 @@ flowchart LR
 
 ---
 
-### 📋 2. Bảng Ánh Xạ Toàn Bộ Thuộc Tính Gây Thương Tích (`state_*_attack`):
+### 📋 2. Bảng Ánh Xạ Toàn Bộ Thuộc Tính Gây Thương Tích & Trạng Thái (`SpecialState.tab` / `NpcDefine.lua`):
 
-| Thuộc tính trong Lua | Trạng thái tương ứng | Max Frame (15 FPS) | Icon Head/Body | Cơ chế tác động & Phản ứng bị thương |
+| Thuộc tính trong Lua | Trạng thái tương ứng | Max Frame (15 FPS) | VFX Resource / HeadWord | Cơ chế tác động & Phản ứng bị thương |
 | :--- | :---: | :---: | :---: | :--- |
 | **`state_hurt_attack`** | `hurt` (0) | 75 frames (5.0s) | — | **Bị thương** (ngắt động tác, khựng giật mình tức thời). |
 | **`state_zhican_attack`** | `zhican` (1) | 900 frames (60.0s)| Body 60 | **Tàn phế** (không thể dùng chiêu / di chuyển). |
@@ -59,22 +59,28 @@ flowchart LR
 | **`state_palsy_attack`** | `palsy` (3) | 75 frames (5.0s) | Body 61 | **Tê liệt** (đứng khựng ngắt quãng liên tục). |
 | **`state_stun_attack`** | `stun` (4) | 75 frames (5.0s) | Head 68 | **Choáng** (bất động hoàn toàn, cấm mọi thao tác). |
 | **`state_fixed_attack`** | `fixed` (5) | 75 frames (5.0s) | Body 59 | **Định thân** (khóa chân tại chỗ, vẫn dùng được chiêu tầm xa). |
-| **`state_weak_attack`** | `weak` (6) | 900 frames (60.0s)| Body 66 | **Suy yếu** (sát thương gây ra giảm còn 80%). |
-| **`state_burn_attack`** | `burn` (7) | 150 frames (10.0s)| Body 63 | **Thiêu đốt** (nhận thêm tối đa +50% sát thương Hỏa). |
+| **`state_weak_attack`** | `weak` (6) | 900 frames (60.0s)| Body 66 / ColorId 4 | **Suy yếu** (sát thương gây ra giảm còn 80%, đổi màu xám/xanh). |
+| **`state_burn_attack`** | `burn` (7) | 150 frames (10.0s)| Body 63 / ColorId 3 | **Thiêu đốt** (nhận thêm tối đa +50% sát thương Hỏa, tint đỏ). |
 | **`state_slowrun_attack`** | `slowrun` (8) | 75 frames (5.0s) | — | **Làm chậm** tốc độ di chuyển. |
 | **`state_freeze_attack`** | `freeze` (9) | 900 frames (60.0s)| Body 9001 | **Đóng băng** (hóa băng, miễn sát thương và bất động). |
 | **`state_confuse_attack`** | `confuse` (10) | 75 frames (5.0s) | Head 65 | **Hỗn loạn** (mất kiểm soát, chạy loạn xạ). |
 | **`state_knock_attack`** | `knock` (11) | 75 frames (5.0s) | — | **Đẩy lùi** (bị đẩy trượt lùi ra xa vị trí Caster). |
-| **`state_drag_attack`** | `drag` (12) | 75 frames (5.0s) | Head 3507 | **Kéo lại** (bị hút mạnh về tâm chiêu thức). |
-| **`state_silence_attack`** | `silence` (13) | 900 frames (60.0s)| Head 64 | **Câm lặng** (cấm dùng kỹ năng, chỉ đánh thường/chạy). |
-| **`state_float_attack`** | `float` (14) | 900 frames (60.0s)| Body 62 | **Đánh bay / Hất tung** lên không 2.0m (`FloatHeight=200`). |
+| **`state_drag_attack`** | `drag` (12) | 75 frames (5.0s) | **Body 3507** | **Kéo lại** (bị hút mạnh về tâm chiêu thức). |
+| **`state_silence_attack`** | `silence` (13) | 900 frames (60.0s)| Head 64 / IsAlpha 1 | **Câm lặng** (cấm dùng kỹ năng, chỉ đánh thường/chạy). |
+| **`state_float_attack`** | `float` (14) | 900 frames (60.0s)| **PosResId 62** | **Đánh bay / Hất tung** lên không 2.0m (`FloatHeight=200`). |
 | **`state_selffreeze_attack`**| `selffreeze` (15)| 900 frames (60.0s)| — | **Tự đóng băng** hộ mệnh/kim thiền. |
 | **`state_sleep_attack`** | `sleep` (16) | 900 frames (60.0s)| Head 67 | **Ngủ say** (bất động, nhận sát thương sẽ tỉnh lại ngay). |
-| **`state_nojump_attack`** | `nojump` (18) | 900 frames (60.0s)| Head 1457 | **Khóa khinh công** (cấm dùng kỹ năng nhảy/lướt né). |
+| **`state_knock2_attack`** | `knock2` (17) | 900 frames (60.0s)| — | **Đẩy lùi xa**. |
+| **`state_nojump_attack`** | `nojump` (18) | 900 frames (60.0s)| **Body 1457** | **Khóa khinh công** (cấm dùng kỹ năng nhảy/lướt né). |
 | **`state_forceatk_attack`**| `forceatk` (19)| 900 frames (60.0s)| Head 296 | **Khiêu khích** (bắt buộc mục tiêu phải tấn công mình). |
 | **`state_dragfloat_attack`**| `dragfloat` (20)| 75 frames (5.0s)| — | **Kéo xuống đánh bay** (kéo từ trên không xuống đất rồi hất tung). |
-| **`state_npchurt_attack`** | `npchurt` (25) | 30 frames (2.0s) | — | **Bị thương riêng cho NPC quái** (giật khựng). |
-| **`state_npcknock_attack`**| `npcknock` (26)| 75 frames (5.0s) | — | **Đẩy lùi riêng cho NPC quái**. |
+| **`state_npchurt_attack`** | `npchurt` (**21**) | 30 frames (2.0s) | — | **Bị thương riêng cho NPC quái** (giật khựng). |
+| **`state_npcknock_attack`**| `npcknock` (**22**) | 75 frames (5.0s) | — | **Đẩy lùi riêng cho NPC quái**. |
+| — | `hide` (23) | 0 (Vô hạn/theo buff) | IsAlpha 1 | **Ẩn thân / Tàng hình**. |
+| — | `shield` (24) | 0 (Theo lượng khiên)| HeadWord "Thuẫn" | **Hộ thuẫn Tọa Vọng Vô Ngã** (Hấp thụ sát thương theo điểm). |
+| — | `fixshield` (25) | 0 | Body 2867 | **Hộ thuẫn cố định Du Long Kiếm Ý**. |
+| — | `shield_ext` (26) | 0 | HeadWord "Thuẫn" | **Hộ thuẫn mở rộng Vân Sinh Kết Hải**. |
+| — | `shield_share` (27) | 0 | HeadWord "Ngự" | **Hộ thuẫn chia sẻ Bàn Băng Phi Sương**. |
 
 ---
 

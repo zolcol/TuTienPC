@@ -14,8 +14,8 @@ Toàn bộ hệ thống logic thời gian và chuyển động trong database đ
 | **Thời gian Frame (`LifeTime`, `TimePerCast`, `ReviveFrame`...)** | 1 frame (chuẩn **15 FPS**) | $\div 15$ | Giây (Seconds) | `float timeSec = frame / 15.0f;` | `AutoSkillTimeDelay=15` (1 giây kiểm tra 1 lần) |
 | **Góc quay tức thời (`InstantDir`)** | 1 frame góc quay (chuẩn **45 FPS**) | $\div 45$ | Độ/giây (°/s) | `float rotSpeed = val * 45.0f;` | `ActionEventDes.tab`: "Frame này 45 frame/giây" |
 | **Góc chia xòe quạt (`Param2` trong `MissileForm = 2`)** | Binary Angle ($64\text{ units} = 360^\circ$) | $\times 5.625^\circ$ | Độ (Degrees) | `float angleDeg = val * (360f / 64f);` | `Skill.tab`: "tổng góc là 64° = 360°" |
-| **Khoảng cách / Tầm đánh (`AttackRadius`, `PosOffsetLenght`, `VisionRadius`)** | Centimet (cm) | $\div 100$ | Mét (Meters) | `float rangeMeter = val / 100.0f;` | `ActionEventDes.tab`: "1 là 1 cm" |
-| **Bán kính sát thương Đạn (`DmgRange`, `DamageRadius`)** | Decimet (dm) | $\div 10$ | Mét (Meters) | `float dmgRadius = dmgRange / 10.0f;` | `AttackSkill.tab`, `PreciseCastSkill.tab` |
+| **Khoảng cách / Tầm đánh (`AttackRadius`, `PosOffsetLenght`, `VisionRadius`, `CastRadius`, `DamageRadius`)** | Centimet (cm) | $\div 100$ | Mét (Meters) | `float rangeMeter = val / 100.0f;` | `ActionEventDes.tab`: "1 là 1 cm", `PreciseCastSkill.tab` |
+| **Bán kính sát thương Đạn (`DmgRange`, `DmgRangeY`, `IgnoreDmgRange`)** | Decimet (dm) | $\div 10$ | Mét (Meters) | `float dmgRadius = dmgRange / 10.0f;` | `Missile.tab` |
 | **Vận tốc bay (`Speed`)** | Game Speed Unit | $\div 10$ | Mét/giây (m/s) | `float velocity = speed / 10.0f;` | Đối chiếu đạn tầm xa 301 |
 | **Gia tốc (`AcceSpeed`)** | Game Acce Unit | $\div 10$ | $m/s^2$ | `float accel = acceSpeed / 10.0f;` | `Missile.tab` |
 | **Tốc độ di chuyển (`RunSpeed`, `WalkSpeed`)** | cm/frame (tại 15 FPS) | $\times 15 \div 100$ | Mét/giây (m/s) | `float moveSpeed = runSpeed * 15.0f / 100.0f;` | `AutoRunSpeed.lua`: `nTimeFrame = nPathLen / nRunSpeed` với `nPathLen` đơn vị cm và `GAME_FPS=15`. VD: `RunSpeed=27` → `27×15/100 = 4.05 m/s` |
@@ -54,15 +54,21 @@ using UnityEngine;
 
 namespace GameData.Combat
 {
-    // Phân loại NPC (NpcDefine.lua - Npc.KIND)
+    // Phân loại NPC chuẩn theo NpcKind.cs (Assembly-CSharp) & NpcDefine.lua
     public enum NpcKind
     {
         None = -1,
-        Monster = 0,    // Quái vật thường / Boss
-        Player = 1,     // Người chơi / Phân thân
-        DialogNpc = 2,  // NPC đàm thoại / Nhiệm vụ
-        Partner = 3,    // Đồng hành / Pet
-        Silencer = 4    // NPC tĩnh / Câm lặng / Cơ quan
+        Normal = 0,             // Quái vật thường / Boss
+        Player = 1,             // Người chơi
+        Dialoger = 2,           // NPC đàm thoại / Nhiệm vụ
+        Partner = 3,            // Đồng hành / Pet
+        Silencer = 4,           // NPC tĩnh / Câm lặng / Cơ quan
+        SilencerNonename = 5,   // NPC câm lặng không tên
+        God = 6,                // Vô địch / Thực thể đặc biệt
+        Call = 7,               // Vật triệu hồi / Baby / Pet phụ
+        Mirror = 8,             // Phân thân / Clone
+        Puppet = 9,             // Rối / Bù nhìn
+        Num = 10
     }
 
     // Phe phái chiến đấu (NpcDefine.lua - Npc.CampTypeDef)
@@ -100,7 +106,7 @@ namespace GameData.Combat
     {
         StraightLinear = 1, // Đạn bay thẳng bình thường
         SpreadFan = 2,      // Đạn bắn chùm hình quạt
-        CircularRing = 3,   // Vòng tròn tỏa rộng quanh Caster
+        CircularRing = 3,   // Vòng tròn tỏa rộng quanh Tâm Spawn (Target hoặc Caster theo StartPosType)
         ChainBouncing = 4,  // Đạn nảy bật liên hoàn giữa các mục tiêu
         SkyDrop = 5,        // Rơi từ trên trời xuống
         StaticCircle = 6,   // Vòng tròn AOE tĩnh
@@ -114,6 +120,7 @@ namespace GameData.Combat
         Linear = 1,         // Bay thẳng theo vector ban đầu
         HomingTracking = 2, // Tự bám đuổi / uốn lượn theo mục tiêu đang khóa
         DashWithCaster = 3, // Di chuyển dính liền theo thân người lướt
+        StaticTower = 4,    // Cột bẫy / Tháp bắn tĩnh
         BoomerangCurved = 5,// Bay uốn lượn / quay ngược trở về
         OrbitAroundCaster = 6// Xoay vòng quanh người ra chiêu
     }
