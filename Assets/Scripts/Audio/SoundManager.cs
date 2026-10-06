@@ -63,6 +63,12 @@ namespace TopDownGame.Audio
 
         private const float SOUND_THROTTLE_MIN_INTERVAL = 0.04f; // Chặn spam cùng 1 âm thanh trong 40ms
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticData()
+        {
+            instance = null;
+        }
+
         private void Awake()
         {
             if (instance == null)

@@ -12,6 +12,8 @@ namespace TopDownGame.Player
     [RequireComponent(typeof(CharacterMovement), typeof(PlayerAiming), typeof(PlayerCombat))]
     public class PlayerController : MonoBehaviour
     {
+        public static PlayerController Instance { get; private set; }
+
         public TopDownGame.StateMachine.StateMachine StateMachine { get; private set; }
         public PlayerIdleState IdleState { get; private set; }
         public PlayerMoveState MoveState { get; private set; }
@@ -45,6 +47,7 @@ namespace TopDownGame.Player
 
         private void Awake()
         {
+            Instance = this;
             Movement = GetComponent<CharacterMovement>() ?? gameObject.AddComponent<CharacterMovement>();
             Aiming = GetComponent<PlayerAiming>() ?? gameObject.AddComponent<PlayerAiming>();
             Combat = GetComponent<PlayerCombat>() ?? gameObject.AddComponent<PlayerCombat>();

@@ -111,7 +111,14 @@ namespace TopDownGame.Combat
         }
 
         private readonly Dictionary<string, GameObject> prefabCache = new Dictionary<string, GameObject>();
+        private readonly Dictionary<string, string> keyCache = new Dictionary<string, string>();
         private readonly Dictionary<string, Queue<GameObject>> vfxPools = new Dictionary<string, Queue<GameObject>>(System.StringComparer.OrdinalIgnoreCase);
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticData()
+        {
+            instance = null;
+        }
 
         private void Awake()
         {
@@ -256,7 +263,11 @@ namespace TopDownGame.Combat
         {
             if (string.IsNullOrEmpty(resourcePath)) return null;
 
-            string cleanKey = resourcePath.Replace("\\", "/").Trim().ToLowerInvariant();
+            if (!keyCache.TryGetValue(resourcePath, out string cleanKey))
+            {
+                cleanKey = resourcePath.Replace("\\", "/").Trim().ToLowerInvariant();
+                keyCache[resourcePath] = cleanKey;
+            }
             GameObject effectInstance = null;
             PooledVfx pooled = null;
 
@@ -339,7 +350,12 @@ namespace TopDownGame.Combat
 
         private IEnumerator AutoRecycleRoutine(PooledVfx pooled, float delay)
         {
-            yield return new WaitForSeconds(delay);
+            float timer = delay;
+            while (timer > 0)
+            {
+                timer -= Time.deltaTime;
+                yield return null;
+            }
             if (pooled != null && pooled.gameObject != null && pooled.gameObject.activeInHierarchy)
             {
                 RecycleEffect(pooled.gameObject);

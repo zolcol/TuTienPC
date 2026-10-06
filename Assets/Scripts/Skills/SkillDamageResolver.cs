@@ -684,7 +684,12 @@ namespace TopDownGame.Skills
 
                 if (i < count - 1 && delaySec > 0f)
                 {
-                    yield return new WaitForSeconds(delaySec);
+                    float waitTimer = delaySec;
+                    while (waitTimer > 0)
+                    {
+                        waitTimer -= Time.deltaTime;
+                        yield return null;
+                    }
                 }
             }
         }
@@ -720,7 +725,12 @@ namespace TopDownGame.Skills
 
                 if (i < count - 1 && delaySec > 0f)
                 {
-                    yield return new WaitForSeconds(delaySec);
+                    float waitTimer = delaySec;
+                    while (waitTimer > 0)
+                    {
+                        waitTimer -= Time.deltaTime;
+                        yield return null;
+                    }
                 }
             }
         }
@@ -755,7 +765,12 @@ namespace TopDownGame.Skills
 
                 if (i < count - 1 && delaySec > 0f)
                 {
-                    yield return new WaitForSeconds(delaySec);
+                    float waitTimer = delaySec;
+                    while (waitTimer > 0)
+                    {
+                        waitTimer -= Time.deltaTime;
+                        yield return null;
+                    }
                 }
             }
         }
@@ -820,7 +835,12 @@ namespace TopDownGame.Skills
 
                 if (i < count - 1 && delaySec > 0f)
                 {
-                    yield return new WaitForSeconds(delaySec);
+                    float waitTimer = delaySec;
+                    while (waitTimer > 0)
+                    {
+                        waitTimer -= Time.deltaTime;
+                        yield return null;
+                    }
                 }
             }
         }
@@ -866,7 +886,12 @@ namespace TopDownGame.Skills
 
                 if (tick < totalTicks - 1 && intervalSec > 0f)
                 {
-                    yield return new WaitForSeconds(intervalSec);
+                    float waitTimer = intervalSec;
+                    while (waitTimer > 0)
+                    {
+                        waitTimer -= Time.deltaTime;
+                        yield return null;
+                    }
                 }
             }
         }
@@ -886,7 +911,12 @@ namespace TopDownGame.Skills
             {
                 if (tick > 0 && intervalSec > 0f)
                 {
-                    yield return new WaitForSeconds(intervalSec);
+                    float waitTimer = intervalSec;
+                    while (waitTimer > 0)
+                    {
+                        waitTimer -= Time.deltaTime;
+                        yield return null;
+                    }
                 }
 
                 if (caster == null) yield break;

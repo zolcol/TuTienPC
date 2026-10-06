@@ -38,7 +38,7 @@ namespace TopDownGame.Enemy
             if (hasAwardedExp) return;
             hasAwardedExp = true;
 
-            var player = FindObjectOfType<TopDownGame.Player.PlayerController>();
+            var player = TopDownGame.Player.PlayerController.Instance;
             if (player != null && player.Stats != null)
             {
                 int pLevel = player.Stats.CurrentLevel;

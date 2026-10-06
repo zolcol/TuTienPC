@@ -11,6 +11,12 @@ namespace TopDownGame.Skills
         private static SkillDatabase instance;
         public static SkillDatabase Instance => instance ?? (instance = new SkillDatabase());
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticData()
+        {
+            instance = null;
+        }
+
         private readonly Dictionary<int, SkillData> baseSkills = new Dictionary<int, SkillData>();
         private readonly Dictionary<int, SkillData> customSkills = new Dictionary<int, SkillData>();
         private readonly Dictionary<int, int> baseToCustomMap = new Dictionary<int, int>();

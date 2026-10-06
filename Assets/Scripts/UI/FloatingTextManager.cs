@@ -4,6 +4,20 @@ using TopDownGame.Data;
 
 namespace TopDownGame.UI
 {
+    public static class NumberStringCache
+    {
+        private static readonly string[] cache = new string[10000];
+        public static string Get(int num)
+        {
+            if (num >= 0 && num < 10000)
+            {
+                if (cache[num] == null) cache[num] = num.ToString();
+                return cache[num];
+            }
+            return num.ToString();
+        }
+    }
+
     /// <summary>
     /// Trình quản lý Floating Text / Số nhảy sát thương và hiệu ứng chiến đấu trung tâm.
     /// Sử dụng Object Pool tái sử dụng 100%, tuân thủ nguyên tắc Zero-GC trong combat loop.
@@ -35,11 +49,17 @@ namespace TopDownGame.UI
         public static bool HasInstance => instance != null;
 
         [Header("Pool Configuration")]
-        [SerializeField] private int initialPoolSize = 32;
+        [SerializeField] private int initialPoolSize = 100;
 
         private readonly Queue<FloatingTextItem> availablePool = new Queue<FloatingTextItem>();
         private Transform poolContainer;
         private Transform cachedCameraTransform;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticData()
+        {
+            instance = null;
+        }
 
         private void Awake()
         {
@@ -125,7 +145,7 @@ namespace TopDownGame.UI
             }
 
             int rounded = Mathf.RoundToInt(amount);
-            Spawn(type, rounded.ToString(), worldPosition);
+            Spawn(type, NumberStringCache.Get(rounded), worldPosition);
         }
 
         /// <summary>
@@ -135,7 +155,7 @@ namespace TopDownGame.UI
         {
             if (amount <= 0f) return;
             int rounded = Mathf.RoundToInt(amount);
-            Spawn(FlyCharType.Treatment, rounded.ToString(), worldPosition);
+            Spawn(FlyCharType.Treatment, NumberStringCache.Get(rounded), worldPosition);
         }
 
         /// <summary>
@@ -145,7 +165,7 @@ namespace TopDownGame.UI
         {
             if (amount <= 0f) return;
             int rounded = Mathf.RoundToInt(amount);
-            Spawn(FlyCharType.Treatment, rounded.ToString(), worldPosition);
+            Spawn(FlyCharType.Treatment, NumberStringCache.Get(rounded), worldPosition);
         }
 
         /// <summary>
@@ -177,7 +197,7 @@ namespace TopDownGame.UI
         public void SpawnExp(int amount, Vector3 worldPosition)
         {
             if (amount <= 0) return;
-            Spawn(FlyCharType.AddExp, amount.ToString(), worldPosition);
+            Spawn(FlyCharType.AddExp, NumberStringCache.Get(amount), worldPosition);
         }
 
         /// <summary>

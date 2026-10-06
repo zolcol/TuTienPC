@@ -10,6 +10,13 @@ namespace TopDownGame.Skills
     public class ProjectilePool : MonoBehaviour
     {
         private static ProjectilePool instance;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticData()
+        {
+            instance = null;
+        }
+
         public static ProjectilePool Instance
         {
             get
