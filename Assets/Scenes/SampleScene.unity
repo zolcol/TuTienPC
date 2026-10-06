@@ -23783,7 +23783,7 @@ MonoBehaviour:
   npcResId: 2
   skillSlotQ_Id: 306
   skillSlotE_Id: 308
-  skillSlotR_Id: 312
+  skillSlotR_Id: 346
   noCooldown: 1
   noManaCost: 1
   showHitGizmos: 1

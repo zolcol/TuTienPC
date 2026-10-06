@@ -169,7 +169,7 @@ namespace TopDownGame.Player
             if (skill == null || player == null) return;
             LayerMask mask = player.Aiming != null ? player.Aiming.TargetLayer : ~0;
             SkillDamageResolver.CastDamage(transform, player.Stats, skill, mask, lockTarget, targetPoint);
-            if (showHitGizmos)
+            if (showHitGizmos && !skill.targetSelf && skill.relation != TopDownGame.Skills.SkillRelation.Self && (string.IsNullOrEmpty(skill.skillStyle) || !skill.skillStyle.Equals("logic", System.StringComparison.OrdinalIgnoreCase)))
             {
                 lastGizmo = new GizmoDrawInfo { type = skill.skillType, origin = transform.position, forward = transform.forward, range = skill.range, fanAngle = skill.fanAngle, boxWidth = skill.boxWidth };
                 gizmoTimer = gizmoDisplayDuration;
@@ -196,7 +196,10 @@ namespace TopDownGame.Player
 
         public void OnHitTriggered(SkillData skill)
         {
-            if (skill != null && !skill.HasProjectile && !skill.IsHeal) EffectManager.Instance.PlaySkillEffect(skill, transform);
+            if (skill != null && !skill.HasProjectile && !skill.IsHeal && !skill.targetSelf && skill.relation != TopDownGame.Skills.SkillRelation.Self && (string.IsNullOrEmpty(skill.skillStyle) || !skill.skillStyle.Equals("logic", System.StringComparison.OrdinalIgnoreCase)))
+            {
+                EffectManager.Instance.PlaySkillEffect(skill, transform);
+            }
         }
 
         private void OnDrawGizmos()

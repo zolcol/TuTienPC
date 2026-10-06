@@ -29,7 +29,7 @@ namespace TopDownGame.Skills
         public static LayerMask GetTargetLayerForSkill(Transform caster, SkillData skill, LayerMask defaultTargetLayer)
         {
             if (skill == null || caster == null) return defaultTargetLayer;
-            if (skill.IsHeal)
+            if (skill.IsHeal || skill.targetSelf || skill.relation == SkillRelation.Self)
             {
                 bool isCasterPlayer = caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null;
                 return LayerMask.GetMask(isCasterPlayer ? CombatLayersAndTags.LayerPlayer : CombatLayersAndTags.LayerEnemy);
@@ -92,7 +92,28 @@ namespace TopDownGame.Skills
                 return;
             }
 
-            // 2. Tấn công gây sát thương kẻ địch
+            // 2. Kỹ năng tác dụng lên bản thân hoặc Logic nội bộ (Buff, Miễn dịch, Super Armor) - Không gây sát thương kẻ địch
+            if (skill.targetSelf || skill.relation == SkillRelation.Self || (!string.IsNullOrEmpty(skill.skillStyle) && skill.skillStyle.Equals("logic", System.StringComparison.OrdinalIgnoreCase)))
+            {
+                CastSelfSkill(caster, casterStats, skill);
+
+                // Kích hoạt chiêu phụ legacy kèm theo (nếu khác start/fly/hit skill)
+                if (skill.HasSubSkill && skill.subSkillId != skill.startSkillId && skill.subSkillId != skill.flySkillId && skill.subSkillId != skill.hitSkillId)
+                {
+                    SkillData subSkill = SkillDatabase.GetSubSkill(skill.subSkillId, skill);
+                    if (subSkill != null && subSkill.id != skill.id)
+                    {
+                        if (subSkill.HasSound && SoundManager.Instance != null)
+                        {
+                            SoundManager.Instance.PlaySkillSound(subSkill, caster);
+                        }
+                        CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint);
+                    }
+                }
+                return;
+            }
+
+            // 3. Tấn công gây sát thương kẻ địch
             float calculatedDamage = skill.CalculateDamage(casterStats);
             float actualWidth = skill.boxWidth > 0f ? skill.boxWidth : DefaultBoxWidth;
             float actualRange = skill.range > 0f ? skill.range : DefaultRange;
@@ -316,6 +337,38 @@ namespace TopDownGame.Skills
                 float durationSec = missile.LifeTimeInSeconds;
                 float healRadius = missile.CollisionRadius > 0f ? missile.CollisionRadius : range;
                 EffectManager.Instance.StartCoroutine(AreaHealDoTCoroutine(caster, casterStats, skill, healOrigin, healRadius, intervalSec, durationSec, (missile.moveKind != MissileMoveKind.StaticTrap ? groundTarget : null)));
+            }
+        }
+
+        /// <summary>
+        /// Kích hoạt tác dụng chiêu thức lên bản thân (Buff, StateEffect, Miễn dịch)
+        /// </summary>
+        private static void CastSelfSkill(Transform caster, EntityStats casterStats, SkillData skill)
+        {
+            if (caster == null || skill == null) return;
+
+            // Kích hoạt hiệu ứng hình ảnh (Buff VFX) trên người bản thân theo stateEffectId cấu hình trong Skill.csv
+            if (skill.stateEffectId > 0 && EffectManager.Instance != null)
+            {
+                var stateEffect = TopDownGame.Data.StateEffectDatabase.GetStateEffect(skill.stateEffectId);
+                if (stateEffect != null)
+                {
+                    float duration = 3.0f;
+                    if (!string.IsNullOrEmpty(stateEffect.effectPath1))
+                    {
+                        int slot1 = stateEffect.slotId1 > 0 ? stateEffect.slotId1 : (int)BoneSlotID.ChestCenter;
+                        EffectManager.Instance.SpawnEffectAtSlot(stateEffect.effectPath1, caster, slot1, duration, true);
+                    }
+                    if (!string.IsNullOrEmpty(stateEffect.effectPath2))
+                    {
+                        int slot2 = stateEffect.slotId2 > 0 ? stateEffect.slotId2 : (int)BoneSlotID.ChestCenter;
+                        EffectManager.Instance.SpawnEffectAtSlot(stateEffect.effectPath2, caster, slot2, duration, true);
+                    }
+                    if (!string.IsNullOrEmpty(stateEffect.headResPath))
+                    {
+                        EffectManager.Instance.SpawnEffectAtSlot(stateEffect.headResPath, caster, (int)BoneSlotID.Head, duration, true);
+                    }
+                }
             }
         }
 
