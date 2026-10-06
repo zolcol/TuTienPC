@@ -151,7 +151,7 @@ namespace TopDownGame.Skills
                                 {
                                     case HitboxShape.Circle: skillType = SkillType.Circle; break;
                                     case HitboxShape.Fan: skillType = SkillType.Sector; if (fanAngle <= 0f) fanAngle = missile.dmgRangeY > 0f ? missile.dmgRangeY : 90f; break;
-                                    case HitboxShape.LineBox: skillType = SkillType.StraightRay; boxWidth = missile.dmgRangeY > 0f ? (missile.dmgRangeY / 100f) : 1.8f; break;
+                                    case HitboxShape.LineBox: skillType = SkillType.StraightRay; boxWidth = missile.dmgRangeY > 0f ? (missile.dmgRangeY / 10.0f) : 1.8f; break;
                                     case HitboxShape.SingleTarget: skillType = SkillType.TargetLock; boxWidth = 1.6f; break;
                                 }
                             }

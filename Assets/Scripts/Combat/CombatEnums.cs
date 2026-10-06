@@ -6,17 +6,20 @@ namespace TopDownGame.Combat
     public enum NpcKind
     {
         None = -1,
-        Monster = 0,    // Quái vật thường / Quái tinh anh / Boss
-        Normal = 0,     // Alias: Quái vật / Kẻ địch
-        Player = 1,     // Người chơi / Phân thân
-        DialogNpc = 2,  // NPC giao tiếp / Nhiệm vụ
-        Dialoger = 2,   // Alias: NPC giao tiếp
-        Partner = 3,    // Đồng hành / Pet
-        Silencer = 4,   // NPC tĩnh / Câm lặng / Cơ quan
-        Portal = 4,     // Cổng dịch chuyển / Cơ quan (alias)
-        GatherBox = 5,  // Rương báu / Lửa trại / Khoáng sản
-        Gather = 5,     // Alias: Vật phẩm thu thập
-        Trap = 6        // Cạm bẫy
+        Normal = 0,             // Quái vật thường / Boss
+        Monster = 0,            // Alias: Quái vật / Kẻ địch
+        Player = 1,             // Người chơi
+        Dialoger = 2,           // NPC đàm thoại / Nhiệm vụ
+        DialogNpc = 2,          // Alias: NPC giao tiếp
+        Partner = 3,            // Đồng hành / Pet
+        Silencer = 4,           // NPC tĩnh / Câm lặng / Cơ quan
+        Portal = 4,             // Cổng dịch chuyển / Cơ quan (alias)
+        SilencerNonename = 5,   // NPC câm lặng không tên
+        God = 6,                // Vô địch / Thực thể đặc biệt
+        Call = 7,               // Vật triệu hồi / Baby / Pet phụ
+        Mirror = 8,             // Phân thân / Clone
+        Puppet = 9,             // Rối / Bù nhìn
+        Num = 10
     }
 
     /// <summary>
@@ -79,6 +82,7 @@ namespace TopDownGame.Combat
         Linear = 1,         // Bay thẳng theo vector ban đầu
         HomingTracking = 2, // Tự bám đuổi / uốn lượn theo mục tiêu đang khóa
         DashWithCaster = 3, // Di chuyển dính liền theo thân người lướt
+        StaticTower = 4,    // Cột bẫy / Tháp bắn tĩnh
         BoomerangCurved = 5,// Bay uốn lượn / quay ngược trở về
         OrbitAroundCaster = 6// Xoay vòng quanh người ra chiêu
     }

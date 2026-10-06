@@ -130,7 +130,7 @@ namespace TopDownGame.Player
             currentTargetDirection = transform.forward;
             if (skill.targetSelf || skill.relation == SkillRelation.Self) { currentTargetPoint = CombatFormula.SnapToGround(transform.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask); return true; }
 
-            bool isTargetLockSkill = skill.IsHeal || (skill.childId > 0 && TopDownGame.Data.MissileDatabase.GetMissile(skill.childId)?.moveKind == MissileMoveKind.HomingTracking) || skill.skillAttackType == SkillAttackType.Target;
+            bool isTargetLockSkill = skill.IsHeal || (skill.childId > 0 && TopDownGame.Data.MissileDatabase.GetMissile(skill.childId)?.moveKind == MissileMoveKind.HomingTracking) || skill.skillAttackType == SkillAttackType.Target || skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target;
             if (!isUsingGamepad)
             {
                 if (UnityEngine.InputSystem.Mouse.current == null || (mainCamera == null && (mainCamera = UnityEngine.Camera.main) == null)) return true;

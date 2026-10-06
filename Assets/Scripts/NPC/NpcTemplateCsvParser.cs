@@ -188,11 +188,16 @@ namespace TopDownGame.NPC
                 case "silencer":
                 case "portal":
                     return NpcKind.Silencer;
-                case "gather":
-                case "chest":
-                    return NpcKind.Gather;
-                case "trap":
-                    return NpcKind.Trap;
+                case "silencernonename":
+                    return NpcKind.SilencerNonename;
+                case "god":
+                    return NpcKind.God;
+                case "call":
+                    return NpcKind.Call;
+                case "mirror":
+                    return NpcKind.Mirror;
+                case "puppet":
+                    return NpcKind.Puppet;
                 default:
                     return NpcKind.Normal;
             }
