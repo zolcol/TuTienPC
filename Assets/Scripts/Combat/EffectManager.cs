@@ -152,9 +152,17 @@ namespace TopDownGame.Combat
             if (skill == null || string.IsNullOrEmpty(skill.effectPath) || attacker == null) return null;
 
             Transform spawnRoot = attacker;
-            if (skill.startPosType == VfxStartPosType.Target && target != null)
+            if (skill.startPosType == VfxStartPosType.Target)
             {
-                spawnRoot = target;
+                if (target != null)
+                {
+                    spawnRoot = target;
+                }
+                else if (hitPoint.HasValue)
+                {
+                    Vector3 snappedHitPoint = CombatFormula.SnapToGround(hitPoint.Value, CombatFormula.GROUND_VFX_Y_OFFSET);
+                    return SpawnEffect(skill.effectPath, snappedHitPoint, attacker.rotation, null, defaultDuration);
+                }
             }
             else if (skill.startPosType == VfxStartPosType.HitPoint && hitPoint.HasValue)
             {

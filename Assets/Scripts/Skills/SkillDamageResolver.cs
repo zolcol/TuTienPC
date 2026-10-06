@@ -529,9 +529,13 @@ namespace TopDownGame.Skills
             }
 
             // Xử lý StartPosType = 2 (tại Target) hoặc 3 (tại HitPoint)
-            if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target && explicitTarget != null)
+            if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target)
             {
-                originPos = explicitTarget.position;
+                if (missile == null || (int)missile.moveKind == 0)
+                {
+                    if (explicitTarget != null) originPos = explicitTarget.position;
+                    else if (explicitTargetPoint != default) originPos = explicitTargetPoint;
+                }
             }
             else if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.HitPoint && explicitTargetPoint != default)
             {
@@ -660,11 +664,12 @@ namespace TopDownGame.Skills
                 }
 
                 // Xử lý StartPosType = 2 (tại Target) hoặc 3 (tại HitPoint)
-                if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target && explicitTarget != null)
+                if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target)
                 {
                     if (missile == null || (int)missile.moveKind == 0)
                     {
-                        originPos = explicitTarget.position;
+                        if (explicitTarget != null) originPos = explicitTarget.position;
+                        else if (explicitTargetPoint != default) originPos = explicitTargetPoint;
                     }
                 }
                 else if (skill.startPosType == TopDownGame.Skills.VfxStartPosType.HitPoint && explicitTargetPoint != default)
