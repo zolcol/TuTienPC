@@ -119,6 +119,31 @@ namespace TopDownGame.Player
                 aimGroundPosition = targetGroundPos;
                 currentIndicator.transform.position = targetGroundPos;
             }
+            else if (aimingSkill.selectorType == SkillSelectorType.TargetLock)
+            {
+                Transform target = null;
+                if (!isUsingGamepad && UnityEngine.InputSystem.Mouse.current != null && mainCamera != null)
+                {
+                    Ray ray = mainCamera.ScreenPointToRay(UnityEngine.InputSystem.Mouse.current.position.ReadValue());
+                    target = RaycastTarget(ray, aimingSkill.IsHeal);
+                }
+                if (target == null)
+                {
+                    target = FindTargetInFront(maxRange, aimingSkill.IsHeal);
+                }
+
+                if (target != null && Vector3.Distance(transform.position, target.position) <= maxRange + 1.5f)
+                {
+                    Vector3 targetPos = CombatFormula.SnapToGround(target.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                    aimGroundPosition = targetPos;
+                    currentIndicator.transform.position = targetPos;
+                }
+                else
+                {
+                    aimGroundPosition = targetGroundPos;
+                    currentIndicator.transform.position = targetGroundPos;
+                }
+            }
         }
 
         public bool AimSkill(SkillData skill, Vector3 inputVector, bool isUsingGamepad)
@@ -133,6 +158,7 @@ namespace TopDownGame.Player
             var missile = skill.childId > 0 ? TopDownGame.Data.MissileDatabase.GetMissile(skill.childId) : null;
             bool isTargetLockSkill = skill.IsHeal 
                 || skill.skillType == SkillType.TargetLock 
+                || skill.selectorType == SkillSelectorType.TargetLock
                 || (missile != null && missile.moveKind == MissileMoveKind.HomingTracking)
                 || (skill.startPosType == TopDownGame.Skills.VfxStartPosType.Target && (missile == null || (int)missile.moveKind == 0));
             if (!isUsingGamepad)

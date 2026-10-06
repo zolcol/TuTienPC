@@ -119,24 +119,55 @@ namespace TopDownGame.Skills
 
                         int rawSelectorType = CsvParserHelper.ParseInt(GetColRaw(tokens, colMap, "selectortype", 63), 0);
                         float rawSelectorRange = CsvParserHelper.ParseFloat(GetColRaw(tokens, colMap, "selectorrange", 62), 0f);
-                        float selectorRange = rawSelectorRange > 0f ? (rawSelectorRange / 100f) : rangeInMeters;
+                        float selectorRange = 0f;
+                        if (rawSelectorRange > 0f)
+                        {
+                            selectorRange = rawSelectorRange > 50f ? (rawSelectorRange / 100f) : rawSelectorRange;
+                        }
+                        else if (rawRadius > 0f)
+                        {
+                            selectorRange = rawRadius / 100f;
+                        }
+                        else if (missile != null && missile.speed > 0 && missile.lifeTime > 0)
+                        {
+                            float missileDist = (missile.speed * (missile.lifeTime / 15f)) / 100f;
+                            selectorRange = Mathf.Clamp(missileDist, 4f, 20f);
+                        }
+                        else
+                        {
+                            selectorRange = rangeInMeters;
+                        }
 
                         SkillSelectorType selectorType = SkillSelectorType.None;
                         if (targetSelf || relation == SkillRelation.Self)
                         {
                             selectorType = SkillSelectorType.None;
                         }
+                        else if (rawSelectorType > 0 && Enum.IsDefined(typeof(SkillSelectorType), rawSelectorType))
+                        {
+                            selectorType = (SkillSelectorType)rawSelectorType;
+                        }
                         else if (rawSelectorType == 2 || (missile != null && missile.moveKind == MissileMoveKind.Linear) || missileForm == 1 || missileForm == 2 || missileForm == 7)
                         {
                             selectorType = SkillSelectorType.DirectionalArrow;
                         }
-                        else if (rawSelectorType == 1)
+                        else if (rawSelectorType == 3 
+                            || startPosType == VfxStartPosType.Target 
+                            || (missile != null && missile.moveKind == MissileMoveKind.HomingTracking) 
+                            || missileForm == 4 
+                            || skillStyle.IndexOf("heal", StringComparison.OrdinalIgnoreCase) >= 0 
+                            || relation == SkillRelation.Recover 
+                            || skillTypeDef == SkillTypeDef.InstSingle)
+                        {
+                            selectorType = SkillSelectorType.TargetLock;
+                        }
+                        else if (rawSelectorType == 1 || missileForm == 6 || (missile != null && missile.moveKind == MissileMoveKind.StaticTrap))
                         {
                             selectorType = SkillSelectorType.SmartcastCircleAOE;
                         }
                         else
                         {
-                            selectorType = Enum.IsDefined(typeof(SkillSelectorType), rawSelectorType) ? (SkillSelectorType)rawSelectorType : SkillSelectorType.None;
+                            selectorType = SkillSelectorType.None;
                         }
 
                         if (missile != null)
@@ -416,6 +447,26 @@ namespace TopDownGame.Skills
 
                         string healScaleStr = GetColRaw(tokens, colMap, "healscale", 11);
                         if (!string.IsNullOrEmpty(healScaleStr)) data.healScale = CsvParserHelper.ParseFloat(healScaleStr, 0f);
+
+                        string selectorTypeStr = GetColRaw(tokens, colMap, "selectortype", 12);
+                        if (!string.IsNullOrEmpty(selectorTypeStr))
+                        {
+                            int customSelectorType = CsvParserHelper.ParseInt(selectorTypeStr, -1);
+                            if (customSelectorType >= 0 && Enum.IsDefined(typeof(SkillSelectorType), customSelectorType))
+                            {
+                                data.selectorType = (SkillSelectorType)customSelectorType;
+                            }
+                        }
+
+                        string selectorRangeStr = GetColRaw(tokens, colMap, "selectorrange", 13);
+                        if (!string.IsNullOrEmpty(selectorRangeStr))
+                        {
+                            float customSelectorRange = CsvParserHelper.ParseFloat(selectorRangeStr, -1f);
+                            if (customSelectorRange > 0f)
+                            {
+                                data.selectorRange = customSelectorRange > 50f ? (customSelectorRange / 100f) : customSelectorRange;
+                            }
+                        }
 
                         customSkills[skillId] = data;
 

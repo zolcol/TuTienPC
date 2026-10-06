@@ -162,7 +162,8 @@ namespace TopDownGame.Combat
     {
         None = 0,
         SmartcastCircleAOE = 1, // Vòng tròn chọn vùng đất
-        DirectionalArrow = 2    // Mũi tên định hướng xoay theo Joystick
+        DirectionalArrow = 2,   // Mũi tên định hướng xoay theo Joystick
+        TargetLock = 3          // Vòng khóa mục tiêu đơn thể (Target Lock Reticle)
     }
 
     /// <summary>

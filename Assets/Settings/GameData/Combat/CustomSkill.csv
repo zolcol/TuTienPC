@@ -1,9 +1,9 @@
-﻿SkillId,BaseSkillId,SkillName,Description,IconPath,Cooldown,ManaCost,BaseDamage,PhysScale,MagicScale,BaseHeal,HealScale
-1,301,Đánh thường 1,,,0,0,10,1,0,0,0
-2,302,Đánh thường 2,,,0,0,12,1.1000000000000001,0,0,0
-3,303,Đánh thường 3,,,0,0,13,1.2,0,0,0
-4,304,Đánh thường 4,,,0,0,14,1.3,0,0,0
-5,306,Hồi Máu 1,,,15,30,0,0,0,20,1
-6,308,Cầu Nước,,,10,50,20,2,0,0,0
-7,312,Vòng Tròn,,,30,70,30,1,0,20,1
-8,346,Băng Lan,,,50,100,100,3,0,0,0
+SkillId,BaseSkillId,SkillName,Description,IconPath,Cooldown,ManaCost,BaseDamage,PhysScale,MagicScale,BaseHeal,HealScale,SelectorType,SelectorRange
+1,301,Đánh thường 1,,,0,0,10,1,0,0,0,,
+2,302,Đánh thường 2,,,0,0,12,1.1000000000000001,0,0,0,,
+3,303,Đánh thường 3,,,0,0,13,1.2,0,0,0,,
+4,304,Đánh thường 4,,,0,0,14,1.3,0,0,0,,
+5,306,Hồi Máu 1,,,15,30,0,0,0,20,1,,
+6,308,Cầu Nước,,,10,50,20,2,0,0,0,,
+7,312,Vòng Tròn,,,30,70,30,1,0,20,1,,
+8,346,Băng Lan,,,50,100,100,3,0,0,0,,

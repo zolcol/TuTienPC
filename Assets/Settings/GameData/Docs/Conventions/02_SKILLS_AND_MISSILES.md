@@ -202,7 +202,7 @@ $$\text{Số nhịp tác động thực tế của 1 viên đạn} = \left\lfloo
 
 ## 6. HỆ THỐNG ĐỊNH HƯỚNG, CHỈ ĐỊNH MỤC TIÊU & CẤU HÌNH SELECTOR
 
-Hệ thống Target & Aiming Reticle được điều khiển phối hợp qua 3 bảng:
+Hệ thống Target & Aiming Reticle được điều khiển phối hợp qua các bảng dữ liệu và quy tắc suy luận tự động:
 
 ### 🎯 1. Bảng `AttackSkill.csv` (Cơ chế phân loại tấn công & Tự đánh):
 * **`AttackType = 1` (`Normal`)**: Chiêu thường / AOE quanh thân (Không ép hướng).
@@ -211,12 +211,19 @@ Hệ thống Target & Aiming Reticle được điều khiển phối hợp qua 3
 * **`AttackType = 4` (`Line`)**: Chiêu đâm đường thẳng xuyên thấu (vd: Huyền Băng Xuyên Vân 6410).
 * **`AutoFightTarget`**: `1` = AI tự đánh bắt buộc phải tìm thấy mục tiêu mới xuất chiêu.
 
-### 📐 2. Bảng `PreciseCastSkill.csv` (Kích thước hiển thị Selector khi vuốt Joystick):
-* **`CastType`**: `direction` (Mũi tên chỉ hướng) hoặc `target` (Vòng tròn khóa chân / Điểm rơi).
-* **`CastRadius`**: Chiều dài mũi tên / Bán kính tầm với tối đa tính bằng **Centimet** (`CastRadius / 100.0f` mét).
-* **`DamageRadius`**: Bán kính vòng tròn nổ tại điểm rơi tính bằng **Centimet** (`DamageRadius / 100.0f` mét).
+### 📐 2. Phân loại `SkillSelectorType` & Quy tắc Tự Động Suy Luận (Auto-Inference):
+Khi `SelectorType` trong CSV để trống (`0`):
+* **`None (0)`**: Chiêu buff bản thân (`targetSelf = 1` hoặc `Relation == self`) hoặc chiêu đánh thường cơ bản.
+* **`SmartcastCircleAOE (1)`**: Vòng tròn chọn vùng đất (Dành cho bãi nổ tĩnh `StaticCircle` / `StaticTrap`).
+* **`DirectionalArrow (2)`**: Mũi tên định hướng Skillshot (`MoveKind == Linear` hoặc `MissileForm == StraightLinear / SpreadFan / MultiMissileWave`).
+* **`TargetLock (3)`**: Vòng tròn khóa mục tiêu đơn thể (Tự động gán cho: `StartPosType == Target (2)`, `MoveKind == HomingTracking (2)`, `MissileForm == ChainBouncing (4)` như chiêu 308, `Relation == recover/friend`, `SkillType == InstSingle (2)`).
 
-### 🔍 3. Bảng `SkillSelector.csv` (Bộ lọc ưu tiên mục tiêu thông minh):
+Tầm ngắm `SelectorRange` nếu trống sẽ tự động lấy từ `AttackRadius / 100`, hoặc tầm đạn bay (`Speed * LifeTime / 15 / 100`), hoặc `rangeInMeters`.
+
+### ✏️ 3. Ghi đè tùy biến trong `CustomSkill.csv`:
+Hỗ trợ 2 cột **`SelectorType`** và **`SelectorRange`**. Nếu để trống sẽ sử dụng giá trị mặc định / suy luận tự động.
+
+### 🔍 4. Bảng `SkillSelector.csv` (Bộ lọc ưu tiên mục tiêu thông minh):
 * **`hurt_maxhp`**: Tự động ưu tiên đồng minh/bản thân bị mất nhiều % máu nhất (Dùng cho Hồi máu Từ Hàng Phổ Độ 306, Bàn Băng Phi Sương 6414).
 * **`flag_npc`**: Ưu tiên nhắm vào cờ hoặc NPC mục tiêu nhiệm vụ.
 

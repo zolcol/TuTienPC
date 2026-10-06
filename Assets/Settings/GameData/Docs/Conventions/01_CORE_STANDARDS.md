@@ -101,6 +101,15 @@ namespace GameData.Combat
         Line = 4            // Kỹ năng đường thẳng xuyên thấu
     }
 
+    // Loại vòng ngắm / Chỉ thị mục tiêu (Skill Indicator Reticle)
+    public enum SkillSelectorType
+    {
+        None = 0,
+        SmartcastCircleAOE = 1, // Vòng tròn chọn vùng đất
+        DirectionalArrow = 2,   // Mũi tên định hướng xoay theo Joystick
+        TargetLock = 3          // Vòng khóa mục tiêu đơn thể (Target Lock Reticle)
+    }
+
     // Dạng đạn đạo / Hình thái kỹ năng (Skill.tab - MissileForm)
     public enum MissileFormType
     {
