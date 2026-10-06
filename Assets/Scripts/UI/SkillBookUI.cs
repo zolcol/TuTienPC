@@ -32,6 +32,8 @@ namespace TopDownGame.UI
 
         [Header("Skill List (Left Panel)")]
         [SerializeField] private Transform skillListContent;
+        [SerializeField] private ScrollRect skillScrollRect;
+        [SerializeField] private float scrollSensitivity = 30f;
         [SerializeField] private SkillBookItemUI itemTemplate;
 
         [Header("Detail Header (Right Panel)")]
@@ -88,6 +90,15 @@ namespace TopDownGame.UI
             if (itemTemplate != null)
             {
                 itemTemplate.gameObject.SetActive(false);
+            }
+
+            if (skillScrollRect == null && skillListContent != null)
+            {
+                skillScrollRect = skillListContent.GetComponentInParent<ScrollRect>();
+            }
+            if (skillScrollRect != null)
+            {
+                skillScrollRect.scrollSensitivity = scrollSensitivity;
             }
         }
 

@@ -274,6 +274,9 @@ namespace TopDownGame.Editor
             sr.horizontal = false;
             sr.vertical = true;
             sr.movementType = ScrollRect.MovementType.Clamped;
+            sr.scrollSensitivity = 30f;
+            sr.inertia = true;
+            sr.decelerationRate = 0.135f;
 
             // Viewport
             GameObject viewObj = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D));
@@ -281,7 +284,8 @@ namespace TopDownGame.Editor
             RectTransform viewRt = viewObj.GetComponent<RectTransform>();
             viewRt.anchorMin = Vector2.zero;
             viewRt.anchorMax = Vector2.one;
-            viewRt.sizeDelta = Vector2.zero;
+            viewRt.offsetMin = Vector2.zero;
+            viewRt.offsetMax = new Vector2(-12f, 0f);
             sr.viewport = viewRt;
 
             // Content
@@ -295,7 +299,7 @@ namespace TopDownGame.Editor
             sr.content = contentRt;
 
             VerticalLayoutGroup vlg = contentObj.GetComponent<VerticalLayoutGroup>();
-            vlg.padding = new RectOffset(6, 6, 6, 6);
+            vlg.padding = new RectOffset(4, 4, 4, 4);
             vlg.spacing = 8f;
             vlg.childControlWidth = true;
             vlg.childControlHeight = false;
@@ -305,6 +309,51 @@ namespace TopDownGame.Editor
             ContentSizeFitter csf = contentObj.GetComponent<ContentSizeFitter>();
             csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
+            // Vertical Scrollbar
+            GameObject scrollbarObj = new GameObject("Scrollbar Vertical", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Scrollbar));
+            scrollbarObj.transform.SetParent(scrollObj.transform, false);
+            RectTransform scrollbarRt = scrollbarObj.GetComponent<RectTransform>();
+            scrollbarRt.anchorMin = new Vector2(1f, 0f);
+            scrollbarRt.anchorMax = new Vector2(1f, 1f);
+            scrollbarRt.pivot = new Vector2(1f, 1f);
+            scrollbarRt.sizeDelta = new Vector2(8f, 0f);
+            scrollbarRt.anchoredPosition = Vector2.zero;
+
+            Image scrollbarBg = scrollbarObj.GetComponent<Image>();
+            scrollbarBg.color = new Color(0.12f, 0.12f, 0.16f, 0.6f);
+
+            GameObject slideAreaObj = new GameObject("Sliding Area", typeof(RectTransform));
+            slideAreaObj.transform.SetParent(scrollbarObj.transform, false);
+            RectTransform slideAreaRt = slideAreaObj.GetComponent<RectTransform>();
+            slideAreaRt.anchorMin = Vector2.zero;
+            slideAreaRt.anchorMax = Vector2.one;
+            slideAreaRt.sizeDelta = Vector2.zero;
+
+            GameObject handleObj = new GameObject("Handle", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            handleObj.transform.SetParent(slideAreaObj.transform, false);
+            RectTransform handleRt = handleObj.GetComponent<RectTransform>();
+            handleRt.sizeDelta = Vector2.zero;
+
+            Image handleImg = handleObj.GetComponent<Image>();
+            handleImg.color = new Color(0.75f, 0.65f, 0.35f, 0.85f);
+
+            Scrollbar sb = scrollbarObj.GetComponent<Scrollbar>();
+            sb.targetGraphic = handleImg;
+            sb.handleRect = handleRt;
+            sb.direction = Scrollbar.Direction.BottomToTop;
+
+            ColorBlock sbColors = sb.colors;
+            sbColors.normalColor = new Color(0.75f, 0.65f, 0.35f, 0.85f);
+            sbColors.highlightedColor = GoldColor;
+            sbColors.pressedColor = new Color(1f, 0.95f, 0.6f, 1f);
+            sbColors.selectedColor = GoldColor;
+            sb.colors = sbColors;
+
+            sr.verticalScrollbar = sb;
+            sr.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+            sr.verticalScrollbarSpacing = 2f;
+
+            so.FindProperty("skillScrollRect").objectReferenceValue = sr;
             so.FindProperty("skillListContent").objectReferenceValue = contentRt;
 
             // Template Item Card
