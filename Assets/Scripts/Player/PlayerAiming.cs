@@ -143,7 +143,7 @@ namespace TopDownGame.Player
                 {
                     Transform found = RaycastTarget(ray, skill.IsHeal);
                     if (found != null && Vector3.Distance(transform.position, found.position) <= skill.range) return SetTarget(found);
-                    Transform fallback = FindTargetInFront(skill.range, skill.IsHeal);
+                    Transform fallback = FindTargetInFront(skill.range, skill.IsHeal, preferFurthest: true);
                     return fallback != null && SetTarget(fallback);
                 }
 
@@ -253,11 +253,11 @@ namespace TopDownGame.Player
             return true;
         }
 
-        public Transform FindTargetInFront(float range, bool isHeal = false)
+        public Transform FindTargetInFront(float range, bool isHeal = false, bool preferFurthest = false)
         {
             int hitCount = Physics.OverlapSphereNonAlloc(transform.position, range, targetInFrontBuffer, targetLayer);
             Transform best = null;
-            float minDst = float.MaxValue;
+            float bestDst = preferFurthest ? -1f : float.MaxValue;
             for (int i = 0; i < hitCount; i++)
             {
                 Collider h = targetInFrontBuffer[i];
@@ -267,7 +267,18 @@ namespace TopDownGame.Player
                 Vector3 dir = validRoot.position - transform.position;
                 dir.y = 0;
                 float dst = dir.magnitude;
-                if (dst > 0.01f && Vector3.Dot(transform.forward, dir / dst) > 0.3f && dst < minDst) { minDst = dst; best = validRoot; }
+                bool isFacing = dst > 0.01f && Vector3.Dot(transform.forward, dir / dst) > 0.3f;
+                if (isFacing)
+                {
+                    if (preferFurthest)
+                    {
+                        if (dst > bestDst) { bestDst = dst; best = validRoot; }
+                    }
+                    else
+                    {
+                        if (dst < bestDst) { bestDst = dst; best = validRoot; }
+                    }
+                }
                 else if (dst <= 0.01f && best == null) best = validRoot;
             }
             return best;
