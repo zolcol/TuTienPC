@@ -160,6 +160,8 @@ namespace TopDownGame.Skills
         public float cooldown = 0f;
         public bool canCancel = true;
         public bool notChangeActFrame = false; // 1 = Khóa cứng frame hoạt ảnh, KHÔNG bị tăng tốc bởi AttackSpeed (DATA_CONVENTIONS.md Mục 2 & 5)
+        public float waitTime = 0f;
+        public float WaitTimeSeconds => waitTime > 0f ? (waitTime / ACTION_EVENT_FPS) : 0f;
 
         // --- FRAME TIMING & COMBO (Mốc tính bằng Frame ActionEvent chuẩn 15 FPS theo DATA_CONVENTIONS.md Mục 4 & 5) ---
         public int linkskillinit = -1;

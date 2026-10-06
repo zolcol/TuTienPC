@@ -40,9 +40,19 @@ namespace TopDownGame.Skills
         /// <summary>
         /// Kích hoạt quét tác dụng chiêu thức (Gây sát thương kẻ địch hoặc Hồi máu/Buff đồng đội)
         /// </summary>
-        public static void CastDamage(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget = null, Vector3 explicitTargetPoint = default)
+        public static void CastDamage(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget = null, Vector3 explicitTargetPoint = default, bool ignoreWaitTime = false)
         {
             if (caster == null || skill == null) return;
+
+            // Xử lý WaitTime (Thời gian trễ xuất chiêu cho Sub-skill)
+            if (!ignoreWaitTime && skill.WaitTimeSeconds > 0f)
+            {
+                if (EffectManager.Instance != null)
+                {
+                    EffectManager.Instance.StartCoroutine(DelayedCastDamageCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint));
+                }
+                return; // Dừng tại đây, Coroutine sẽ gọi lại CastDamage với ignoreWaitTime = true
+            }
 
             hitEntitiesThisCast.Clear();
             LayerMask skillTargetLayer = GetTargetLayerForSkill(caster, skill, targetLayer);
@@ -148,9 +158,19 @@ namespace TopDownGame.Skills
         /// <summary>
         /// Kích hoạt hồi phục sinh lực cho Bản thân và Đồng đội (Relation == Recover)
         /// </summary>
-        public static void CastHeal(Transform caster, EntityStats casterStats, SkillData skill, Transform explicitTarget = null, Vector3 explicitTargetPoint = default, bool isSubSkillTick = false)
+        public static void CastHeal(Transform caster, EntityStats casterStats, SkillData skill, Transform explicitTarget = null, Vector3 explicitTargetPoint = default, bool isSubSkillTick = false, bool ignoreWaitTime = false)
         {
             if (caster == null || skill == null) return;
+
+            // Xử lý WaitTime
+            if (!ignoreWaitTime && skill.WaitTimeSeconds > 0f)
+            {
+                if (EffectManager.Instance != null)
+                {
+                    EffectManager.Instance.StartCoroutine(DelayedCastHealCoroutine(caster, casterStats, skill, explicitTarget, explicitTargetPoint, isSubSkillTick));
+                }
+                return;
+            }
 
             float healAmount = skill.CalculateHeal(casterStats);
             float range = skill.range > 0f ? skill.range : 8.0f;
@@ -1101,6 +1121,36 @@ namespace TopDownGame.Skills
                     Gizmos.DrawWireSphere(pStart, 0.4f);
                     Gizmos.DrawWireSphere(pEnd, 0.5f);
                     break;
+            }
+        }
+
+        private static System.Collections.IEnumerator DelayedCastDamageCoroutine(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget, Vector3 explicitTargetPoint)
+        {
+            float waitTimer = skill.WaitTimeSeconds;
+            while (waitTimer > 0f)
+            {
+                waitTimer -= Time.deltaTime;
+                yield return null;
+            }
+
+            if (caster != null)
+            {
+                CastDamage(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, true);
+            }
+        }
+
+        private static System.Collections.IEnumerator DelayedCastHealCoroutine(Transform caster, EntityStats casterStats, SkillData skill, Transform explicitTarget, Vector3 explicitTargetPoint, bool isSubSkillTick)
+        {
+            float waitTimer = skill.WaitTimeSeconds;
+            while (waitTimer > 0f)
+            {
+                waitTimer -= Time.deltaTime;
+                yield return null;
+            }
+
+            if (caster != null)
+            {
+                CastHeal(caster, casterStats, skill, explicitTarget, explicitTargetPoint, isSubSkillTick, true);
             }
         }
     }

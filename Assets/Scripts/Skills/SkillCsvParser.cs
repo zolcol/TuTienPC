@@ -308,7 +308,8 @@ namespace TopDownGame.Skills
                             skillParam6 = skillParam6,
                             acceSpeedInfo1 = acceSpeedInfo1,
                             acceSpeedInfo2 = acceSpeedInfo2,
-                            acceSpeedInfo3 = acceSpeedInfo3
+                            acceSpeedInfo3 = acceSpeedInfo3,
+                            waitTime = waitTime
                         };
 
                         if (data.castEvents.Count == 0)
