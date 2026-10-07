@@ -11,11 +11,18 @@ namespace TopDownGame.Player
         [SerializeField] private LayerMask targetLayer = ~0;
         [SerializeField] private LayerMask groundLayer = 0;
 
+        [Header("=== RANGE CIRCLE INDICATOR ===")]
+        [SerializeField] private LineRenderer rangeCircleRenderer;
+        [SerializeField] private int circleSegments = 64;
+        [SerializeField] private float circleLineWidth = 0.05f;
+        [SerializeField] private Color circleColor = new Color(0.2f, 0.75f, 1f, 0.45f);
+
         private UnityEngine.Camera mainCamera;
         private SkillData aimingSkill;
         private GameObject currentIndicator;
         private Vector3 aimGroundPosition, currentTargetPoint, currentTargetDirection = Vector3.forward;
         private Transform currentLockTarget;
+        private Vector3[] circlePositionsBuffer;
 
         private static readonly RaycastHit[] aimSphereCastBuffer = new RaycastHit[32];
         private static readonly Collider[] targetInFrontBuffer = new Collider[32];
@@ -31,13 +38,71 @@ namespace TopDownGame.Player
         public Vector3 AimGroundPosition => aimGroundPosition;
         public bool IsAiming => aimingSkill != null;
 
-        private void Awake() => mainCamera = UnityEngine.Camera.main;
+        private void Awake()
+        {
+            mainCamera = UnityEngine.Camera.main;
+            EnsureRangeCircleRenderer();
+        }
+
         public void SetCamera(UnityEngine.Camera camera) => mainCamera = camera;
+
+        private void EnsureRangeCircleRenderer()
+        {
+            if (rangeCircleRenderer != null) return;
+            GameObject circleObj = new GameObject("RangeCircleIndicator");
+            circleObj.transform.SetParent(transform, false);
+            rangeCircleRenderer = circleObj.AddComponent<LineRenderer>();
+            rangeCircleRenderer.useWorldSpace = true;
+            rangeCircleRenderer.loop = true;
+            rangeCircleRenderer.positionCount = circleSegments;
+            rangeCircleRenderer.startWidth = circleLineWidth;
+            rangeCircleRenderer.endWidth = circleLineWidth;
+            rangeCircleRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            rangeCircleRenderer.receiveShadows = false;
+
+            Shader shader = Shader.Find("Sprites/Default") ?? Shader.Find("Unlit/Color");
+            if (shader != null)
+            {
+                Material mat = new Material(shader) { color = circleColor };
+                rangeCircleRenderer.material = mat;
+            }
+            rangeCircleRenderer.startColor = circleColor;
+            rangeCircleRenderer.endColor = circleColor;
+            rangeCircleRenderer.enabled = false;
+        }
+
+        private void UpdateRangeCircle(float radius)
+        {
+            if (rangeCircleRenderer == null) EnsureRangeCircleRenderer();
+            if (rangeCircleRenderer == null) return;
+            if (circlePositionsBuffer == null || circlePositionsBuffer.Length != circleSegments)
+                circlePositionsBuffer = new Vector3[circleSegments];
+
+            int groundMask = GetGroundMask();
+            Vector3 center = transform.position;
+            float angleStep = 360f / circleSegments;
+
+            for (int i = 0; i < circleSegments; i++)
+            {
+                float angle = i * angleStep * Mathf.Deg2Rad;
+                Vector3 offset = new Vector3(Mathf.Sin(angle) * radius, 0f, Mathf.Cos(angle) * radius);
+                Vector3 worldPos = center + offset;
+                circlePositionsBuffer[i] = CombatFormula.SnapToGround(worldPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+            }
+
+            rangeCircleRenderer.positionCount = circleSegments;
+            rangeCircleRenderer.SetPositions(circlePositionsBuffer);
+            rangeCircleRenderer.enabled = true;
+        }
 
         public void StartAiming(SkillData skill)
         {
             if (aimingSkill != skill) CancelAiming();
             aimingSkill = skill;
+
+            float maxRange = GetEffectiveRange(skill);
+            UpdateRangeCircle(maxRange);
+
             int resId = (skill.selectorType == SkillSelectorType.DirectionalArrow) ? IndicatorVfxResID.DirectionArrow : (skill.IsHeal ? IndicatorVfxResID.SelectedAllyAOE : IndicatorVfxResID.SelectedEnemyAOE);
             string path = (resId > 0) ? TopDownGame.Data.EffectDatabase.GetEffectPath(resId) : null;
             if (!string.IsNullOrEmpty(path))
@@ -51,6 +116,7 @@ namespace TopDownGame.Player
         {
             aimingSkill = null;
             if (currentIndicator != null) { EffectManager.Instance.RecycleEffect(currentIndicator); currentIndicator = null; }
+            if (rangeCircleRenderer != null) rangeCircleRenderer.enabled = false;
         }
 
         private float GetEffectiveRange(SkillData skill)
@@ -72,6 +138,7 @@ namespace TopDownGame.Player
         {
             if (aimingSkill == null || currentIndicator == null) return;
             float maxRange = GetEffectiveRange(aimingSkill);
+            UpdateRangeCircle(maxRange);
             int groundMask = GetGroundMask();
             Vector3 targetGroundPos = CombatFormula.SnapToGround(transform.position + transform.forward * maxRange, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             Vector3 aimDir = transform.forward;
