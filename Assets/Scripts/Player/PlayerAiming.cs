@@ -53,10 +53,25 @@ namespace TopDownGame.Player
             if (currentIndicator != null) { EffectManager.Instance.RecycleEffect(currentIndicator); currentIndicator = null; }
         }
 
+        private float GetEffectiveRange(SkillData skill)
+        {
+            if (skill == null) return 5f;
+            if (skill.selectorRange > 0f) return skill.selectorRange;
+            if (skill.range > 0f) return skill.range;
+            return 5f;
+        }
+
+        private static float GetHorizontalDistance(Vector3 a, Vector3 b)
+        {
+            float dx = a.x - b.x;
+            float dz = a.z - b.z;
+            return Mathf.Sqrt(dx * dx + dz * dz);
+        }
+
         public void UpdateSkillAiming(Vector3 inputVector, bool isUsingGamepad)
         {
             if (aimingSkill == null || currentIndicator == null) return;
-            float maxRange = aimingSkill.selectorRange > 0f ? aimingSkill.selectorRange : aimingSkill.range;
+            float maxRange = GetEffectiveRange(aimingSkill);
             int groundMask = GetGroundMask();
             Vector3 targetGroundPos = CombatFormula.SnapToGround(transform.position + transform.forward * maxRange, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             Vector3 aimDir = transform.forward;
@@ -125,14 +140,14 @@ namespace TopDownGame.Player
                 if (!isUsingGamepad && UnityEngine.InputSystem.Mouse.current != null && mainCamera != null)
                 {
                     Ray ray = mainCamera.ScreenPointToRay(UnityEngine.InputSystem.Mouse.current.position.ReadValue());
-                    target = RaycastTarget(ray, aimingSkill.IsHeal);
+                    target = RaycastTarget(ray, aimingSkill.IsHeal, maxRange);
                 }
                 if (target == null)
                 {
                     target = FindTargetInFront(maxRange, aimingSkill.IsHeal);
                 }
 
-                if (target != null && Vector3.Distance(transform.position, target.position) <= maxRange + 1.5f)
+                if (target != null && GetHorizontalDistance(transform.position, target.position) <= maxRange)
                 {
                     Vector3 targetPos = CombatFormula.SnapToGround(target.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
                     aimGroundPosition = targetPos;
@@ -151,7 +166,8 @@ namespace TopDownGame.Player
             if (skill == null) return false;
             currentLockTarget = null;
             int groundMask = GetGroundMask();
-            currentTargetPoint = CombatFormula.SnapToGround(transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f), CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+            float effectiveRange = GetEffectiveRange(skill);
+            currentTargetPoint = CombatFormula.SnapToGround(transform.position + transform.forward * effectiveRange, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             currentTargetDirection = transform.forward;
             if (skill.targetSelf || skill.relation == SkillRelation.Self) { currentTargetPoint = CombatFormula.SnapToGround(transform.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask); return true; }
 
@@ -167,9 +183,9 @@ namespace TopDownGame.Player
                 Ray ray = mainCamera.ScreenPointToRay(UnityEngine.InputSystem.Mouse.current.position.ReadValue());
                 if (isTargetLockSkill)
                 {
-                    Transform found = RaycastTarget(ray, skill.IsHeal);
-                    if (found != null && Vector3.Distance(transform.position, found.position) <= skill.range) return SetTarget(found);
-                    Transform fallback = FindTargetInFront(skill.range, skill.IsHeal, preferFurthest: true);
+                    Transform found = RaycastTarget(ray, skill.IsHeal, effectiveRange);
+                    if (found != null && GetHorizontalDistance(transform.position, found.position) <= effectiveRange) return SetTarget(found);
+                    Transform fallback = FindTargetInFront(effectiveRange, skill.IsHeal, preferFurthest: true);
                     return fallback != null && SetTarget(fallback);
                 }
 
@@ -184,14 +200,13 @@ namespace TopDownGame.Player
                 }
                 else
                 {
-                    hitPoint = transform.position + transform.forward * (skill.range > 0 ? skill.range : 5f);
+                    hitPoint = transform.position + transform.forward * effectiveRange;
                 }
 
-                float maxRange = skill.selectorRange > 0f ? skill.selectorRange : skill.range;
                 Vector3 offset = hitPoint - transform.position;
                 offset.y = 0f;
-                Vector3 targetPos = (maxRange > 0f && offset.magnitude > maxRange)
-                    ? transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * maxRange
+                Vector3 targetPos = (effectiveRange > 0f && offset.magnitude > effectiveRange)
+                    ? transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * effectiveRange
                     : hitPoint;
                 currentTargetPoint = CombatFormula.SnapToGround(targetPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
 
@@ -201,10 +216,9 @@ namespace TopDownGame.Player
             }
             else
             {
-                if (isTargetLockSkill) return SetTarget(FindTargetInFront(skill.range, skill.IsHeal));
+                if (isTargetLockSkill) return SetTarget(FindTargetInFront(effectiveRange, skill.IsHeal));
                 currentTargetDirection = inputVector.sqrMagnitude > 0.01f ? inputVector.normalized : transform.forward;
-                float maxRange = skill.selectorRange > 0f ? skill.selectorRange : (skill.range > 0f ? skill.range : 5f);
-                Vector3 rawPos = transform.position + currentTargetDirection * maxRange;
+                Vector3 rawPos = transform.position + currentTargetDirection * effectiveRange;
                 currentTargetPoint = CombatFormula.SnapToGround(rawPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
             }
             return true;
@@ -251,7 +265,7 @@ namespace TopDownGame.Player
             return false;
         }
 
-        private Transform RaycastTarget(Ray ray, bool isHeal)
+        private Transform RaycastTarget(Ray ray, bool isHeal, float maxRange = float.MaxValue)
         {
             int hitCount = Physics.SphereCastNonAlloc(ray, 1.5f, aimSphereCastBuffer, 100f, targetLayer);
             Transform found = null;
@@ -261,6 +275,9 @@ namespace TopDownGame.Player
                 var hit = aimSphereCastBuffer[i];
                 if (hit.collider == null) continue;
                 if (!IsValidTarget(hit.collider, isHeal, out Transform validRoot)) continue;
+
+                if (maxRange < float.MaxValue && GetHorizontalDistance(transform.position, validRoot.position) > maxRange)
+                    continue;
 
                 float dist = Vector3.Cross(ray.direction, validRoot.position - ray.origin).magnitude;
                 if (dist < minDist) { minDist = dist; found = validRoot; }
@@ -293,6 +310,7 @@ namespace TopDownGame.Player
                 Vector3 dir = validRoot.position - transform.position;
                 dir.y = 0;
                 float dst = dir.magnitude;
+                if (dst > range) continue;
                 bool isFacing = dst > 0.01f && Vector3.Dot(transform.forward, dir / dst) > 0.3f;
                 if (isFacing)
                 {
