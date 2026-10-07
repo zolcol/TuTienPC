@@ -109,6 +109,10 @@ namespace TopDownGame.Player
             {
                 Vector3 spawnPos = CombatFormula.SnapToGround(transform.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, GetGroundMask());
                 currentIndicator = EffectManager.Instance.SpawnEffect(path, spawnPos, transform.rotation, null, 99f);
+                if (skill.selectorType == SkillSelectorType.TargetLock && currentIndicator != null)
+                {
+                    currentIndicator.SetActive(false);
+                }
             }
         }
 
@@ -198,11 +202,13 @@ namespace TopDownGame.Player
 
             if (aimingSkill.selectorType == SkillSelectorType.DirectionalArrow)
             {
+                if (!currentIndicator.activeSelf) currentIndicator.SetActive(true);
                 currentIndicator.transform.position = CombatFormula.SnapToGround(transform.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
                 currentIndicator.transform.rotation = Quaternion.LookRotation(aimDir, Vector3.up);
             }
             else if (aimingSkill.selectorType == SkillSelectorType.SmartcastCircleAOE)
             {
+                if (!currentIndicator.activeSelf) currentIndicator.SetActive(true);
                 aimGroundPosition = targetGroundPos;
                 currentIndicator.transform.position = targetGroundPos;
             }
@@ -214,21 +220,22 @@ namespace TopDownGame.Player
                     Ray ray = mainCamera.ScreenPointToRay(UnityEngine.InputSystem.Mouse.current.position.ReadValue());
                     target = RaycastTarget(ray, aimingSkill.IsHeal, maxRange);
                 }
-                if (target == null)
+                else if (isUsingGamepad)
                 {
                     target = FindTargetInFront(maxRange, aimingSkill.IsHeal);
                 }
 
                 if (target != null && GetHorizontalDistance(transform.position, target.position) <= maxRange)
                 {
+                    if (!currentIndicator.activeSelf) currentIndicator.SetActive(true);
                     Vector3 targetPos = CombatFormula.SnapToGround(target.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
                     aimGroundPosition = targetPos;
                     currentIndicator.transform.position = targetPos;
                 }
                 else
                 {
+                    if (currentIndicator.activeSelf) currentIndicator.SetActive(false);
                     aimGroundPosition = targetGroundPos;
-                    currentIndicator.transform.position = targetGroundPos;
                 }
             }
         }
