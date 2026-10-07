@@ -100,10 +100,6 @@ namespace TopDownGame.Combat
                         {
                             DontDestroyOnLoad(go);
                         }
-                        else
-                        {
-                            go.hideFlags = HideFlags.HideAndDontSave;
-                        }
                     }
                 }
                 return instance;

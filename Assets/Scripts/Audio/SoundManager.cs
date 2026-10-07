@@ -24,10 +24,6 @@ namespace TopDownGame.Audio
                         {
                             DontDestroyOnLoad(go);
                         }
-                        else
-                        {
-                            go.hideFlags = HideFlags.HideAndDontSave;
-                        }
                     }
                 }
                 return instance;

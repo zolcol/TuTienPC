@@ -32,10 +32,6 @@ namespace TopDownGame.Skills
                         {
                             DontDestroyOnLoad(go);
                         }
-                        else
-                        {
-                            go.hideFlags = HideFlags.HideAndDontSave;
-                        }
                     }
                 }
                 return instance;
