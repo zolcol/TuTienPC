@@ -82,8 +82,60 @@ namespace TopDownGame.Input
             toggleSkillBookAction?.Disable();
         }
 
+        public static bool IsPointerOverUI()
+        {
+            return UnityEngine.EventSystems.EventSystem.current != null && 
+                   UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+        }
+
         private void Update()
         {
+            // Bật/tắt bảng thuộc tính (luôn nhận diện phím tắt)
+            if (toggleCharacterStatsAction != null)
+            {
+                ToggleCharacterStatsTriggered = toggleCharacterStatsAction.WasPressedThisFrame();
+            }
+            else
+            {
+                ToggleCharacterStatsTriggered = (Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame);
+            }
+
+            // Bật/tắt bảng kỹ năng (luôn nhận diện phím tắt)
+            if (toggleSkillBookAction != null)
+            {
+                ToggleSkillBookTriggered = toggleSkillBookAction.WasPressedThisFrame();
+            }
+            else
+            {
+                ToggleSkillBookTriggered = (Keyboard.current != null && Keyboard.current.kKey.wasPressedThisFrame);
+            }
+
+            // Xử lý phím ESC đóng cửa sổ UI đang mở
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            {
+                UI.UIModalManager.CloseTopModal();
+            }
+
+            // Nếu đang mở cửa sổ Modal UI (Stat, Skillbook...), khóa toàn bộ input chiến đấu & di chuyển
+            if (UI.UIModalManager.IsAnyModalOpen)
+            {
+                MoveInput = Vector2.zero;
+                AttackTriggered = false;
+                IsAttackHeld = false;
+                Skill1Triggered = false;
+                Skill1Held = false;
+                Skill1Released = false;
+                Skill2Triggered = false;
+                Skill2Held = false;
+                Skill2Released = false;
+                Skill3Triggered = false;
+                Skill3Held = false;
+                Skill3Released = false;
+                return;
+            }
+
+            bool pointerOverUI = IsPointerOverUI();
+
             // Di chuyển
             if (moveAction != null)
             {
@@ -98,11 +150,24 @@ namespace TopDownGame.Input
                 MoveInput = Vector2.zero;
             }
 
-            // Đánh thường
+            // Đánh thường (Chặn click chuột khi đang trỏ trên UI)
             if (attackAction != null)
             {
-                AttackTriggered = attackAction.WasPressedThisFrame();
-                IsAttackHeld = attackAction.IsPressed();
+                bool rawTrigger = attackAction.WasPressedThisFrame();
+                bool rawHeld = attackAction.IsPressed();
+                bool isMouse = attackAction.activeControl != null && attackAction.activeControl.device is Mouse;
+
+                if (pointerOverUI && (isMouse || !IsUsingGamepad))
+                {
+                    AttackTriggered = false;
+                    IsAttackHeld = false;
+                }
+                else
+                {
+                    AttackTriggered = rawTrigger;
+                    IsAttackHeld = rawHeld;
+                }
+
                 if (attackAction.activeControl != null && AttackTriggered)
                 {
                     IsUsingGamepad = attackAction.activeControl.device is Gamepad || attackAction.activeControl.device is Joystick;
@@ -132,27 +197,6 @@ namespace TopDownGame.Input
                 Skill3Triggered = skill3Action.WasPressedThisFrame();
                 Skill3Held = skill3Action.IsPressed();
                 Skill3Released = skill3Action.WasReleasedThisFrame();
-            }
-
-            // Bật/tắt bảng thuộc tính
-            if (toggleCharacterStatsAction != null)
-            {
-                ToggleCharacterStatsTriggered = toggleCharacterStatsAction.WasPressedThisFrame();
-            }
-            else
-            {
-                // Fallback: nếu chưa config trong inputactions asset, vẫn hỗ trợ phím C hoặc Gamepad Select/Back
-                ToggleCharacterStatsTriggered = (Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame);
-            }
-
-            // Bật/tắt bảng kỹ năng (K)
-            if (toggleSkillBookAction != null)
-            {
-                ToggleSkillBookTriggered = toggleSkillBookAction.WasPressedThisFrame();
-            }
-            else
-            {
-                ToggleSkillBookTriggered = (Keyboard.current != null && Keyboard.current.kKey.wasPressedThisFrame);
             }
         }
 

@@ -17,7 +17,7 @@ namespace TopDownGame.UI
     /// Hỗ trợ xem thông tin chi tiết, gán phím Q-E-R và nâng cấp kỹ năng.
     /// </summary>
     [RequireComponent(typeof(CanvasGroup))]
-    public class SkillBookUI : MonoBehaviour
+    public class SkillBookUI : MonoBehaviour, IUIModal
     {
         [Header("References")]
         [SerializeField] private PlayerController player;
@@ -116,6 +116,7 @@ namespace TopDownGame.UI
 
         private void OnDisable()
         {
+            UIModalManager.PopModal(this);
             RegisterPlayerEvents(false);
         }
 
@@ -178,6 +179,15 @@ namespace TopDownGame.UI
         public void SetOpenState(bool open)
         {
             isOpen = open;
+            if (open)
+            {
+                UIModalManager.PushModal(this);
+            }
+            else
+            {
+                UIModalManager.PopModal(this);
+            }
+
             if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
             fadeCoroutine = StartCoroutine(AnimatePanel(open));
 
@@ -190,6 +200,15 @@ namespace TopDownGame.UI
         private void SetOpenStateImmediate(bool open)
         {
             isOpen = open;
+            if (open)
+            {
+                UIModalManager.PushModal(this);
+            }
+            else
+            {
+                UIModalManager.PopModal(this);
+            }
+
             if (canvasGroup != null)
             {
                 canvasGroup.alpha = open ? 1f : 0f;

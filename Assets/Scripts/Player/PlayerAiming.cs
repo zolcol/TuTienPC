@@ -136,6 +136,11 @@ namespace TopDownGame.Player
 
         public void UpdateSkillAiming(Vector3 inputVector, bool isUsingGamepad)
         {
+            if (TopDownGame.UI.UIModalManager.IsAnyModalOpen)
+            {
+                CancelAiming();
+                return;
+            }
             if (aimingSkill == null || currentIndicator == null) return;
             float maxRange = GetEffectiveRange(aimingSkill);
             UpdateRangeCircle(maxRange);

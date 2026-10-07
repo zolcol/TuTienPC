@@ -13,7 +13,7 @@ namespace TopDownGame.UI
     /// Bảng hiển thị thông số chi tiết của nhân vật (RPG Character Stats Window)
     /// </summary>
     [RequireComponent(typeof(CanvasGroup))]
-    public class CharacterStatsUI : MonoBehaviour
+    public class CharacterStatsUI : MonoBehaviour, IUIModal
     {
         [Header("References")]
         [SerializeField] private PlayerController player;
@@ -93,6 +93,7 @@ namespace TopDownGame.UI
 
         private void OnDisable()
         {
+            UIModalManager.PopModal(this);
             if (playerStats != null)
             {
                 playerStats.OnLevelUp -= HandleLevelUp;
@@ -149,6 +150,15 @@ namespace TopDownGame.UI
         public void SetOpenState(bool open)
         {
             isOpen = open;
+            if (open)
+            {
+                UIModalManager.PushModal(this);
+            }
+            else
+            {
+                UIModalManager.PopModal(this);
+            }
+
             if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
             fadeCoroutine = StartCoroutine(AnimatePanel(open));
 
@@ -161,6 +171,15 @@ namespace TopDownGame.UI
         private void SetOpenStateImmediate(bool open)
         {
             isOpen = open;
+            if (open)
+            {
+                UIModalManager.PushModal(this);
+            }
+            else
+            {
+                UIModalManager.PopModal(this);
+            }
+
             if (canvasGroup != null)
             {
                 canvasGroup.alpha = open ? 1f : 0f;

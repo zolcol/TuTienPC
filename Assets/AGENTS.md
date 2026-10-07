@@ -156,7 +156,8 @@ Assets/Scripts/
 │   ├── PlayerHUD.cs                   # HUD CHÍNH: Máu (Lerp + Ghost Bar vàng), Mana, Level/EXP, 3 ô chiêu thức
 │   ├── SkillBookItemUI.cs             # Item trong Bảng Võ Học: Icon, Tên, Cấp, Nút nâng cấp, Nút gán Hotbar
 │   ├── SkillBookUI.cs                 # BẢNG VÕ HỌC (K): Danh sách chiêu thức, cộng điểm kỹ năng, gán Hotbar slot
-│   └── SkillSlotUI.cs                 # Ô skill HUD đơn lẻ: Icon, Overlay xoay 360°, đếm giây Cooldown, Mana cost
+│   ├── SkillSlotUI.cs                 # Ô skill HUD đơn lẻ: Icon, Overlay xoay 360°, đếm giây Cooldown, Mana cost
+│   └── UIModalManager.cs              # QUẢN LÝ CỬA SỔ MODAL: Stack mở/đóng UI, ESC key, chặn Input chiến đấu
 │
 └── Editor/
     ├── CharacterStatsUIBuilder.cs     # Menu Tool tự động dựng Bảng thuộc tính (Phím C) vào Scene
