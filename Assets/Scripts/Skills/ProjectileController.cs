@@ -177,16 +177,13 @@ namespace TopDownGame.Skills
             StopAllCoroutines();
             if (flyingEffectInstance != null)
             {
-                if (EffectManager.Instance != null)
+                if (flyingEffectInstance.transform.parent == transform)
                 {
-                    if (flyingEffectInstance.transform.parent != transform)
-                    {
-                        EffectManager.Instance.RecycleEffect(flyingEffectInstance);
-                    }
-                    else
-                    {
-                        flyingEffectInstance.SetActive(false);
-                    }
+                    flyingEffectInstance.SetActive(false);
+                }
+                else if (EffectManager.HasInstance)
+                {
+                    EffectManager.Instance.RecycleEffect(flyingEffectInstance);
                 }
                 flyingEffectInstance = null;
             }

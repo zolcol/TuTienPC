@@ -25,10 +25,17 @@ namespace TopDownGame.UI
     public class FloatingTextManager : MonoBehaviour
     {
         private static FloatingTextManager instance;
+        private static bool isApplicationQuitting = false;
+
         public static FloatingTextManager Instance
         {
             get
             {
+                if (isApplicationQuitting)
+                {
+                    return null;
+                }
+
                 if (instance == null)
                 {
                     instance = FindObjectOfType<FloatingTextManager>();
@@ -46,7 +53,7 @@ namespace TopDownGame.UI
             }
         }
 
-        public static bool HasInstance => instance != null;
+        public static bool HasInstance => instance != null && !isApplicationQuitting;
 
         [Header("Pool Configuration")]
         [SerializeField] private int initialPoolSize = 100;
@@ -59,6 +66,7 @@ namespace TopDownGame.UI
         private static void ResetStaticData()
         {
             instance = null;
+            isApplicationQuitting = false;
         }
 
         private void Awake()
@@ -75,6 +83,19 @@ namespace TopDownGame.UI
             else if (instance != this)
             {
                 Destroy(gameObject);
+            }
+        }
+
+        private void OnApplicationQuit()
+        {
+            isApplicationQuitting = true;
+        }
+
+        private void OnDestroy()
+        {
+            if (instance == this)
+            {
+                instance = null;
             }
         }
 
@@ -120,8 +141,12 @@ namespace TopDownGame.UI
         public void Recycle(FloatingTextItem item)
         {
             if (item == null) return;
+            if (isApplicationQuitting || !Application.isPlaying) return;
             item.gameObject.SetActive(false);
-            item.transform.SetParent(poolContainer);
+            if (poolContainer != null && item.transform.parent != poolContainer)
+            {
+                item.transform.SetParent(poolContainer);
+            }
             availablePool.Enqueue(item);
         }
 

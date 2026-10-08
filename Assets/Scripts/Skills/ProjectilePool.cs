@@ -10,17 +10,26 @@ namespace TopDownGame.Skills
     public class ProjectilePool : MonoBehaviour
     {
         private static ProjectilePool instance;
+        private static bool isApplicationQuitting = false;
+
+        public static bool HasInstance => instance != null && !isApplicationQuitting;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStaticData()
         {
             instance = null;
+            isApplicationQuitting = false;
         }
 
         public static ProjectilePool Instance
         {
             get
             {
+                if (isApplicationQuitting)
+                {
+                    return null;
+                }
+
                 if (instance == null)
                 {
                     instance = FindObjectOfType<ProjectilePool>();
@@ -57,6 +66,19 @@ namespace TopDownGame.Skills
             else if (instance != this)
             {
                 Destroy(gameObject);
+            }
+        }
+
+        private void OnApplicationQuit()
+        {
+            isApplicationQuitting = true;
+        }
+
+        private void OnDestroy()
+        {
+            if (instance == this)
+            {
+                instance = null;
             }
         }
 
@@ -104,9 +126,13 @@ namespace TopDownGame.Skills
         public void Release(ProjectileController projectile)
         {
             if (projectile == null) return;
+            if (isApplicationQuitting || !Application.isPlaying) return;
 
             projectile.gameObject.SetActive(false);
-            projectile.transform.SetParent(transform);
+            if (this != null && gameObject != null && projectile.transform.parent != transform)
+            {
+                projectile.transform.SetParent(transform);
+            }
             availablePool.Enqueue(projectile);
         }
     }

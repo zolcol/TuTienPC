@@ -9,10 +9,19 @@ namespace TopDownGame.Audio
     public class SoundManager : MonoBehaviour
     {
         private static SoundManager instance;
+        private static bool isApplicationQuitting = false;
+
+        public static bool HasInstance => instance != null && !isApplicationQuitting;
+
         public static SoundManager Instance
         {
             get
             {
+                if (isApplicationQuitting)
+                {
+                    return null;
+                }
+
                 if (instance == null)
                 {
                     instance = FindObjectOfType<SoundManager>();
@@ -63,6 +72,7 @@ namespace TopDownGame.Audio
         private static void ResetStaticData()
         {
             instance = null;
+            isApplicationQuitting = false;
         }
 
         private void Awake()
@@ -79,6 +89,19 @@ namespace TopDownGame.Audio
             else if (instance != this)
             {
                 Destroy(gameObject);
+            }
+        }
+
+        private void OnApplicationQuit()
+        {
+            isApplicationQuitting = true;
+        }
+
+        private void OnDestroy()
+        {
+            if (instance == this)
+            {
+                instance = null;
             }
         }
 

@@ -85,10 +85,19 @@ namespace TopDownGame.Combat
     public class EffectManager : MonoBehaviour
     {
         private static EffectManager instance;
+        private static bool isApplicationQuitting = false;
+
+        public static bool HasInstance => instance != null && !isApplicationQuitting;
+
         public static EffectManager Instance
         {
             get
             {
+                if (isApplicationQuitting)
+                {
+                    return null;
+                }
+
                 if (instance == null)
                 {
                     instance = FindObjectOfType<EffectManager>();
@@ -114,6 +123,7 @@ namespace TopDownGame.Combat
         private static void ResetStaticData()
         {
             instance = null;
+            isApplicationQuitting = false;
         }
 
         private void Awake()
@@ -129,6 +139,19 @@ namespace TopDownGame.Combat
             else if (instance != this)
             {
                 Destroy(gameObject);
+            }
+        }
+
+        private void OnApplicationQuit()
+        {
+            isApplicationQuitting = true;
+        }
+
+        private void OnDestroy()
+        {
+            if (instance == this)
+            {
+                instance = null;
             }
         }
 
@@ -302,7 +325,7 @@ namespace TopDownGame.Combat
                     return null;
                 }
 
-                effectInstance = Instantiate(prefab);
+                effectInstance = Instantiate(prefab, transform);
                 pooled = effectInstance.AddComponent<PooledVfx>();
                 pooled.PoolKey = cleanKey;
                 pooled.CacheComponents();
@@ -372,6 +395,7 @@ namespace TopDownGame.Combat
         public void RecycleEffect(GameObject effectInstance)
         {
             if (effectInstance == null) return;
+            if (isApplicationQuitting || !Application.isPlaying) return;
 
             if (effectInstance.TryGetComponent<PooledVfx>(out PooledVfx pooled))
             {
@@ -389,7 +413,7 @@ namespace TopDownGame.Combat
 
                 pooled.StopEffects();
 
-                if (effectInstance.transform.parent != transform)
+                if (this != null && gameObject != null && effectInstance.transform.parent != transform)
                 {
                     try
                     {

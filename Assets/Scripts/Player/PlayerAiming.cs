@@ -119,7 +119,18 @@ namespace TopDownGame.Player
         public void CancelAiming()
         {
             aimingSkill = null;
-            if (currentIndicator != null) { EffectManager.Instance.RecycleEffect(currentIndicator); currentIndicator = null; }
+            if (currentIndicator != null)
+            {
+                if (EffectManager.HasInstance)
+                {
+                    EffectManager.Instance.RecycleEffect(currentIndicator);
+                }
+                else
+                {
+                    Destroy(currentIndicator);
+                }
+                currentIndicator = null;
+            }
             if (rangeCircleRenderer != null) rangeCircleRenderer.enabled = false;
         }
 
