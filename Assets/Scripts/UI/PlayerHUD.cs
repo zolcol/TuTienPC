@@ -89,14 +89,27 @@ namespace TopDownGame.UI
             {
                 player.Combat.OnSkillSlotsChanged += RefreshSkillSlots;
             }
+            if (player.SkillManager != null)
+            {
+                player.SkillManager.OnSkillUpgraded += HandleSkillUpgraded;
+            }
+        }
+
+        private void HandleSkillUpgraded(int skillId, int newLevel)
+        {
+            RefreshSkillSlots();
         }
 
         public void RefreshSkillSlots()
         {
             if (player == null) return;
-            if (skillSlot_Q != null) skillSlot_Q.SetupSlot(player.SkillSlotQ, "Q");
-            if (skillSlot_E != null) skillSlot_E.SetupSlot(player.SkillSlotE, "E");
-            if (skillSlot_R != null) skillSlot_R.SetupSlot(player.SkillSlotR, "R");
+            int qLv = (player.SkillManager != null && player.SkillSlotQ != null) ? player.SkillManager.GetSkillLevel(player.SkillSlotQ.id) : 1;
+            int eLv = (player.SkillManager != null && player.SkillSlotE != null) ? player.SkillManager.GetSkillLevel(player.SkillSlotE.id) : 1;
+            int rLv = (player.SkillManager != null && player.SkillSlotR != null) ? player.SkillManager.GetSkillLevel(player.SkillSlotR.id) : 1;
+
+            if (skillSlot_Q != null) skillSlot_Q.SetupSlot(player.SkillSlotQ, "Q", qLv);
+            if (skillSlot_E != null) skillSlot_E.SetupSlot(player.SkillSlotE, "E", eLv);
+            if (skillSlot_R != null) skillSlot_R.SetupSlot(player.SkillSlotR, "R", rLv);
         }
 
         private void OnDestroy()
@@ -113,6 +126,10 @@ namespace TopDownGame.UI
                 if (player.Combat != null)
                 {
                     player.Combat.OnSkillSlotsChanged -= RefreshSkillSlots;
+                }
+                if (player.SkillManager != null)
+                {
+                    player.SkillManager.OnSkillUpgraded -= HandleSkillUpgraded;
                 }
             }
         }

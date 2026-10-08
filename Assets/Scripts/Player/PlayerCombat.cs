@@ -136,13 +136,24 @@ namespace TopDownGame.Player
             return false;
         }
 
-        public bool CanExecuteSkill(SkillData skill) => skill != null && !IsOnCooldown(skill.id) && (noManaCost || player?.Stats == null || skill.manaCost <= 0f || player.Stats.HasEnoughMana(skill.manaCost));
+        public int GetSkillLevel(int skillId) => player?.SkillManager != null ? player.SkillManager.GetSkillLevel(skillId) : 1;
+
+        public bool CanExecuteSkill(SkillData skill)
+        {
+            if (skill == null || IsOnCooldown(skill.id)) return false;
+            int level = GetSkillLevel(skill.id);
+            float mana = skill.GetManaCost(level);
+            return noManaCost || player?.Stats == null || mana <= 0f || player.Stats.HasEnoughMana(mana);
+        }
 
         private bool ExecuteSkill(SkillData skill)
         {
             if (!ExecuteAction(skill)) return false;
-            if (!noManaCost && player?.Stats != null && skill.manaCost > 0f) player.Stats.ConsumeMana(skill.manaCost);
-            if (!noCooldown) StartCooldown(skill.id, skill.cooldown);
+            int level = GetSkillLevel(skill.id);
+            float mana = skill.GetManaCost(level);
+            float cd = skill.GetCooldown(level);
+            if (!noManaCost && player?.Stats != null && mana > 0f) player.Stats.ConsumeMana(mana);
+            if (!noCooldown) StartCooldown(skill.id, cd);
             return true;
         }
 
@@ -167,8 +178,9 @@ namespace TopDownGame.Player
         public void ExecuteSkillDamage(SkillData skill, Transform lockTarget, Vector3 targetPoint)
         {
             if (skill == null || player == null) return;
+            int level = GetSkillLevel(skill.id);
             LayerMask mask = player.Aiming != null ? player.Aiming.TargetLayer : ~0;
-            SkillDamageResolver.CastDamage(transform, player.Stats, skill, mask, lockTarget, targetPoint);
+            SkillDamageResolver.CastDamage(transform, player.Stats, skill, mask, lockTarget, targetPoint, false, level);
             if (showHitGizmos && !skill.targetSelf && skill.relation != TopDownGame.Skills.SkillRelation.Self && (string.IsNullOrEmpty(skill.skillStyle) || !skill.skillStyle.Equals("logic", System.StringComparison.OrdinalIgnoreCase)))
             {
                 lastGizmo = new GizmoDrawInfo { type = skill.skillType, origin = transform.position, forward = transform.forward, range = skill.range, fanAngle = skill.fanAngle, boxWidth = skill.boxWidth };

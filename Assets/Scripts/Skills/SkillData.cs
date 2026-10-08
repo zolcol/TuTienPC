@@ -151,6 +151,7 @@ namespace TopDownGame.Skills
         }
 
         // --- COMBAT SCALING & RESOURCE ---
+        public int maxLevel = 20;
         public float baseDamage = 0f;
         public float physScale = 1f;
         public float magicScale = 0f;
@@ -158,6 +159,13 @@ namespace TopDownGame.Skills
         public float healScale = 0f;
         public float manaCost = 0f;
         public float cooldown = 0f;
+        public string rawBaseDamage = "";
+        public string rawPhysScale = "";
+        public string rawMagicScale = "";
+        public string rawBaseHeal = "";
+        public string rawHealScale = "";
+        public string rawManaCost = "";
+        public string rawCooldown = "";
         public bool canCancel = true;
         public bool notChangeActFrame = false; // 1 = Khóa cứng frame hoạt ảnh, KHÔNG bị tăng tốc bởi AttackSpeed (DATA_CONVENTIONS.md Mục 2 & 5)
         public float waitTime = 0f;
@@ -291,19 +299,71 @@ namespace TopDownGame.Skills
         }
 
         /// <summary>
-        /// Tính tổng sát thương dựa trên chỉ số Vật Lý và Phép của thực thể tung chiêu
+        /// Lấy Sát thương cơ bản theo cấp độ (hỗ trợ nội suy mốc CSV)
         /// </summary>
-        public float CalculateDamage(EntityStats attackerStats)
+        public float GetBaseDamage(int level = 1)
         {
-            return CombatFormula.CalculateDamage(attackerStats, physScale, magicScale, baseDamage);
+            return !string.IsNullOrEmpty(rawBaseDamage) 
+                ? TopDownGame.Data.CsvParserHelper.ParseLevelValue(rawBaseDamage, level, baseDamage) 
+                : baseDamage;
+        }
+
+        public float GetPhysScale(int level = 1)
+        {
+            return !string.IsNullOrEmpty(rawPhysScale) 
+                ? TopDownGame.Data.CsvParserHelper.ParseLevelValue(rawPhysScale, level, physScale) 
+                : physScale;
+        }
+
+        public float GetMagicScale(int level = 1)
+        {
+            return !string.IsNullOrEmpty(rawMagicScale) 
+                ? TopDownGame.Data.CsvParserHelper.ParseLevelValue(rawMagicScale, level, magicScale) 
+                : magicScale;
+        }
+
+        public float GetBaseHeal(int level = 1)
+        {
+            return !string.IsNullOrEmpty(rawBaseHeal) 
+                ? TopDownGame.Data.CsvParserHelper.ParseLevelValue(rawBaseHeal, level, baseHeal) 
+                : baseHeal;
+        }
+
+        public float GetHealScale(int level = 1)
+        {
+            return !string.IsNullOrEmpty(rawHealScale) 
+                ? TopDownGame.Data.CsvParserHelper.ParseLevelValue(rawHealScale, level, healScale) 
+                : healScale;
+        }
+
+        public float GetCooldown(int level = 1)
+        {
+            return !string.IsNullOrEmpty(rawCooldown) 
+                ? TopDownGame.Data.CsvParserHelper.ParseLevelValue(rawCooldown, level, cooldown) 
+                : cooldown;
+        }
+
+        public float GetManaCost(int level = 1)
+        {
+            return !string.IsNullOrEmpty(rawManaCost) 
+                ? TopDownGame.Data.CsvParserHelper.ParseLevelValue(rawManaCost, level, manaCost) 
+                : manaCost;
         }
 
         /// <summary>
-        /// Tính tổng lượng hồi máu dựa trên chỉ số Phép / Nội công của thực thể tung chiêu
+        /// Tính tổng sát thương dựa trên chỉ số Vật Lý và Phép của thực thể tung chiêu và cấp độ kỹ năng
         /// </summary>
-        public float CalculateHeal(EntityStats casterStats)
+        public float CalculateDamage(EntityStats attackerStats, int level = 1)
         {
-            return CombatFormula.CalculateHeal(casterStats, magicScale, baseHeal, healScale);
+            return CombatFormula.CalculateDamage(attackerStats, GetPhysScale(level), GetMagicScale(level), GetBaseDamage(level));
+        }
+
+        /// <summary>
+        /// Tính tổng lượng hồi máu dựa trên chỉ số Phép / Nội công của thực thể tung chiêu và cấp độ kỹ năng
+        /// </summary>
+        public float CalculateHeal(EntityStats casterStats, int level = 1)
+        {
+            return CombatFormula.CalculateHeal(casterStats, GetMagicScale(level), GetBaseHeal(level), GetHealScale(level));
         }
     }
 }

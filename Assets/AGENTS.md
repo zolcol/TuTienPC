@@ -131,12 +131,12 @@ Assets/Scripts/
 │   ├── ActionEventParser.cs           # Parse ActionEvent.csv (CastSkill, CanDoSkill, CanDoRun, MovePos...)
 │   ├── CastActionID.cs                # Enum & Helper ánh xạ CastActionID (16=at01, 21=jn01...) sang tên clip
 │   ├── LegacySkillCsvParser.cs        # Parser dự phòng cho cấu trúc Skills.csv cũ
-│   ├── PlayerSkillManager.cs          # Quản lý cấp độ kỹ năng RPG, điểm SkillPoints, logic nâng cấp chiêu
-│   ├── ProjectileController.cs        # Quỹ đạo đạn, Homing bám mục tiêu, Chain-bounce, DoT interval, SphereCast
+│   ├── PlayerSkillManager.cs          # Quản lý cấp độ kỹ năng RPG, điểm SkillPoints, nâng cấp chiêu theo MaxLevel
+│   ├── ProjectileController.cs        # Quỹ đạo đạn, Homing bám mục tiêu, Chain-bounce, DoT interval, SphereCast, Damage theo SkillLevel
 │   ├── ProjectilePool.cs              # Object Pool đạn đạo tái sử dụng 100% (0 GC Alloc)
-│   ├── SkillCsvParser.cs              # Parse Skill.csv + ActionEvent.csv + CustomSkill.csv
-│   ├── SkillDamageResolver.cs         # THUẬT TOÁN GÂY SÁT THƯƠNG: BoxCast, Sector, Circle, Projectile, Heal
-│   ├── SkillData.cs                   # DTO kỹ năng: chỉ số sát thương, hitbox, frame mốc, sprite icon
+│   ├── SkillCsvParser.cs              # Parse Skill.csv + ActionEvent.csv + CustomSkill.csv (Hỗ trợ Level Scaling đa mốc)
+│   ├── SkillDamageResolver.cs         # THUẬT TOÁN GÂY SÁT THƯƠNG: BoxCast, Sector, Circle, Projectile, Heal (Scale theo SkillLevel)
+│   ├── SkillData.cs                   # DTO kỹ năng: chỉ số sát thương, hitbox, frame mốc, sprite icon, trích xuất Level Scaling
 │   ├── SkillDatabase.cs               # Tra cứu SkillData: GetSkill (Custom), GetBaseSkill (Gốc), GetSubSkill
 │   └── SkillType.cs / VfxStartPosType.cs # Enums hình thái hitbox và vị trí xuất phát chiêu
 │

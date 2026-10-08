@@ -40,7 +40,7 @@ namespace TopDownGame.Skills
         /// <summary>
         /// Kích hoạt quét tác dụng chiêu thức (Gây sát thương kẻ địch hoặc Hồi máu/Buff đồng đội)
         /// </summary>
-        public static void CastDamage(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget = null, Vector3 explicitTargetPoint = default, bool ignoreWaitTime = false)
+        public static void CastDamage(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget = null, Vector3 explicitTargetPoint = default, bool ignoreWaitTime = false, int skillLevel = 1)
         {
             if (caster == null || skill == null) return;
 
@@ -49,7 +49,7 @@ namespace TopDownGame.Skills
             {
                 if (EffectManager.Instance != null)
                 {
-                    EffectManager.Instance.StartCoroutine(DelayedCastDamageCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint));
+                    EffectManager.Instance.StartCoroutine(DelayedCastDamageCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, skillLevel));
                 }
                 return; // Dừng tại đây, Coroutine sẽ gọi lại CastDamage với ignoreWaitTime = true
             }
@@ -67,14 +67,14 @@ namespace TopDownGame.Skills
                     {
                         SoundManager.Instance.PlaySkillSound(startSkill, caster);
                     }
-                    CastDamage(caster, casterStats, startSkill, targetLayer, explicitTarget, explicitTargetPoint);
+                    CastDamage(caster, casterStats, startSkill, targetLayer, explicitTarget, explicitTargetPoint, false, skillLevel);
                 }
             }
 
             // 1. Kỹ năng Hồi phục / Hỗ trợ (Relation == Recover hoặc SkillStyle có "heal")
             if (skill.IsHeal)
             {
-                CastHeal(caster, casterStats, skill, explicitTarget, explicitTargetPoint);
+                CastHeal(caster, casterStats, skill, explicitTarget, explicitTargetPoint, false, false, skillLevel);
 
                 // Kích hoạt chiêu phụ legacy kèm theo (nếu khác start/fly/hit skill)
                 if (skill.HasSubSkill && skill.subSkillId != skill.startSkillId && skill.subSkillId != skill.flySkillId && skill.subSkillId != skill.hitSkillId)
@@ -86,7 +86,7 @@ namespace TopDownGame.Skills
                         {
                             SoundManager.Instance.PlaySkillSound(subSkill, caster);
                         }
-                        CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint);
+                        CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint, false, skillLevel);
                     }
                 }
                 return;
@@ -107,14 +107,14 @@ namespace TopDownGame.Skills
                         {
                             SoundManager.Instance.PlaySkillSound(subSkill, caster);
                         }
-                        CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint);
+                        CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint, false, skillLevel);
                     }
                 }
                 return;
             }
 
             // 3. Tấn công gây sát thương kẻ địch
-            float calculatedDamage = skill.CalculateDamage(casterStats);
+            float calculatedDamage = skill.CalculateDamage(casterStats, skillLevel);
             float actualWidth = skill.boxWidth > 0f ? skill.boxWidth : DefaultBoxWidth;
             float actualRange = skill.range > 0f ? skill.range : DefaultRange;
 
@@ -127,7 +127,7 @@ namespace TopDownGame.Skills
 
                 if (EffectManager.Instance != null)
                 {
-                    EffectManager.Instance.StartCoroutine(SpawnAreaDoTHitboxCoroutine(caster, casterStats, skill, skillTargetLayer, explicitTarget, explicitTargetPoint, skill.childCount, delaySec));
+                    EffectManager.Instance.StartCoroutine(SpawnAreaDoTHitboxCoroutine(caster, casterStats, skill, skillTargetLayer, explicitTarget, explicitTargetPoint, skill.childCount, delaySec, skillLevel));
                 }
                 else
                 {
@@ -136,7 +136,7 @@ namespace TopDownGame.Skills
             }
             else if (skill.HasProjectile || skill.skillType == SkillType.Projectile)
             {
-                CastProjectile(caster, casterStats, skill, skillTargetLayer, explicitTarget, explicitTargetPoint);
+                CastProjectile(caster, casterStats, skill, skillTargetLayer, explicitTarget, explicitTargetPoint, skillLevel);
             }
             else
             {
@@ -171,7 +171,7 @@ namespace TopDownGame.Skills
                     {
                         SoundManager.Instance.PlaySkillSound(subSkill, caster);
                     }
-                    CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint);
+                    CastDamage(caster, casterStats, subSkill, targetLayer, explicitTarget, explicitTargetPoint, false, skillLevel);
                 }
             }
         }
@@ -179,7 +179,7 @@ namespace TopDownGame.Skills
         /// <summary>
         /// Kích hoạt hồi phục sinh lực cho Bản thân và Đồng đội (Relation == Recover)
         /// </summary>
-        public static void CastHeal(Transform caster, EntityStats casterStats, SkillData skill, Transform explicitTarget = null, Vector3 explicitTargetPoint = default, bool isSubSkillTick = false, bool ignoreWaitTime = false)
+        public static void CastHeal(Transform caster, EntityStats casterStats, SkillData skill, Transform explicitTarget = null, Vector3 explicitTargetPoint = default, bool isSubSkillTick = false, bool ignoreWaitTime = false, int skillLevel = 1)
         {
             if (caster == null || skill == null) return;
 
@@ -188,12 +188,12 @@ namespace TopDownGame.Skills
             {
                 if (EffectManager.Instance != null)
                 {
-                    EffectManager.Instance.StartCoroutine(DelayedCastHealCoroutine(caster, casterStats, skill, explicitTarget, explicitTargetPoint, isSubSkillTick));
+                    EffectManager.Instance.StartCoroutine(DelayedCastHealCoroutine(caster, casterStats, skill, explicitTarget, explicitTargetPoint, isSubSkillTick, skillLevel));
                 }
                 return;
             }
 
-            float healAmount = skill.CalculateHeal(casterStats);
+            float healAmount = skill.CalculateHeal(casterStats, skillLevel);
             float range = skill.range > 0f ? skill.range : 8.0f;
 
             bool isCasterPlayer = caster.CompareTag(CombatLayersAndTags.TagPlayer) || caster.GetComponent<TopDownGame.Player.PlayerController>() != null;
@@ -493,7 +493,7 @@ namespace TopDownGame.Skills
         /// 5. Bắn ra đạn đạo / kiếm khí / phi tiêu bay trong không gian 3D (Missile / Projectile)
         /// Hỗ trợ đa tia đạn (ChildCount, MSGenerate, MSGenerateParam) theo DATA_CONVENTIONS_V2.md Mục 3 & 4
         /// </summary>
-        public static void CastProjectile(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget = null, Vector3 explicitTargetPoint = default)
+        public static void CastProjectile(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget = null, Vector3 explicitTargetPoint = default, int skillLevel = 1)
         {
             if (caster == null || skill == null) return;
 
@@ -508,11 +508,11 @@ namespace TopDownGame.Skills
             {
                 if (EffectManager.Instance != null)
                 {
-                    EffectManager.Instance.StartCoroutine(SpawnAreaDoTCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, delaySec));
+                    EffectManager.Instance.StartCoroutine(SpawnAreaDoTCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, delaySec, skillLevel));
                 }
                 else
                 {
-                    SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount);
+                    SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, skillLevel);
                 }
                 return;
             }
@@ -522,11 +522,11 @@ namespace TopDownGame.Skills
             {
                 if (EffectManager.Instance != null)
                 {
-                    EffectManager.Instance.StartCoroutine(SpawnMeteorRainCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, delaySec));
+                    EffectManager.Instance.StartCoroutine(SpawnMeteorRainCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, delaySec, skillLevel));
                 }
                 else
                 {
-                    SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount);
+                    SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, skillLevel);
                 }
                 return;
             }
@@ -536,20 +536,20 @@ namespace TopDownGame.Skills
             {
                 if (EffectManager.Instance != null)
                 {
-                    EffectManager.Instance.StartCoroutine(SpawnSequentialProjectilesCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, delaySec));
+                    EffectManager.Instance.StartCoroutine(SpawnSequentialProjectilesCoroutine(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, delaySec, skillLevel));
                 }
                 else
                 {
-                    SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount);
+                    SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, skillLevel);
                 }
                 return;
             }
 
             // 4. Bắn đồng loạt tức thời (MSGenerate = 0 hoặc 1) / Xoay tròn (MissileForm = 3)
-            SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount);
+            SpawnProjectileBurst(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, childCount, skillLevel);
         }
 
-        private static void SpawnProjectileBurst(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget, Vector3 explicitTargetPoint, int count)
+        private static void SpawnProjectileBurst(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget, Vector3 explicitTargetPoint, int count, int skillLevel = 1)
         {
             if (caster == null || skill == null) return;
 
@@ -625,7 +625,7 @@ namespace TopDownGame.Skills
                     float currentAngle = i * angleStep;
                     Vector3 shotDir = Quaternion.Euler(0, currentAngle, 0) * aimDirection;
                     Vector3 ringSpawnPos = originPos + shotDir * ringRadius;
-                    SpawnSingleMissileObject(caster, casterStats, skill, missile, ringSpawnPos, shotDir, targetLayer, explicitTarget);
+                    SpawnSingleMissileObject(caster, casterStats, skill, missile, ringSpawnPos, shotDir, targetLayer, explicitTarget, skillLevel);
                 }
                 return;
             }
@@ -641,7 +641,7 @@ namespace TopDownGame.Skills
                 {
                     float lateralOffset = (i - (count - 1) * 0.5f) * spacingMeters;
                     Vector3 waveSpawnPos = spawnPos + rightDir * lateralOffset;
-                    SpawnSingleMissileObject(caster, casterStats, skill, missile, waveSpawnPos, aimDirection, targetLayer, explicitTarget);
+                    SpawnSingleMissileObject(caster, casterStats, skill, missile, waveSpawnPos, aimDirection, targetLayer, explicitTarget, skillLevel);
                 }
                 return;
             }
@@ -649,7 +649,7 @@ namespace TopDownGame.Skills
             // 2. Bắn đơn (1 tia): Bắn thẳng từ spawnPos tới đích con trỏ chuột
             if (count <= 1)
             {
-                SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, aimDirection, targetLayer, explicitTarget);
+                SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, aimDirection, targetLayer, explicitTarget, skillLevel);
                 return;
             }
 
@@ -671,9 +671,8 @@ namespace TopDownGame.Skills
             {
                 float offsetAngle = startAngle + (i * angleStepSpread);
                 Vector3 shotDir = Quaternion.Euler(0, offsetAngle, 0) * aimDirection;
-                SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, shotDir, targetLayer, explicitTarget);
+                SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, shotDir, targetLayer, explicitTarget, skillLevel);
             }
-            // Debug.Log($"🚀 <color=cyan>[MISSILE]</color> Đã phóng chùm <b>{count}</b> tia <b>{skill.name}</b> (Missile ID: {missileId}, Góc xòe: {angleStepSpread:F1}°)");
         }
 
         private static void SpawnSingleMissileObject(
@@ -684,10 +683,11 @@ namespace TopDownGame.Skills
             Vector3 spawnPos,
             Vector3 direction,
             LayerMask targetLayer,
-            Transform explicitTarget)
+            Transform explicitTarget,
+            int skillLevel = 1)
         {
             ProjectileController controller = ProjectilePool.Instance.Get();
-            controller.Launch(caster, casterStats, skill, missile, spawnPos, direction, targetLayer, explicitTarget);
+            controller.Launch(caster, casterStats, skill, missile, spawnPos, direction, targetLayer, explicitTarget, skillLevel);
         }
 
         private static System.Collections.IEnumerator SpawnSequentialProjectilesCoroutine(
@@ -698,7 +698,8 @@ namespace TopDownGame.Skills
             Transform explicitTarget,
             Vector3 explicitTargetPoint,
             int count,
-            float delaySec)
+            float delaySec,
+            int skillLevel = 1)
         {
             int missileId = skill.childId > 0 ? skill.childId : skill.id;
             var missile = TopDownGame.Data.MissileDatabase.GetMissile(missileId);
@@ -755,7 +756,7 @@ namespace TopDownGame.Skills
 
                 Vector3 aimDirection = toDest.sqrMagnitude > 0.001f ? toDest.normalized : caster.forward;
 
-                SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, aimDirection, targetLayer, explicitTarget);
+                SpawnSingleMissileObject(caster, casterStats, skill, missile, spawnPos, aimDirection, targetLayer, explicitTarget, skillLevel);
 
                 if (i < count - 1 && delaySec > 0f)
                 {
@@ -777,7 +778,8 @@ namespace TopDownGame.Skills
             Transform explicitTarget,
             Vector3 explicitTargetPoint,
             int count,
-            float delaySec)
+            float delaySec,
+            int skillLevel = 1)
         {
             int missileId = skill.childId > 0 ? skill.childId : skill.id;
             var missile = TopDownGame.Data.MissileDatabase.GetMissile(missileId);
@@ -796,7 +798,7 @@ namespace TopDownGame.Skills
                     centerPos = explicitTarget.position;
                 }
 
-                SpawnSingleMissileObject(caster, casterStats, skill, missile, centerPos, caster.forward, targetLayer, explicitTarget);
+                SpawnSingleMissileObject(caster, casterStats, skill, missile, centerPos, caster.forward, targetLayer, explicitTarget, skillLevel);
 
                 if (i < count - 1 && delaySec > 0f)
                 {
@@ -818,7 +820,8 @@ namespace TopDownGame.Skills
             Transform explicitTarget,
             Vector3 explicitTargetPoint,
             int count,
-            float delaySec)
+            float delaySec,
+            int skillLevel = 1)
         {
             int missileId = skill.childId > 0 ? skill.childId : skill.id;
             var missile = TopDownGame.Data.MissileDatabase.GetMissile(missileId);
@@ -836,7 +839,7 @@ namespace TopDownGame.Skills
                 Vector2 randomCircle = UnityEngine.Random.insideUnitCircle * radius;
                 Vector3 dropPos = centerPos + new Vector3(randomCircle.x, 0f, randomCircle.y);
 
-                SpawnSingleMissileObject(caster, casterStats, skill, missile, dropPos, Vector3.down, targetLayer, explicitTarget);
+                SpawnSingleMissileObject(caster, casterStats, skill, missile, dropPos, Vector3.down, targetLayer, explicitTarget, skillLevel);
 
                 if (i < count - 1 && delaySec > 0f)
                 {
@@ -858,11 +861,12 @@ namespace TopDownGame.Skills
             Transform explicitTarget,
             Vector3 explicitTargetPoint,
             int count,
-            float delaySec)
+            float delaySec,
+            int skillLevel = 1)
         {
             int missileId = skill.childId > 0 ? skill.childId : skill.id;
             var missile = TopDownGame.Data.MissileDatabase.GetMissile(missileId);
-            float damage = skill.CalculateDamage(casterStats);
+            float damage = skill.CalculateDamage(casterStats, skillLevel);
             float range = skill.range > 0f ? skill.range : (missile != null && missile.dmgRange > 0f ? (missile.dmgRange / 10f) : 2.6f);
 
             Vector3 centerPos;
@@ -928,9 +932,10 @@ namespace TopDownGame.Skills
             float range,
             float intervalSec,
             float durationSec,
-            Transform targetTransform = null)
+            Transform targetTransform = null,
+            int skillLevel = 1)
         {
-            float healAmount = skill.CalculateHeal(casterStats);
+            float healAmount = skill.CalculateHeal(casterStats, skillLevel);
             int totalTicks = intervalSec > 0f ? Mathf.FloorToInt(durationSec / intervalSec) : 1;
             if (totalTicks <= 0) totalTicks = 1;
 
@@ -1182,7 +1187,7 @@ namespace TopDownGame.Skills
             }
         }
 
-        private static System.Collections.IEnumerator DelayedCastDamageCoroutine(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget, Vector3 explicitTargetPoint)
+        private static System.Collections.IEnumerator DelayedCastDamageCoroutine(Transform caster, EntityStats casterStats, SkillData skill, LayerMask targetLayer, Transform explicitTarget, Vector3 explicitTargetPoint, int skillLevel = 1)
         {
             float waitTimer = skill.WaitTimeSeconds;
             while (waitTimer > 0f)
@@ -1193,11 +1198,11 @@ namespace TopDownGame.Skills
 
             if (caster != null)
             {
-                CastDamage(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, true);
+                CastDamage(caster, casterStats, skill, targetLayer, explicitTarget, explicitTargetPoint, true, skillLevel);
             }
         }
 
-        private static System.Collections.IEnumerator DelayedCastHealCoroutine(Transform caster, EntityStats casterStats, SkillData skill, Transform explicitTarget, Vector3 explicitTargetPoint, bool isSubSkillTick)
+        private static System.Collections.IEnumerator DelayedCastHealCoroutine(Transform caster, EntityStats casterStats, SkillData skill, Transform explicitTarget, Vector3 explicitTargetPoint, bool isSubSkillTick, int skillLevel = 1)
         {
             float waitTimer = skill.WaitTimeSeconds;
             while (waitTimer > 0f)
@@ -1208,7 +1213,7 @@ namespace TopDownGame.Skills
 
             if (caster != null)
             {
-                CastHeal(caster, casterStats, skill, explicitTarget, explicitTargetPoint, isSubSkillTick, true);
+                CastHeal(caster, casterStats, skill, explicitTarget, explicitTargetPoint, isSubSkillTick, true, skillLevel);
             }
         }
     }

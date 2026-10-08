@@ -27,7 +27,7 @@ namespace TopDownGame.UI
         [SerializeField] private Color normalColor = Color.white;
         [SerializeField] private Color notEnoughManaColor = new Color(0.4f, 0.4f, 0.4f, 1f);
 
-        public void SetupSlot(SkillData skillData, string keyName)
+        public void SetupSlot(SkillData skillData, string keyName, int skillLevel = 1)
         {
             if (keyBadgeText != null)
             {
@@ -60,10 +60,11 @@ namespace TopDownGame.UI
 
             if (manaCostText != null)
             {
-                if (skillData.manaCost > 0f)
+                float mana = skillData.GetManaCost(skillLevel);
+                if (mana > 0f)
                 {
                     manaCostText.gameObject.SetActive(true);
-                    manaCostText.text = $"{skillData.manaCost:F0}";
+                    manaCostText.text = $"{mana:F0}";
                 }
                 else
                 {

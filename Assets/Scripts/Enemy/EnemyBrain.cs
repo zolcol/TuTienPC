@@ -153,7 +153,8 @@ namespace TopDownGame.Enemy
             if (skill == null) return;
             if (stats == null) stats = GetComponent<EnemyStats>() ?? GetComponentInParent<EnemyStats>();
 
-            SkillDamageResolver.CastDamage(transform, stats, skill, targetLayer, target);
+            int monsterLv = stats != null ? stats.MonsterLevel : 1;
+            SkillDamageResolver.CastDamage(transform, stats, skill, targetLayer, target, default, false, monsterLv);
 
             if (showHitGizmos)
             {

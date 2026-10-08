@@ -27,6 +27,7 @@ namespace TopDownGame.Skills
 
         [Header("Runtime Info")]
         [SerializeField] private int skillId;
+        [SerializeField] private int skillLevel = 1;
         [SerializeField] private int missileId;
         [SerializeField] private float speed;
         [SerializeField] private float collisionRadius;
@@ -35,6 +36,7 @@ namespace TopDownGame.Skills
         public float Speed => speed;
         public float CollisionRadius => collisionRadius;
         public float HitHeightOffset => collisionRadius > 0f ? collisionRadius : 0.6f;
+        public int SkillLevel => skillLevel;
 
         private Transform caster;
         private EntityStats casterStats;
@@ -68,19 +70,21 @@ namespace TopDownGame.Skills
             Vector3 startPos,
             Vector3 direction,
             LayerMask targetLayer,
-            Transform explicitTarget = null)
+            Transform explicitTarget = null,
+            int skillLevel = 1)
         {
             this.caster = caster;
             this.casterStats = casterStats;
             this.skillData = skill;
             this.missileData = missile;
             this.targetLayer = targetLayer;
+            this.skillLevel = skillLevel > 0 ? skillLevel : 1;
 
             this.skillId = skill != null ? skill.id : 0;
             this.missileId = missile != null ? missile.missileId : 0;
             this.damage = (skill != null && skill.IsHeal) 
-                ? skill.CalculateHeal(casterStats) 
-                : (skill != null ? skill.CalculateDamage(casterStats) : 20f);
+                ? skill.CalculateHeal(casterStats, this.skillLevel) 
+                : (skill != null ? skill.CalculateDamage(casterStats, this.skillLevel) : 20f);
 
             this.moveDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : (caster != null ? caster.forward : Vector3.forward);
             this.speed = missile != null ? missile.SpeedInUnitsPerSec : 0f;

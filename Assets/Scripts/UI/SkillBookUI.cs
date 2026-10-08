@@ -434,10 +434,28 @@ namespace TopDownGame.UI
             if (nextLevelPreviewText != null)
             {
                 int nextLv = currentLevel + 1;
+                float curDmg = PlayerSkillManager.GetScaledDamage(selectedSkill, currentLevel);
                 float nextDmg = PlayerSkillManager.GetScaledDamage(selectedSkill, nextLv);
+                float curHeal = PlayerSkillManager.GetScaledHeal(selectedSkill, currentLevel);
+                float nextHeal = PlayerSkillManager.GetScaledHeal(selectedSkill, nextLv);
+                float curCd = PlayerSkillManager.GetScaledCooldown(selectedSkill, currentLevel);
                 float nextCd = PlayerSkillManager.GetScaledCooldown(selectedSkill, nextLv);
-                string change = $"+15% Hiệu quả";
-                if (selectedSkill.cooldown > 0f) change += $", -0.2s Hồi chiêu";
+                float curMana = PlayerSkillManager.GetScaledManaCost(selectedSkill, currentLevel);
+                float nextMana = PlayerSkillManager.GetScaledManaCost(selectedSkill, nextLv);
+
+                List<string> changes = new List<string>(4);
+                if (selectedSkill.IsHeal)
+                {
+                    if (nextHeal != curHeal) changes.Add($"Hồi máu: {curHeal:F0} -> {nextHeal:F0}");
+                }
+                else
+                {
+                    if (nextDmg != curDmg) changes.Add($"Sát thương: {curDmg:F0} -> {nextDmg:F0}");
+                }
+                if (nextCd != curCd) changes.Add($"Hồi chiêu: {curCd:F1}s -> {nextCd:F1}s");
+                if (nextMana != curMana) changes.Add($"Mana: {curMana:F0} -> {nextMana:F0}");
+
+                string change = changes.Count > 0 ? string.Join(", ", changes) : "Cường hóa chiêu thức";
                 nextLevelPreviewText.text = $"Cấp tiếp theo ({nextLv}): <color=#FFD54F>{change}</color>";
             }
         }

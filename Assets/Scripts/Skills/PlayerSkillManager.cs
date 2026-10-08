@@ -44,7 +44,8 @@ namespace TopDownGame.Skills
 
         public int GetMaxSkillLevel(int skillId)
         {
-            return defaultMaxSkillLevel;
+            var skill = SkillDatabase.GetSkill(skillId);
+            return (skill != null && skill.maxLevel > 0) ? skill.maxLevel : defaultMaxSkillLevel;
         }
 
         /// <summary>
@@ -113,47 +114,32 @@ namespace TopDownGame.Skills
 
         public static float GetScaledDamage(SkillData skill, int level)
         {
-            if (skill == null) return 0f;
-            float multiplier = 1f + 0.15f * Mathf.Max(0, level - 1);
-            return skill.baseDamage * multiplier;
+            return skill != null ? skill.GetBaseDamage(level) : 0f;
         }
 
         public static float GetScaledPhysScale(SkillData skill, int level)
         {
-            if (skill == null) return 0f;
-            float multiplier = 1f + 0.10f * Mathf.Max(0, level - 1);
-            return skill.physScale * multiplier;
+            return skill != null ? skill.GetPhysScale(level) : 0f;
         }
 
         public static float GetScaledMagicScale(SkillData skill, int level)
         {
-            if (skill == null) return 0f;
-            float multiplier = 1f + 0.10f * Mathf.Max(0, level - 1);
-            return skill.magicScale * multiplier;
+            return skill != null ? skill.GetMagicScale(level) : 0f;
         }
 
         public static float GetScaledHeal(SkillData skill, int level)
         {
-            if (skill == null) return 0f;
-            float multiplier = 1f + 0.15f * Mathf.Max(0, level - 1);
-            return skill.baseHeal * multiplier;
+            return skill != null ? skill.GetBaseHeal(level) : 0f;
         }
 
         public static float GetScaledCooldown(SkillData skill, int level)
         {
-            if (skill == null) return 0f;
-            // Mỗi cấp giảm 0.2s hồi chiêu (tối thiểu 0.5s hoặc giữ nguyên nếu chiêu 0s)
-            if (skill.cooldown <= 0f) return 0f;
-            float cd = skill.cooldown - 0.2f * Mathf.Max(0, level - 1);
-            return Mathf.Max(0.5f, cd);
+            return skill != null ? skill.GetCooldown(level) : 0f;
         }
 
         public static float GetScaledManaCost(SkillData skill, int level)
         {
-            if (skill == null) return 0f;
-            if (skill.manaCost <= 0f) return 0f;
-            float multiplier = 1f + 0.05f * Mathf.Max(0, level - 1);
-            return Mathf.Round(skill.manaCost * multiplier);
+            return skill != null ? skill.GetManaCost(level) : 0f;
         }
     }
 }

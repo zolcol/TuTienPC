@@ -7,7 +7,7 @@
 
 ## 1. BẢNG TÙY BIẾN KỸ NĂNG `CustomSkill.csv` (CUSTOM GAMEPLAY LAYER)
 
-Bảng dành riêng cho thiết kế game mới: Tự do tùy biến Sát thương, Hồi máu, Hồi chiêu, Tiêu hao và Tên/Mô tả trong khi kế thừa 100% Animation, Timeline ActionEvent và VFX từ `BaseSkillId`.
+Bảng dành riêng cho thiết kế game mới: Tự do tùy biến Sát thương, Hồi máu, Hồi chiêu, Tiêu hao, Trần cấp độ và Tên/Mô tả trong khi kế thừa 100% Animation, Timeline ActionEvent và VFX từ `BaseSkillId`.
 
 | Tên Cột | Kiểu | Ý nghĩa & Nguyên tắc vận hành |
 | :--- | :---: | :--- |
@@ -16,13 +16,18 @@ Bảng dành riêng cho thiết kế game mới: Tự do tùy biến Sát thươ
 | **`SkillName`** | `string` | Tên chiêu thức tùy chỉnh hiển thị trong game. |
 | **`Description`** | `string` | Mô tả hiệu ứng, sát thương chiêu thức. |
 | **`IconPath`** | `string` | Đường dẫn Sprite icon mới (Nếu để trống `""` $\rightarrow$ tự lấy icon của `BaseSkillId`). |
-| **`Cooldown`** | `float` | Thời gian hồi chiêu tính theo **giây**. |
-| **`ManaCost`** | `float` | Lượng MP/Nội lực tiêu hao. |
-| **`BaseDamage`** | `float` | Sát thương cố định cộng thêm. |
-| **`PhysScale`** | `float` | Hệ số sát thương theo Công vật lý (`1.0` = 100%). |
-| **`MagicScale`** | `float` | Hệ số sát thương theo Công phép / Nội công. |
-| **`BaseHeal`** | `float` | Lượng máu hồi cố định mỗi nhịp (chiêu hồi máu). |
-| **`HealScale`** | `float` | Hệ số hồi máu theo Công phép: $\text{Heal} = \text{BaseHeal} + (\text{Công Phép} \times \text{HealScale})$. |
+| **`MaxLevel`** | `int` | Cấp độ tối đa của kỹ năng (Mặc định `20` cho đòn thường, `10` cho chiêu thức). |
+| **`Cooldown`** | `float` / `string` | Thời gian hồi chiêu (giây). Hỗ trợ số đơn (`10`) hoặc chuỗi mốc (`"{1,10},{5,8},{10,5}"`). |
+| **`ManaCost`** | `float` / `string` | Lượng MP tiêu hao. Hỗ trợ số đơn (`50`) hoặc chuỗi mốc (`"{1,50},{10,80}"`). |
+| **`BaseDamage`** | `float` / `string` | Sát thương cơ bản. Hỗ trợ chuỗi mốc nội suy (`"{1,10},{5,25},{10,60},{20,150}"`). |
+| **`PhysScale`** | `float` / `string` | Hệ số sát thương Công vật lý (`1.0` = 100%). Hỗ trợ chuỗi mốc (`"{1,1.0},{10,1.5},{20,2.0}"`). |
+| **`MagicScale`** | `float` / `string` | Hệ số sát thương Công phép / Nội công. |
+| **`BaseHeal`** | `float` / `string` | Lượng máu hồi cố định mỗi nhịp (chiêu hồi máu). Hỗ trợ chuỗi mốc (`"{1,20},{5,60},{10,140}"`). |
+| **`HealScale`** | `float` / `string` | Hệ số hồi máu theo Công phép: $\text{Heal} = \text{BaseHeal} + (\text{Công Phép} \times \text{HealScale})$. |
+| **`SelectorType`** | `int` | Kiểu hiển thị vòng ngắm Smartcast (`0`: None, `1`: Sector, `2`: Arrow, `3`: Circle, `4`: Lock). |
+| **`SelectorRange`** | `float` | Tầm xa hiển thị vòng ngắm (Mét). |
+
+> 💡 **Quy tắc nội suy Level Scaling:** Mọi cột chỉ số hỗ trợ format chuỗi `"{1,Val1},{5,Val2},{10,Val3}"`. Engine tự động nội suy tuyến tính (Linear Interpolation) cho các cấp trung gian qua `CsvParserHelper.ParseLevelValue`.
 
 ---
 

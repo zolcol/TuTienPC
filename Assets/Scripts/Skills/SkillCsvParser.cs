@@ -427,26 +427,57 @@ namespace TopDownGame.Skills
                             data.ResetCachedIcon();
                         }
 
+                        string maxLevelStr = GetColRaw(tokens, colMap, "maxlevel", -1);
+                        if (!string.IsNullOrEmpty(maxLevelStr)) data.maxLevel = CsvParserHelper.ParseInt(maxLevelStr, data.maxLevel);
+
                         string cdStr = GetColRaw(tokens, colMap, "cooldown", 5);
-                        if (!string.IsNullOrEmpty(cdStr)) data.cooldown = CsvParserHelper.ParseFloat(cdStr, data.cooldown);
+                        if (!string.IsNullOrEmpty(cdStr))
+                        {
+                            data.rawCooldown = cdStr.Trim();
+                            data.cooldown = data.GetCooldown(1);
+                        }
 
                         string manaStr = GetColRaw(tokens, colMap, "manacost", 6);
-                        if (!string.IsNullOrEmpty(manaStr)) data.manaCost = CsvParserHelper.ParseFloat(manaStr, data.manaCost);
+                        if (!string.IsNullOrEmpty(manaStr))
+                        {
+                            data.rawManaCost = manaStr.Trim();
+                            data.manaCost = data.GetManaCost(1);
+                        }
 
                         string baseDmgStr = GetColRaw(tokens, colMap, "basedamage", 7);
-                        if (!string.IsNullOrEmpty(baseDmgStr)) data.baseDamage = CsvParserHelper.ParseFloat(baseDmgStr, 0f);
+                        if (!string.IsNullOrEmpty(baseDmgStr))
+                        {
+                            data.rawBaseDamage = baseDmgStr.Trim();
+                            data.baseDamage = data.GetBaseDamage(1);
+                        }
 
                         string physScaleStr = GetColRaw(tokens, colMap, "physscale", 8);
-                        if (!string.IsNullOrEmpty(physScaleStr)) data.physScale = CsvParserHelper.ParseFloat(physScaleStr, data.physScale);
+                        if (!string.IsNullOrEmpty(physScaleStr))
+                        {
+                            data.rawPhysScale = physScaleStr.Trim();
+                            data.physScale = data.GetPhysScale(1);
+                        }
 
                         string magicScaleStr = GetColRaw(tokens, colMap, "magicscale", 9);
-                        if (!string.IsNullOrEmpty(magicScaleStr)) data.magicScale = CsvParserHelper.ParseFloat(magicScaleStr, data.magicScale);
+                        if (!string.IsNullOrEmpty(magicScaleStr))
+                        {
+                            data.rawMagicScale = magicScaleStr.Trim();
+                            data.magicScale = data.GetMagicScale(1);
+                        }
 
                         string baseHealStr = GetColRaw(tokens, colMap, "baseheal", 10);
-                        if (!string.IsNullOrEmpty(baseHealStr)) data.baseHeal = CsvParserHelper.ParseFloat(baseHealStr, 0f);
+                        if (!string.IsNullOrEmpty(baseHealStr))
+                        {
+                            data.rawBaseHeal = baseHealStr.Trim();
+                            data.baseHeal = data.GetBaseHeal(1);
+                        }
 
                         string healScaleStr = GetColRaw(tokens, colMap, "healscale", 11);
-                        if (!string.IsNullOrEmpty(healScaleStr)) data.healScale = CsvParserHelper.ParseFloat(healScaleStr, 0f);
+                        if (!string.IsNullOrEmpty(healScaleStr))
+                        {
+                            data.rawHealScale = healScaleStr.Trim();
+                            data.healScale = data.GetHealScale(1);
+                        }
 
                         string selectorTypeStr = GetColRaw(tokens, colMap, "selectortype", 12);
                         if (!string.IsNullOrEmpty(selectorTypeStr))
