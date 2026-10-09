@@ -157,10 +157,20 @@ namespace TopDownGame.Skills
         }
 
         /// <summary>
-        /// Lấy tên Clip Animation từ CastActionID (int)
+        /// Lấy tên Clip Animation từ CastActionID (int), hỗ trợ Thú cưỡi (mountId) và Biến thể vũ khí (variantIndex)
         /// </summary>
-        public static string GetClipName(int actionId)
+        public static string GetClipName(int actionId, int mountId = 0, int variantIndex = 0)
         {
+            if (actionId <= 0) return string.Empty;
+
+            // 1. Ưu tiên tra cứu động từ ActionNameDatabase (CSV runtime)
+            string dbClip = TopDownGame.Data.ActionNameDatabase.GetClipName(actionId, mountId, variantIndex);
+            if (!string.IsNullOrEmpty(dbClip))
+            {
+                return dbClip;
+            }
+
+            // 2. Dự phòng tra cứu tĩnh (Fallback)
             if (idToClipMap.TryGetValue(actionId, out string clip))
             {
                 return clip;
@@ -171,9 +181,9 @@ namespace TopDownGame.Skills
         /// <summary>
         /// Lấy tên Clip Animation từ CastActionID Enum
         /// </summary>
-        public static string GetClipName(CastActionID actionId)
+        public static string GetClipName(CastActionID actionId, int mountId = 0, int variantIndex = 0)
         {
-            return GetClipName((int)actionId);
+            return GetClipName((int)actionId, mountId, variantIndex);
         }
 
         /// <summary>
@@ -189,7 +199,14 @@ namespace TopDownGame.Skills
                 return parsedId;
             }
 
-            // Nếu nhập tên chuỗi (vd: at01, jn01)
+            // Tra cứu qua ActionNameDatabase trước
+            int dbId = TopDownGame.Data.ActionNameDatabase.GetActId(token.Trim());
+            if (dbId > 0)
+            {
+                return dbId;
+            }
+
+            // Nếu nhập tên chuỗi (vd: at01, jn01) fallback tĩnh
             if (clipToIdMap.TryGetValue(token.Trim(), out int matchedId))
             {
                 return matchedId;

@@ -82,6 +82,7 @@ Assets/Scripts/
 │   └── VfxLockRotation.cs             # Khóa trục xoay VFX theo 4 chế độ (FollowBoneFull, UprightBody, FlatGround, FixedWorld)
 │
 ├── Data/
+│   ├── ActionNameData.cs / ActionNameDatabase.cs # Nạp ActionName.csv (tra cứu tên animation, 58 loại thú cưỡi, hide part)
 │   ├── CsvParserHelper.cs             # Parse dòng CSV, xử lý ngoặc kép, nội suy tuyến tính chuỗi cặp {Level, Value}
 │   ├── EffectDatabase.cs              # Nạp EffectRes.csv (đường dẫn prefab VFX, cờ lockRotate)
 │   ├── ExpRuleDatabase.cs             # Nạp ExpRule.csv (ma trận % EXP Player vs Monster), CalculateExpReward
@@ -208,19 +209,20 @@ Assets/Scripts/
 
 Trong `GameDatabase.EnsureLoaded()`, dữ liệu **phải** được khởi tạo đúng thứ tự sau để tránh `NullReferenceException`:
 1. `NpcAi` (`AI/*.ini`)
-2. `Sounds` (`Feedback/Sound.csv`)
-3. `FlyChars` (`Combat/FlyChar.csv`)
-4. `PlayerLevels` (`Progression/PlayerLevel.csv`)
-5. `ExpRules` (`Progression/ExpRule.csv`)
-6. `Effects` (`VFX_Slots/EffectRes.csv`)
-7. `Missiles` (`Combat/Missile.csv`) $\rightarrow$ *phụ thuộc `EffectDatabase`*
-8. `StateEffects` (`VFX_Slots/StateEffect.csv`) $\rightarrow$ *phụ thuộc `EffectDatabase`*
-9. `PartSlots` (`VFX_Slots/PartSlot.csv`)
-10. `NpcRes` (`NPC/NpcRes.csv`)
-11. `NpcAttributes` (`NPC/NpcAttribute.csv`)
-12. `NpcStats` (`NPC/NpcStats.csv`)
-13. `NpcTemplates` (`NPC/NpcTemplate.csv`, `Character.csv`) $\rightarrow$ *phụ thuộc `NpcRes`, `NpcAttribute`, `NpcAi`*
-14. `Skills` (`Combat/Skill.csv`, `ActionEvent.csv`, `CustomSkill.csv`) $\rightarrow$ *phụ thuộc toàn bộ bảng trên*
+2. `ActionNames` (`Combat/ActionName.csv`)
+3. `Sounds` (`Feedback/Sound.csv`)
+4. `FlyChars` (`Combat/FlyChar.csv`)
+5. `PlayerLevels` (`Progression/PlayerLevel.csv`)
+6. `ExpRules` (`Progression/ExpRule.csv`)
+7. `Effects` (`VFX_Slots/EffectRes.csv`)
+8. `Missiles` (`Combat/Missile.csv`) $\rightarrow$ *phụ thuộc `EffectDatabase`*
+9. `StateEffects` (`VFX_Slots/StateEffect.csv`) $\rightarrow$ *phụ thuộc `EffectDatabase`*
+10. `PartSlots` (`VFX_Slots/PartSlot.csv`)
+11. `NpcRes` (`NPC/NpcRes.csv`)
+12. `NpcAttributes` (`NPC/NpcAttribute.csv`)
+13. `NpcStats` (`NPC/NpcStats.csv`)
+14. `NpcTemplates` (`NPC/NpcTemplate.csv`, `Character.csv`) $\rightarrow$ *phụ thuộc `NpcRes`, `NpcAttribute`, `NpcAi`*
+15. `Skills` (`Combat/Skill.csv`, `ActionEvent.csv`, `CustomSkill.csv`) $\rightarrow$ *phụ thuộc toàn bộ bảng trên*
 
 ---
 

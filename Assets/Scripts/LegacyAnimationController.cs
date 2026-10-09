@@ -34,13 +34,25 @@ namespace TopDownGame
         [Tooltip("Thời gian chuyển mượt khi tung chiêu / đánh thường (khuyên dùng 0.1s - 0.15s)")]
         [SerializeField] private float actionCrossFadeTime = 0.15f;
 
+        [Header("Mount & Variant Settings (ActionName.csv)")]
+        [Tooltip("ID Thú cưỡi hiện tại (0 = Đi bộ, 1..58 = Loại thú cưỡi)")]
+        [SerializeField] private int currentMountId = 0;
+
+        [Tooltip("Biến thể động tác vũ khí (0 = Mặc định, 1..3 = Biến thể ActName1..3)")]
+        [SerializeField] private int currentWeaponVariant = 0;
+
         private string currentClip = "";
         private bool isLocked = false;
+        private int lastHidePart = 0;
 
         private TopDownGame.Player.PlayerController cachedPlayer;
         private TopDownGame.Enemy.EnemyController cachedEnemy;
         private EntityStats cachedStats;
         private NpcResData cachedNpcResData;
+
+        public int CurrentMountId { get => currentMountId; set => currentMountId = value; }
+        public int CurrentWeaponVariant { get => currentWeaponVariant; set => currentWeaponVariant = value; }
+        public bool IsRiding => currentMountId > 0;
 
         public string CurrentClip => currentClip;
         public bool IsLocked => isLocked;
@@ -194,7 +206,8 @@ namespace TopDownGame
         public void PlayIdle()
         {
             if (isLocked) return;
-            string clip = ResolveClipName(CLIP_STAND) ?? ResolveClipName(CLIP_BATTLE_STAND);
+            string targetClip = CastActionHelper.GetClipName(CastActionID.st, currentMountId, currentWeaponVariant);
+            string clip = ResolveClipName(targetClip) ?? ResolveClipName(CLIP_STAND) ?? ResolveClipName(CLIP_BATTLE_STAND);
             if (string.IsNullOrEmpty(clip) && bodyAnimation != null && bodyAnimation.clip != null)
                 clip = bodyAnimation.clip.name;
 
@@ -206,7 +219,8 @@ namespace TopDownGame
         public void PlayBattleIdle()
         {
             if (isLocked) return;
-            string clip = ResolveClipName(CLIP_BATTLE_STAND) ?? ResolveClipName(CLIP_STAND);
+            string targetClip = CastActionHelper.GetClipName(CastActionID.sta, currentMountId, currentWeaponVariant);
+            string clip = ResolveClipName(targetClip) ?? ResolveClipName(CLIP_BATTLE_STAND) ?? ResolveClipName(CLIP_STAND);
             if (string.IsNullOrEmpty(clip) && bodyAnimation != null && bodyAnimation.clip != null)
                 clip = bodyAnimation.clip.name;
 
@@ -218,7 +232,8 @@ namespace TopDownGame
         public void PlayRun()
         {
             if (isLocked) return;
-            string clip = ResolveClipName(CLIP_RUN) ?? ResolveClipName(CLIP_WALK) ?? ResolveClipName("jsrun");
+            string targetClip = CastActionHelper.GetClipName(CastActionID.run, currentMountId, currentWeaponVariant);
+            string clip = ResolveClipName(targetClip) ?? ResolveClipName(CLIP_RUN) ?? ResolveClipName(CLIP_WALK) ?? ResolveClipName("jsrun");
             if (string.IsNullOrEmpty(clip)) return;
             if (currentClip == clip && bodyAnimation != null && bodyAnimation.IsPlaying(clip)) return;
             PlayActionInternal(clip, WrapMode.Loop, moveCrossFadeTime, false);
@@ -227,7 +242,8 @@ namespace TopDownGame
         public void PlayWalk()
         {
             if (isLocked) return;
-            string clip = ResolveClipName(CLIP_WALK) ?? ResolveClipName(CLIP_RUN);
+            string targetClip = CastActionHelper.GetClipName(CastActionID.wlk, currentMountId, currentWeaponVariant);
+            string clip = ResolveClipName(targetClip) ?? ResolveClipName(CLIP_WALK) ?? ResolveClipName(CLIP_RUN);
             if (string.IsNullOrEmpty(clip)) return;
             if (currentClip == clip && bodyAnimation != null && bodyAnimation.IsPlaying(clip)) return;
             PlayActionInternal(clip, WrapMode.Loop, moveCrossFadeTime, false);
@@ -235,14 +251,16 @@ namespace TopDownGame
 
         public void PlayDie()
         {
-            string clip = ResolveClipName(CLIP_DIE) ?? ResolveClipName("jfd");
+            string targetClip = CastActionHelper.GetClipName(CastActionID.die, currentMountId, currentWeaponVariant);
+            string clip = ResolveClipName(targetClip) ?? ResolveClipName(CLIP_DIE) ?? ResolveClipName("jfd");
             if (string.IsNullOrEmpty(clip)) return;
             PlayActionInternal(clip, WrapMode.ClampForever, actionCrossFadeTime, true, null);
         }
 
         public void PlayHurt(float customFadeTime = -1f)
         {
-            string clip = ResolveClipName(CLIP_HURT) ?? ResolveClipName("jt");
+            string targetClip = CastActionHelper.GetClipName(CastActionID.bat, currentMountId, currentWeaponVariant);
+            string clip = ResolveClipName(targetClip) ?? ResolveClipName(CLIP_HURT) ?? ResolveClipName("jt");
             if (string.IsNullOrEmpty(clip)) return;
             float fadeDuration = customFadeTime >= 0f ? customFadeTime : 0.05f;
             PlayActionInternal(clip, WrapMode.ClampForever, fadeDuration, true, null);
@@ -252,7 +270,9 @@ namespace TopDownGame
         {
             if (skill == null) return;
             float fadeDuration = customFadeTime >= 0f ? customFadeTime : (skill.crossFade > 0f ? skill.crossFade : actionCrossFadeTime);
-            PlayActionInternal(skill.ClipName, wrapMode, fadeDuration, true, skill);
+            string clip = CastActionHelper.GetClipName(skill.castActionId, currentMountId, currentWeaponVariant);
+            if (string.IsNullOrEmpty(clip)) clip = skill.ClipName;
+            PlayActionInternal(clip, wrapMode, fadeDuration, true, skill);
         }
 
         public void PlayAction(string clipName, WrapMode wrapMode = WrapMode.Once, float customFadeTime = -1f)
@@ -264,13 +284,13 @@ namespace TopDownGame
 
         public void PlayAction(CastActionID actionId, WrapMode wrapMode = WrapMode.Once, float customFadeTime = -1f)
         {
-            string clip = CastActionHelper.GetClipName(actionId);
+            string clip = CastActionHelper.GetClipName(actionId, currentMountId, currentWeaponVariant);
             PlayAction(clip, wrapMode, customFadeTime);
         }
 
         public void PlayAction(int actionId, WrapMode wrapMode = WrapMode.Once, float customFadeTime = -1f)
         {
-            string clip = CastActionHelper.GetClipName(actionId);
+            string clip = CastActionHelper.GetClipName(actionId, currentMountId, currentWeaponVariant);
             PlayAction(clip, wrapMode, customFadeTime);
         }
 
@@ -348,8 +368,48 @@ namespace TopDownGame
                 targetDuration = CombatFormula.CalculateActionDuration(targetFrame, attackSpeedPercent);
             }
 
+            // Xử lý ẩn/hiện trang bị/vũ khí theo cấu hình ActionName.csv
+            int actId = ActionNameDatabase.GetActId(realClip);
+            if (actId > 0)
+            {
+                int hidePart = ActionNameDatabase.GetHidePart(actId, IsRiding);
+                ApplyHidePart(hidePart);
+            }
+            else
+            {
+                ApplyHidePart(0);
+            }
+
             CrossFadeOnComponent(bodyAnimation, realClip, wrapMode, fadeTime, forceRewind, targetDuration);
             CrossFadeOnComponent(headAnimation, realClip, wrapMode, fadeTime, forceRewind, targetDuration);
+        }
+
+        private void ApplyHidePart(int hidePart)
+        {
+            if (lastHidePart == hidePart) return;
+            lastHidePart = hidePart;
+
+            // hidePart == 1: Ẩn vũ khí tay phải (Slot 1) và tay trái (Slot 2)
+            Transform rhSlot = PartSlotDatabase.GetSlotTransform(transform, 1);
+            Transform lhSlot = PartSlotDatabase.GetSlotTransform(transform, 2);
+
+            bool showWeapon = (hidePart == 0);
+            if (rhSlot != null)
+            {
+                var renderers = rhSlot.GetComponentsInChildren<Renderer>(true);
+                for (int i = 0; i < renderers.Length; i++)
+                {
+                    if (renderers[i] != null) renderers[i].enabled = showWeapon;
+                }
+            }
+            if (lhSlot != null)
+            {
+                var renderers = lhSlot.GetComponentsInChildren<Renderer>(true);
+                for (int i = 0; i < renderers.Length; i++)
+                {
+                    if (renderers[i] != null) renderers[i].enabled = showWeapon;
+                }
+            }
         }
 
         public static (int finalFrame, float speedFactor) CalculateScaledActionFrame(int originalFrame, float attackSpeedPercent)

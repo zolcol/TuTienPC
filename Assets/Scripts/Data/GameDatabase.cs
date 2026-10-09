@@ -22,10 +22,12 @@ namespace TopDownGame.Data
         public static PlayerLevelDatabase PlayerLevels => PlayerLevelDatabase.Instance;
         public static ExpRuleDatabase ExpRules => ExpRuleDatabase.Instance;
         public static NpcAiDatabase NpcAi => NpcAiDatabase.Instance;
+        public static ActionNameDatabase ActionNames => ActionNameDatabase.Instance;
 
         private static bool isInitialized = false;
 
         public static bool IsAllLoaded => isInitialized &&
+            ActionNames.IsLoaded &&
             Effects.IsLoaded &&
             Missiles.IsLoaded &&
             NpcAttributes.IsLoaded &&
@@ -47,6 +49,7 @@ namespace TopDownGame.Data
 
             // Nạp theo đúng thứ tự phụ thuộc (Dependency Order)
             NpcAi.EnsureLoaded();
+            ActionNames.EnsureLoaded();
             Sounds.EnsureLoaded();
             FlyChars.EnsureLoaded();
             PlayerLevels.EnsureLoaded();
@@ -69,6 +72,7 @@ namespace TopDownGame.Data
             isInitialized = false;
 
             NpcAi.Clear();
+            ActionNames.Clear();
             Sounds.Clear();
             FlyChars.Clear();
             PlayerLevels.Clear();
