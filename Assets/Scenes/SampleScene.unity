@@ -23806,6 +23806,8 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 0
+  enableAutoAim: 1
+  autoAimSnapRadius: 1
   rangeCircleRenderer: {fileID: 0}
   circleSegments: 64
   circleLineWidth: 0.05

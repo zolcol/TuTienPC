@@ -11,6 +11,10 @@ namespace TopDownGame.Player
         [SerializeField] private LayerMask targetLayer = ~0;
         [SerializeField] private LayerMask groundLayer = 0;
 
+        [Header("=== AUTO AIM SETTINGS ===")]
+        [SerializeField] private bool enableAutoAim = true;
+        [SerializeField] private float autoAimSnapRadius = 5f;
+
         [Header("=== RANGE CIRCLE INDICATOR ===")]
         [SerializeField] private LineRenderer rangeCircleRenderer;
         [SerializeField] private int circleSegments = 64;
@@ -26,9 +30,12 @@ namespace TopDownGame.Player
 
         private static readonly RaycastHit[] aimSphereCastBuffer = new RaycastHit[32];
         private static readonly Collider[] targetInFrontBuffer = new Collider[32];
+        private static readonly Collider[] autoAimBuffer = new Collider[32];
 
         public LayerMask TargetLayer { get => targetLayer; set => targetLayer = value; }
         public LayerMask GroundLayer { get => groundLayer; set => groundLayer = value; }
+        public bool EnableAutoAim { get => enableAutoAim; set => enableAutoAim = value; }
+        public float AutoAimSnapRadius { get => autoAimSnapRadius; set => autoAimSnapRadius = value; }
         public int GetGroundMask() => groundLayer.value != 0 ? groundLayer.value : CombatFormula.GetDefaultGroundLayerMask();
         public SkillData AimingSkill => aimingSkill;
         public GameObject CurrentIndicator => currentIndicator;
@@ -185,16 +192,29 @@ namespace TopDownGame.Player
                             hitPoint = transform.position + transform.forward * maxRange;
                         }
 
-                        Vector3 offset = hitPoint - transform.position;
-                        offset.y = 0f;
-                        if (offset.magnitude > maxRange)
+                        Transform autoTarget = null;
+                        if (enableAutoAim && aimingSkill.selectorType != SkillSelectorType.TargetLock)
                         {
-                            Vector3 clampedPos = transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * maxRange;
-                            targetGroundPos = CombatFormula.SnapToGround(clampedPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                            autoTarget = FindNearestTargetToPoint(hitPoint, autoAimSnapRadius, maxRange + autoAimSnapRadius, aimingSkill.IsHeal);
+                        }
+
+                        if (autoTarget != null)
+                        {
+                            targetGroundPos = CombatFormula.SnapToGround(autoTarget.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
                         }
                         else
                         {
-                            targetGroundPos = CombatFormula.SnapToGround(hitPoint, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                            Vector3 offset = hitPoint - transform.position;
+                            offset.y = 0f;
+                            if (offset.magnitude > maxRange)
+                            {
+                                Vector3 clampedPos = transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * maxRange;
+                                targetGroundPos = CombatFormula.SnapToGround(clampedPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                            }
+                            else
+                            {
+                                targetGroundPos = CombatFormula.SnapToGround(hitPoint, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                            }
                         }
                         aimDir = (targetGroundPos - transform.position);
                         aimDir.y = 0f;
@@ -293,16 +313,33 @@ namespace TopDownGame.Player
                     hitPoint = transform.position + transform.forward * effectiveRange;
                 }
 
-                Vector3 offset = hitPoint - transform.position;
-                offset.y = 0f;
-                Vector3 targetPos = (effectiveRange > 0f && offset.magnitude > effectiveRange)
-                    ? transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * effectiveRange
-                    : hitPoint;
-                currentTargetPoint = CombatFormula.SnapToGround(targetPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                Transform autoTarget = null;
+                if (enableAutoAim)
+                {
+                    autoTarget = FindNearestTargetToPoint(hitPoint, autoAimSnapRadius, effectiveRange + autoAimSnapRadius, skill.IsHeal);
+                }
 
-                Vector3 aimDir = currentTargetPoint - transform.position;
-                aimDir.y = 0f;
-                currentTargetDirection = aimDir.sqrMagnitude > 0.001f ? aimDir.normalized : transform.forward;
+                if (autoTarget != null)
+                {
+                    SetTarget(autoTarget);
+                    currentTargetPoint = CombatFormula.SnapToGround(autoTarget.position, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+                    Vector3 aimDir = currentTargetPoint - transform.position;
+                    aimDir.y = 0f;
+                    currentTargetDirection = aimDir.sqrMagnitude > 0.001f ? aimDir.normalized : transform.forward;
+                }
+                else
+                {
+                    Vector3 offset = hitPoint - transform.position;
+                    offset.y = 0f;
+                    Vector3 targetPos = (effectiveRange > 0f && offset.magnitude > effectiveRange)
+                        ? transform.position + (offset.sqrMagnitude > 0.001f ? offset.normalized : transform.forward) * effectiveRange
+                        : hitPoint;
+                    currentTargetPoint = CombatFormula.SnapToGround(targetPos, CombatFormula.GROUND_VFX_Y_OFFSET, 6f, groundMask);
+
+                    Vector3 aimDir = currentTargetPoint - transform.position;
+                    aimDir.y = 0f;
+                    currentTargetDirection = aimDir.sqrMagnitude > 0.001f ? aimDir.normalized : transform.forward;
+                }
             }
             else
             {
@@ -414,6 +451,33 @@ namespace TopDownGame.Player
                     }
                 }
                 else if (dst <= 0.01f && best == null) best = validRoot;
+            }
+            return best;
+        }
+
+        public Transform FindNearestTargetToPoint(Vector3 worldPoint, float searchRadius, float maxRangeFromPlayer = float.MaxValue, bool isHeal = false)
+        {
+            int hitCount = Physics.OverlapSphereNonAlloc(worldPoint, searchRadius, autoAimBuffer, targetLayer);
+            Transform best = null;
+            float bestSqrDist = float.MaxValue;
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider h = autoAimBuffer[i];
+                if (h == null) continue;
+                if (!IsValidTarget(h, isHeal, out Transform validRoot)) continue;
+
+                if (maxRangeFromPlayer < float.MaxValue && GetHorizontalDistance(transform.position, validRoot.position) > maxRangeFromPlayer)
+                    continue;
+
+                float dx = validRoot.position.x - worldPoint.x;
+                float dz = validRoot.position.z - worldPoint.z;
+                float sqrDist = dx * dx + dz * dz;
+
+                if (sqrDist < bestSqrDist)
+                {
+                    bestSqrDist = sqrDist;
+                    best = validRoot;
+                }
             }
             return best;
         }

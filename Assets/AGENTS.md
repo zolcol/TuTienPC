@@ -52,6 +52,9 @@
    * Sau khi tạo mới hoặc chỉnh sửa code C# (`.cs`), Agent chính phải gọi Subagent `unity_compiler_agent` (Model `flash`) để build bằng MSBuild:
      `& "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" "..\test1.sln" -nologo -clp:ErrorsOnly`
    * `unity_compiler_agent` tự sửa các lỗi cú pháp cơ bản. Nếu gặp lỗi logic phức tạp, Subagent sẽ báo cáo chi tiết để Agent chính xử lý.
+9. **Đồng Bộ Tài Liệu & Bản Đồ Kiến Trúc (Documentation Sync):**
+   * Khi tạo mới/xóa file C#, thay đổi cấu trúc kiến trúc, bổ sung State FSM, hoặc mở rộng hệ thống: bắt buộc cập nhật lại **[AGENTS.md](file:///D:/Unity%20Project/test1/Assets/AGENTS.md)** (Mục 3 Bản Đồ Mã Nguồn & Mục 4 Task Router).
+   * Khi thêm/sửa bảng CSV/INI, thay đổi quy chuẩn dữ liệu, schema, công thức chỉ số ngũ hành hoặc thứ tự nạp: bắt buộc đồng bộ vào **[DATA_CONVENTIONS_V2.md](file:///D:/Unity%20Project/test1/Assets/Settings/GameData/Docs/DATA_CONVENTIONS_V2.md)** (và các file module tương ứng trong `Conventions/`).
 
 ---
 
@@ -121,7 +124,7 @@ Assets/Scripts/
 │
 ├── Player/
 │   ├── CharacterMovement.cs           # Di chuyển camera-relative, xoay hướng nhân vật, áp dụng trọng lực
-│   ├── PlayerAiming.cs                # Smartcast ngắm chiêu, raycast chuột/gamepad, điều khiển Indicator VFX
+│   ├── PlayerAiming.cs                # Smartcast ngắm chiêu, raycast chuột/gamepad, Auto-Aim quái gần con trỏ, điều khiển Indicator VFX
 │   ├── PlayerCombat.cs                # Quản lý Slot kỹ năng (Q-E-R, Đánh thường), Cooldown, gọi SkillDamageResolver
 │   ├── PlayerController.cs            # FSM Runner người chơi, facade kết nối Movement-Combat-Aiming
 │   └── States/
