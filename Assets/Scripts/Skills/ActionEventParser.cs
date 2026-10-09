@@ -162,8 +162,11 @@ namespace TopDownGame.Skills
 
             if (!string.IsNullOrEmpty(path))
             {
-                if (string.IsNullOrEmpty(summary.effectPath)) summary.effectPath = path;
-                if (summary.slotId <= 0 && slot > 0) summary.slotId = slot;
+                if (string.IsNullOrEmpty(summary.effectPath))
+                {
+                    summary.effectPath = path;
+                    summary.slotId = slot;
+                }
 
                 summary.effectEvents.Add(new SkillEffectEvent
                 {

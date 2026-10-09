@@ -210,7 +210,10 @@ namespace TopDownGame.Player
         {
             if (skill != null && !skill.HasProjectile && !skill.IsHeal && !skill.targetSelf && skill.relation != TopDownGame.Skills.SkillRelation.Self && (string.IsNullOrEmpty(skill.skillStyle) || !skill.skillStyle.Equals("logic", System.StringComparison.OrdinalIgnoreCase)))
             {
-                EffectManager.Instance.PlaySkillEffect(skill, transform);
+                if (skill.effectEvents == null || skill.effectEvents.Count == 0)
+                {
+                    EffectManager.Instance.PlaySkillEffect(skill, transform);
+                }
             }
         }
 
