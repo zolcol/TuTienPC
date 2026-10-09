@@ -48,6 +48,10 @@
      [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
      private static void ResetStaticData() { /* Clear cache / instances */ }
      ```
+8. **Quy trình Kiểm Tra Biên Dịch Tự Động (Compilation Verification):**
+   * Sau khi tạo mới hoặc chỉnh sửa code C# (`.cs`), Agent chính phải gọi Subagent `unity_compiler_agent` (Model `flash`) để build bằng MSBuild:
+     `& "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" "..\test1.sln" -nologo -clp:ErrorsOnly`
+   * `unity_compiler_agent` tự sửa các lỗi cú pháp cơ bản. Nếu gặp lỗi logic phức tạp, Subagent sẽ báo cáo chi tiết để Agent chính xử lý.
 
 ---
 
