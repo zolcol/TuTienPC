@@ -23711,6 +23711,8 @@ MonoBehaviour:
   headAnimation: {fileID: 1869063447}
   moveCrossFadeTime: 0.15
   actionCrossFadeTime: 0.15
+  currentMountId: 0
+  currentWeaponVariant: 0
 --- !u!114 &2137775175
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23781,7 +23783,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   defaultNormalAttackId: 1
   npcResId: 2
-  skillSlotQ_Id: 306
+  skillSlotQ_Id: 6916
   skillSlotE_Id: 308
   skillSlotR_Id: 346
   noCooldown: 1
