@@ -19,6 +19,7 @@ Tên trong cột `Sound` là **Wwise Event Name**, còn file trích xuất trong
 | **Trúng đòn (Hit)** | `Play_{Phái}_{Chiêu}_Hit` | Khớp 1 trong 3 dạng:<br>&bull; `{Phái}_{Chiêu}_Hit.wav`<br>&bull; `{Phái}_{Chiêu}_Hit0x.wav`<br>&bull; `{Phái}_Hit_0x.wav` | `Play_Th_03_Hit` &rarr; `Th_03_Hit.wav`<br>`Play_Sl_01_Hit` &rarr; `Sl_01_Hit01.wav`, `Sl_01_Hit02.wav`<br>`Play_Em_01_Hit` &rarr; `Em_Hit_01.wav`, `Em_Hit_02.wav` |
 | **Bản cập nhật (Remake)** | `Play_{Phái}_...` | `{Phái}_..._new.wav` | `Play_Wd_01_01` &rarr; `Wd_01_01_new.wav` |
 | **Voice nhân vật (Lồng tiếng)** | *(Đi kèm trong bank)* | `{Phái}_Vo_{Mã}.wav` | `Em_Vo_00.wav`, `Sl_Vo_14a.wav` |
+| **Âm thanh theo Giới tính (Gender)** | `Play_{Mã}_{Female/Male}` | Phân rã 2 phần phát đồng thời:<br>&bull; **Base SFX:** `{Mã}.wav` (hoặc `a~f`)<br>&bull; **Voice:** `{Mã}_Vo{Female/Male}.wav` | `Play_DS_03_01_Female` &rarr;<br>1. Base: `DS_03_01.wav`<br>2. Voice: `DS_03_01_VoFemale.wav`<br>`Play_DS_02_01_Male` &rarr;<br>1. Base: `DS_02_01a/b.wav`<br>2. Voice: `DS_02_01_VoMale.wav` |
 
 ---
 

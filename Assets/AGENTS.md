@@ -41,7 +41,7 @@
 6. **Âm Thanh (Sound Mapping Rules):**
    * Quản lý qua `SoundManager.cs` (Pool 20 kênh AudioSource).
    * Tự động cắt tiền tố `Play_` từ Wwise Event để tìm AudioClip trong `Resources/Audio/{Bank}/{CleanEvent}`.
-   * Hỗ trợ cấu trúc Random Container: Hit (`{Phái}_{Chiêu}_Hit01`..`09`) và Voice (`{Phái}_Vo_{ID}a`..`e`).
+   * Hỗ trợ cấu trúc Random Container: Hit (`{Phái}_{Chiêu}_Hit01`..`09`), Voice (`{Phái}_Vo_{ID}a`..`e`), và phân rã Giới tính Gender (`Play_{Mã}_Female` $\rightarrow$ Base `{Mã}` + Voice `{Mã}_VoFemale`).
 7. **Quản lý Domain Reload (Editor Play Mode):**
    * Mọi class chứa biến `static` (Database cache, Pool, Singleton, Delegate) bắt buộc phải có hàm reset gắn cờ:
      ```csharp

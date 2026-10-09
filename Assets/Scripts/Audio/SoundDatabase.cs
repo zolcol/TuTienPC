@@ -112,6 +112,17 @@ namespace TopDownGame.Audio
                     {
                         soundsByEvent[data.CleanEventName] = data;
                     }
+                    if (data.HasGenderSuffix)
+                    {
+                        if (!string.IsNullOrEmpty(data.BaseEventName) && !soundsByEvent.ContainsKey(data.BaseEventName))
+                        {
+                            soundsByEvent[data.BaseEventName] = data;
+                        }
+                        if (!string.IsNullOrEmpty(data.VoiceEventName) && !soundsByEvent.ContainsKey(data.VoiceEventName))
+                        {
+                            soundsByEvent[data.VoiceEventName] = data;
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
