@@ -69,19 +69,22 @@ namespace TopDownGame.Skills
                 return false;
             }
 
+            int nextLevel = curLevel + 1;
+            var skill = SkillDatabase.GetSkill(skillId);
+            int reqSp = skill != null ? skill.GetSpCost(nextLevel) : 1;
+            int reqPlayerLevel = skill != null ? skill.GetRequiredPlayerLevel(nextLevel) : (curLevel * 2);
+
             if (playerStats == null)
             {
                 playerStats = GetComponent<PlayerStats>();
             }
 
-            if (playerStats != null && playerStats.SkillPoints < 1)
+            if (playerStats != null && playerStats.SkillPoints < reqSp)
             {
-                reason = "Không đủ Điểm Kỹ Năng (SP)";
+                reason = reqSp > 1 ? $"Không đủ Điểm Kỹ Năng (Cần {reqSp} SP)" : "Không đủ Điểm Kỹ Năng (SP)";
                 return false;
             }
 
-            // Yêu cầu cấp nhân vật tối thiểu: Cấp 1 -> cần lv 1, Cấp 2 -> cần lv 3, Cấp 3 -> cần lv 5, v.v.
-            int reqPlayerLevel = curLevel * 2;
             if (playerStats != null && playerStats.CurrentLevel < reqPlayerLevel)
             {
                 reason = $"Cần nhân vật đạt Cấp {reqPlayerLevel}";
@@ -98,15 +101,19 @@ namespace TopDownGame.Skills
         {
             if (!CanUpgradeSkill(skillId, out string _)) return false;
 
-            if (playerStats != null && !playerStats.ConsumeSkillPoint(1))
+            int curLevel = GetSkillLevel(skillId);
+            int nextLevel = curLevel + 1;
+            var skill = SkillDatabase.GetSkill(skillId);
+            int reqSp = skill != null ? skill.GetSpCost(nextLevel) : 1;
+
+            if (playerStats != null && !playerStats.ConsumeSkillPoint(reqSp))
             {
                 return false;
             }
 
-            int newLevel = GetSkillLevel(skillId) + 1;
-            skillLevels[skillId] = newLevel;
+            skillLevels[skillId] = nextLevel;
 
-            OnSkillUpgraded?.Invoke(skillId, newLevel);
+            OnSkillUpgraded?.Invoke(skillId, nextLevel);
             return true;
         }
 

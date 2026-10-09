@@ -499,6 +499,22 @@ namespace TopDownGame.Skills
                             }
                         }
 
+                        string reqPlayerLvStr = GetColRaw(tokens, colMap, "reqplayerlevel", 14);
+                        if (!string.IsNullOrEmpty(reqPlayerLvStr))
+                        {
+                            data.rawReqPlayerLevel = reqPlayerLvStr.Trim();
+                        }
+
+                        string spCostStr = GetColRaw(tokens, colMap, "spcost", 15);
+                        if (string.IsNullOrEmpty(spCostStr))
+                        {
+                            spCostStr = GetColRaw(tokens, colMap, "reqskillpoints", -1);
+                        }
+                        if (!string.IsNullOrEmpty(spCostStr))
+                        {
+                            data.rawSpCost = spCostStr.Trim();
+                        }
+
                         customSkills[skillId] = data;
 
                         if (baseSkillId > 0 && baseToCustomMap != null)
@@ -568,8 +584,9 @@ namespace TopDownGame.Skills
 
         private static string GetColRaw(string[] tokens, Dictionary<string, int> colMap, string key, int fallbackIndex)
         {
-            if (colMap.TryGetValue(key, out int idx) && idx < tokens.Length) return tokens[idx];
-            return fallbackIndex < tokens.Length ? tokens[fallbackIndex] : "";
+            if (tokens == null) return "";
+            if (colMap != null && colMap.TryGetValue(key, out int idx) && idx >= 0 && idx < tokens.Length) return tokens[idx];
+            return (fallbackIndex >= 0 && fallbackIndex < tokens.Length) ? tokens[fallbackIndex] : "";
         }
     }
 }

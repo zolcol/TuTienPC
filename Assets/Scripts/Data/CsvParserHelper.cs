@@ -149,5 +149,71 @@ namespace TopDownGame.Data
 
             return defaultVal;
         }
+
+        /// <summary>
+        /// Bóc tách giá trị nguyên rời rạc theo dạng bậc thang (Step / Tier).
+        /// Ví dụ format: "{1,1},{4,2}" -> targetLevel 1..3 trả về 1, targetLevel 4+ trả về 2.
+        /// </summary>
+        public static int ParseLevelStepInt(string raw, int targetLevel = 1, int defaultVal = 1)
+        {
+            if (string.IsNullOrEmpty(raw)) return defaultVal;
+
+            raw = raw.Trim().Trim('"');
+            if (string.IsNullOrEmpty(raw)) return defaultVal;
+
+            if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int simpleVal))
+            {
+                return simpleVal;
+            }
+
+            MatchCollection matches = LevelPairRegex.Matches(raw);
+            if (matches.Count > 0)
+            {
+                List<KeyValuePair<int, int>> points = new List<KeyValuePair<int, int>>(matches.Count);
+
+                foreach (Match m in matches)
+                {
+                    if (m.Groups.Count >= 3)
+                    {
+                        if (int.TryParse(m.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int lv) &&
+                            int.TryParse(m.Groups[2].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int val))
+                        {
+                            points.Add(new KeyValuePair<int, int>(lv, val));
+                        }
+                    }
+                }
+
+                if (points.Count == 0) return defaultVal;
+
+                points.Sort((a, b) => a.Key.CompareTo(b.Key));
+
+                int result = points[0].Value;
+                for (int i = 0; i < points.Count; i++)
+                {
+                    if (targetLevel >= points[i].Key)
+                    {
+                        result = points[i].Value;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                return result;
+            }
+
+            return defaultVal;
+        }
+
+        /// <summary>
+        /// Bóc tách giá trị nguyên có hỗ trợ nội suy tuyến tính (Linear Interpolation) làm tròn.
+        /// Ví dụ format: "{1,1},{3,5},{7,10}"
+        /// </summary>
+        public static int ParseLevelInt(string raw, int targetLevel = 1, int defaultVal = 1)
+        {
+            if (string.IsNullOrEmpty(raw)) return defaultVal;
+            float val = ParseLevelValue(raw, targetLevel, defaultVal);
+            return Mathf.RoundToInt(val);
+        }
     }
 }

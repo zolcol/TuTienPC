@@ -422,12 +422,15 @@ namespace TopDownGame.UI
 
             string reason = "Chưa kết nối dữ liệu";
             bool canUpgrade = player != null && player.SkillManager != null && player.SkillManager.CanUpgradeSkill(selectedSkill.id, out reason);
+            int nextLevel = currentLevel + 1;
+            int reqSp = selectedSkill.GetSpCost(nextLevel);
+            int reqLevel = selectedSkill.GetRequiredPlayerLevel(nextLevel);
+
             if (upgradeButton != null) upgradeButton.interactable = canUpgrade;
-            if (upgradeButtonText != null) upgradeButtonText.text = "+ NÂNG CẤP (1 SP)";
+            if (upgradeButtonText != null) upgradeButtonText.text = $"+ NÂNG CẤP ({reqSp} SP)";
 
             if (upgradeRequirementText != null)
             {
-                int reqLevel = currentLevel * 2;
                 upgradeRequirementText.text = canUpgrade ? $"<color=#81C784>Đủ điều kiện: Yêu cầu Nhân vật Cấp {reqLevel}</color>" : $"<color=#E57373>{reason}</color>";
             }
 

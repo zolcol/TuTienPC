@@ -166,6 +166,8 @@ namespace TopDownGame.Skills
         public string rawHealScale = "";
         public string rawManaCost = "";
         public string rawCooldown = "";
+        public string rawReqPlayerLevel = "";
+        public string rawSpCost = "";
         public bool canCancel = true;
         public bool notChangeActFrame = false; // 1 = Khóa cứng frame hoạt ảnh, KHÔNG bị tăng tốc bởi AttackSpeed (DATA_CONVENTIONS.md Mục 2 & 5)
         public float waitTime = 0f;
@@ -348,6 +350,21 @@ namespace TopDownGame.Skills
             return !string.IsNullOrEmpty(rawManaCost) 
                 ? TopDownGame.Data.CsvParserHelper.ParseLevelValue(rawManaCost, level, manaCost) 
                 : manaCost;
+        }
+
+        public int GetRequiredPlayerLevel(int targetSkillLevel)
+        {
+            int defaultReq = Mathf.Max(1, (targetSkillLevel - 1) * 2);
+            return !string.IsNullOrEmpty(rawReqPlayerLevel)
+                ? TopDownGame.Data.CsvParserHelper.ParseLevelInt(rawReqPlayerLevel, targetSkillLevel, defaultReq)
+                : defaultReq;
+        }
+
+        public int GetSpCost(int targetSkillLevel)
+        {
+            return !string.IsNullOrEmpty(rawSpCost)
+                ? TopDownGame.Data.CsvParserHelper.ParseLevelStepInt(rawSpCost, targetSkillLevel, 1)
+                : 1;
         }
 
         /// <summary>
